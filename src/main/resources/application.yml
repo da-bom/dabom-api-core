@@ -24,10 +24,16 @@ spring:
       hibernate:
         format_sql: true
 
+  jwt:
+    secret-key: 06ea6f4c33fe8d51a32087252ce84c08e059f556e1496666375eb9a797b1914f
+    token:
+      access-expiration-time: 720000000
+      refresh-expiration-time: 1209600000
+
   data:
     redis:
       host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
+      port: ${REDIS_PORT:6378}
 
   kafka:
     bootstrap-servers: ${KAFKA_HOST:localhost}:${KAFKA_PORT:9092}
