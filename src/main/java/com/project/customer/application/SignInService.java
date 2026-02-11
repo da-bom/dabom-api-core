@@ -29,6 +29,8 @@ public class SignInService {
             throw new IllegalArgumentException("Invalid phone number");
         }
 
+        customer.validatePassword(requestDto.password());
+
         Role role = familyMemberRepository.findRoleById(customer.getId());
 
         String accessToken = jwtTokenUtil.createToken(customer.getId(), role);

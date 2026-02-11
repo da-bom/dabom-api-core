@@ -24,4 +24,10 @@ public class CustomerJpaEntity extends BaseJpaEntity {
     public Long getId() {
         return id;
     }
+
+    public void validatePassword(String password) {
+        if (!password.equals(passwordHash)) {
+            throw new IllegalArgumentException("Invalid password");
+        }
+    }
 }
