@@ -1,0 +1,97 @@
+package com.project.customer.application;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+
+import javax.crypto.SecretKey;
+
+import jakarta.annotation.PostConstruct;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import com.project.customer.core.Role;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+
+import lombok.extern.slf4j.Slf4j;
+
+@Component
+@Slf4j
+public class JwtTokenUtil {
+
+    @Value("${spring.jwt.token.access-expiration-time}")
+    private Long accessExpirationMillis;
+
+    @Value("${spring.jwt.token.refresh-expiration-time}")
+    private Long refreshExpirationMillis;
+
+    @Value("${spring.jwt.secret-key}")
+    private String secretKey;
+
+    private SecretKey key;
+
+    @PostConstruct
+    public void initialize() {
+        this.key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public String createToken(Long memberId, Role role) {
+        return generateToken(memberId.toString(), role, accessExpirationMillis, "access");
+    }
+
+    public String createRefreshToken(Long memberId, Role role) {
+        return generateToken(memberId.toString(), role, refreshExpirationMillis, "refresh");
+    }
+
+    private String generateToken(String subject, Role role, Long expirationTime, String type) {
+        Date now = new Date();
+        Date expiration = new Date(now.getTime() + expirationTime);
+        try {
+            return Jwts.builder()
+                    .setSubject(subject)
+                    .claim("role", role.name())
+                    .setExpiration(expiration)
+                    .signWith(key)
+                    .compact();
+        } catch (JwtException e) {
+            throw new JwtException(String.format("%s 토큰 생성 중 오류가 발생했습니다.", type));
+        }
+    }
+
+    public Claims verify(String token) {
+        try {
+            Claims claims =
+                    Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
+            validateExpiredToken(claims);
+            return claims;
+        } catch (ExpiredJwtException e) {
+            throw new JwtException("유효기간이 만료된 토큰입니다");
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new JwtException("토큰을 담지 않았습니다");
+        }
+    }
+
+    private void validateExpiredToken(Claims claims) {
+        if (claims.getExpiration().before(new Date())) {
+            throw new JwtException("유효기간이 만료된 토큰입니다");
+        }
+    }
+
+    public Long getMemberId(String token) {
+        return Long.parseLong(verify(token).getSubject());
+    }
+
+    public Role getRole(String token) {
+        String roleStr = verify(token).get("role", String.class);
+        return Role.valueOf(roleStr);
+    }
+
+    public long getRefreshTokenExpirationMillis() {
+        return refreshExpirationMillis;
+    }
+}
