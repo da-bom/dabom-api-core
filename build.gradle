@@ -153,6 +153,12 @@ checkstyle {
     maxWarnings = 0
 }
 
+tasks.named("bootJar") {
+    dependsOn("spotlessApply")
+    dependsOn("checkstyleMain")
+    dependsOn("checkstyleTest")
+}
+
 // ============================================================================
 // Spotless (Code Formatting) - 4-space indentation, Naver import order
 // ============================================================================
