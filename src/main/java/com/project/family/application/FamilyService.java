@@ -1,11 +1,11 @@
 package com.project.family.application;
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.project.family.application.repository.FamilyQueryRepository;
+import com.project.family.web.dto.request.FamilySearchRequest;
 import com.project.family.web.dto.response.FamilyDetailResponse;
 import com.project.family.web.dto.response.FamilySearchResponse;
 import com.project.global.exception.ApplicationException;
@@ -21,8 +21,8 @@ public class FamilyService {
     private final FamilyQueryRepository familyQueryRepository;
 
     @Transactional(readOnly = true)
-    public Page<FamilySearchResponse> searchFamilies(String keyword, Pageable pageable) {
-        return familyQueryRepository.search(keyword, pageable);
+    public Page<FamilySearchResponse> searchFamilies(FamilySearchRequest familySearchRequest) {
+        return familyQueryRepository.search(familySearchRequest);
     }
 
     @Transactional(readOnly = true)
