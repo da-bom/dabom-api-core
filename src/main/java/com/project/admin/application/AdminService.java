@@ -7,6 +7,8 @@ import com.project.admin.core.Admin;
 import com.project.customer.core.Role;
 import com.project.customer.web.dto.response.SignInResponse;
 import com.project.global.auth.JwtTokenUtil;
+import com.project.global.exception.ApplicationException;
+import com.project.global.exception.code.AdminErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
@@ -20,7 +22,10 @@ public class AdminService {
         Admin admin =
                 adminQueryRepository
                         .findByEmail(email)
-                        .orElseThrow(() -> new IllegalArgumentException("Invalid email number"));
+                        .orElseThrow(
+                                () ->
+                                        new ApplicationException(
+                                                AdminErrorCode.ADMIN_SIGN_IN_FAILED));
 
         admin.validatePassword(password);
 

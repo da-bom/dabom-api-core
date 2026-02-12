@@ -12,6 +12,8 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import com.project.customer.core.Role;
 import com.project.global.auth.AuthorizationExtractor;
 import com.project.global.auth.JwtTokenUtil;
+import com.project.global.exception.ApplicationException;
+import com.project.global.exception.code.AdminErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
@@ -29,11 +31,19 @@ public class AdminOnlyAspect {
                         .getRequest();
 
         String token = AuthorizationExtractor.extract(request);
+        if (token == null || token.isBlank()) {
+            throw new ApplicationException(AdminErrorCode.ADMIN_UNAUTHORIZED);
+        }
 
-        Role role = jwtTokenUtil.getRole(token);
+        Role role;
+        try {
+            role = jwtTokenUtil.getRole(token);
+        } catch (RuntimeException e) {
+            throw new ApplicationException(AdminErrorCode.ADMIN_UNAUTHORIZED);
+        }
 
         if (role != Role.ADMIN) {
-            throw new IllegalArgumentException("관리자만 접근 가능합니다.");
+            throw new ApplicationException(AdminErrorCode.ADMIN_FORBIDDEN);
         }
 
         return joinPoint.proceed();
