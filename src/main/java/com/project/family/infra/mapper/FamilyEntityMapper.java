@@ -6,10 +6,7 @@ import com.project.family.infra.entity.FamilyJpaEntity;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-/**
- * Family 계층 간 변환 Mapper
- * - static 메서드로 구성하여 상태를 가지지 않음
- */
+/** Family 계층 간 변환 Mapper - static 메서드로 구성하여 상태를 가지지 않음 */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class FamilyEntityMapper {
 

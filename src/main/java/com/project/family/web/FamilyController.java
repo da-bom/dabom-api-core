@@ -1,6 +1,5 @@
 package com.project.family.web;
 
-import com.project.global.api.response.ApiResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -14,13 +13,11 @@ import org.springframework.web.bind.annotation.RestController;
 import com.project.family.application.FamilyService;
 import com.project.family.web.dto.response.FamilyDetailResponse;
 import com.project.family.web.dto.response.FamilySearchResponse;
+import com.project.global.api.response.ApiResponse;
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * 가족 그룹 웹 어댑터
- * - 모든 응답을 SuccessResponse로 감싸서 반환
- */
+/** 가족 그룹 웹 어댑터 - 모든 응답을 SuccessResponse로 감싸서 반환 */
 @RestController
 @RequestMapping("/families")
 @RequiredArgsConstructor
