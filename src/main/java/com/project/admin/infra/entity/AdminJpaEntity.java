@@ -8,27 +8,26 @@ import jakarta.persistence.Id;
 
 import com.project.customer.infra.entity.BaseJpaEntity;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
 @Entity
+@Getter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AdminJpaEntity extends BaseJpaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 11)
+    @Column(nullable = false, unique = true, length = 30)
     private String email;
 
     @Column private String name;
 
     @Column(nullable = false, length = 20)
     private String passwordHash;
-
-    public Long getId() {
-        return id;
-    }
-
-    public void validatePassword(String password) {
-        if (!password.equals(passwordHash)) {
-            throw new IllegalArgumentException("Invalid password");
-        }
-    }
 }
