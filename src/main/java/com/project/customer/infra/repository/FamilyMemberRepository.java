@@ -1,10 +1,10 @@
 package com.project.customer.infra.repository;
 
-import com.project.family.infra.entity.FamilyMemberJpaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import com.project.customer.core.Role;
+import com.project.family.infra.entity.FamilyMemberJpaEntity;
 
 public interface FamilyMemberRepository extends JpaRepository<FamilyMemberJpaEntity, Long> {
 
