@@ -9,8 +9,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import com.project.customer.application.AuthorizationExtractor;
-import com.project.customer.application.JwtTokenUtil;
+import com.project.global.auth.AuthorizationExtractor;
+import com.project.global.auth.JwtTokenUtil;
 import com.project.customer.core.Role;
 
 import lombok.RequiredArgsConstructor;
