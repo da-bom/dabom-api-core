@@ -1,5 +1,6 @@
-package com.project.customer.application;
+package com.project.customer.web;
 
+import com.project.customer.application.SignInService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,5 +23,6 @@ public class CustomerController {
     @GetMapping("/signin")
     public ApiResponse<SignInResponse> signIn(@RequestBody SignInRequest requestDto) {
         return ApiResponse.success(signInService.signIn(requestDto));
+
     }
 }
