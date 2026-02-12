@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
@@ -12,12 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.SQLRestriction;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
-import com.project.family.core.FamilyMemberRole;
+import com.project.customer.core.Role;
 
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -29,9 +23,6 @@ import lombok.NoArgsConstructor;
 @Table(name = "family_member")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@EntityListeners(AuditingEntityListener.class)
-@SQLDelete(sql = "UPDATE family_member SET deleted_at = NOW() WHERE id = ?")
-@SQLRestriction("deleted_at IS NULL")
 public class FamilyMemberJpaEntity {
 
     @Id
@@ -46,14 +37,13 @@ public class FamilyMemberJpaEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
-    private FamilyMemberRole role;
+    private Role role;
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
     @Builder
-    public FamilyMemberJpaEntity(
-            Long id, Long familyId, Long customerId, FamilyMemberRole role) {
+    public FamilyMemberJpaEntity(Long id, Long familyId, Long customerId, Role role) {
         this.id = id;
         this.familyId = familyId;
         this.customerId = customerId;
