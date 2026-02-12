@@ -1,6 +1,6 @@
 package com.project.family.core;
 
-import java.time.LocalDateTime;
+import com.project.customer.core.Role;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -12,9 +12,9 @@ public class FamilyMember {
     private final Long id;
     private final Long familyId;
     private final Long customerId;
-    private final FamilyMemberRole role;
+    private final Role role;
 
     public boolean isOwner() {
-        return FamilyMemberRole.OWNER.equals(this.role);
+        return Role.OWNER.equals(this.role);
     }
 }
