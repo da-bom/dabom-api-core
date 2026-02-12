@@ -2,13 +2,11 @@ package com.project.family.infra.mapper;
 
 import com.project.family.core.FamilyMember;
 import com.project.family.infra.entity.FamilyMemberJpaEntity;
+
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-/**
- * FamilyMember 계층 간 변환 Mapper
- * - static 메서드로 구성하여 상태를 가지지 않음
- */
+/** FamilyMember 계층 간 변환 Mapper - static 메서드로 구성하여 상태를 가지지 않음 */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class FamilyMemberEntityMapper {
 

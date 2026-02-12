@@ -9,15 +9,11 @@ import com.project.family.application.repository.FamilyQueryRepository;
 import com.project.family.web.dto.response.FamilyDetailResponse;
 import com.project.family.web.dto.response.FamilySearchResponse;
 import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.domain.GlobalErrorCode;
+import com.project.global.exception.code.GlobalErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * 가족 그룹 서비스
- * - 비즈니스 로직 판단은 Core 계층(Family)에 위임
- * - 여기서는 트랜잭션 관리와 흐름 제어만 담당
- */
+/** 가족 그룹 서비스 - 비즈니스 로직 판단은 Core 계층(Family)에 위임 - 여기서는 트랜잭션 관리와 흐름 제어만 담당 */
 @Service
 @RequiredArgsConstructor
 public class FamilyService {

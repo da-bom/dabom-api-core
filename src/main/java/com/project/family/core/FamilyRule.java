@@ -1,7 +1,7 @@
 package com.project.family.core;
 
 import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.domain.GlobalErrorCode;
+import com.project.global.exception.code.GlobalErrorCode;
 
 /** 가족 그룹 도메인 정책/규칙 (Policy) */
 public class FamilyRule {

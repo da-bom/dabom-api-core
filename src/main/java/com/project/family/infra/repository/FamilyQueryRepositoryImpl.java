@@ -1,9 +1,9 @@
 package com.project.family.infra.repository;
 
 import static com.project.customer.infra.entity.QCustomerJpaEntity.customerJpaEntity;
+import static com.project.customer.infra.entity.QCustomerQuotaJpaEntity.customerQuotaJpaEntity;
 import static com.project.family.infra.entity.QFamilyJpaEntity.familyJpaEntity;
 import static com.project.family.infra.entity.QFamilyMemberJpaEntity.familyMemberJpaEntity;
-import static com.project.quota.infra.entity.QCustomerQuotaJpaEntity.customerQuotaJpaEntity;
 
 import java.util.Collections;
 import java.util.List;
@@ -11,13 +11,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import com.project.family.infra.entity.FamilyJpaEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import com.project.family.application.repository.FamilyQueryRepository;
+import com.project.family.infra.entity.FamilyJpaEntity;
 import com.project.family.web.dto.response.FamilyDetailResponse;
 import com.project.family.web.dto.response.FamilyMemberDetailResponse;
 import com.project.family.web.dto.response.FamilyMemberSimpleResponse;
@@ -87,7 +87,9 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
                         .where(familyJpaEntity.id.eq(familyId))
                         .fetchOne();
 
-        if (family == null) return Optional.empty();
+        if (family == null) {
+            return Optional.empty();
+        }
 
         List<Tuple> results =
                 queryFactory
@@ -150,7 +152,9 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
 
     // 📌 Helper Methods for BooleanExpression
     private BooleanExpression searchKeywordContains(String keyword) {
-        if (keyword == null || keyword.isBlank()) return null;
+        if (keyword == null || keyword.isBlank()) {
+            return null;
+        }
         return familyNameContains(keyword).or(memberInfoContains(keyword));
     }
 
@@ -172,7 +176,9 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
     }
 
     private Map<Long, List<FamilyMemberSimpleResponse>> fetchMembersMap(List<Long> familyIds) {
-        if (familyIds.isEmpty()) return Collections.emptyMap();
+        if (familyIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
 
         List<Tuple> results =
                 queryFactory

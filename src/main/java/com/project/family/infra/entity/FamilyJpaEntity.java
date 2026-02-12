@@ -9,27 +9,19 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.SQLRestriction;
-
-import com.project.global.BaseEntity;
+import com.project.customer.infra.entity.BaseJpaEntity;
 
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * 가족 JPA 엔티티
- * - DB 매핑 전용: 도메인 로직 없음
- */
+/** 가족 JPA 엔티티 - DB 매핑 전용: 도메인 로직 없음 */
 @Entity
 @Table(name = "family")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SQLDelete(sql = "UPDATE family SET deleted_at = NOW() WHERE id = ?")
-@SQLRestriction("deleted_at IS NULL")
-public class FamilyJpaEntity extends BaseEntity {
+public class FamilyJpaEntity extends BaseJpaEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

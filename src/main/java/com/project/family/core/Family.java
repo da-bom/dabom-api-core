@@ -7,11 +7,7 @@ import java.util.List;
 import lombok.Builder;
 import lombok.Getter;
 
-/**
- * Family 도메인 엔티티 (Aggregate Root)
- * - 순수 POJO: JPA 어노테이션 없음
- * - 비즈니스 로직 응집: 상태 변경은 메서드로만 수행
- */
+/** Family 도메인 엔티티 (Aggregate Root) - 순수 POJO: JPA 어노테이션 없음 - 비즈니스 로직 응집: 상태 변경은 메서드로만 수행 */
 @Getter
 public class Family {
 
@@ -41,9 +37,7 @@ public class Family {
         this.members = members != null ? members : new ArrayList<>();
     }
 
-    /**
-     * 사용률 계산 비즈니스 로직
-     */
+    /** 사용률 계산 비즈니스 로직 */
     public double calculateUsedPercent() {
         if (totalQuotaBytes == null || totalQuotaBytes == 0) {
             return 0.0;
@@ -51,9 +45,7 @@ public class Family {
         return (double) usedBytes / totalQuotaBytes * 100.0;
     }
 
-    /**
-     * 쿼터 수정 비즈니스 메서드
-     */
+    /** 쿼터 수정 비즈니스 메서드 */
     public Family updateQuota(Long newTotalQuota) {
         FamilyRule.validateQuota(newTotalQuota);
         return Family.builder()
