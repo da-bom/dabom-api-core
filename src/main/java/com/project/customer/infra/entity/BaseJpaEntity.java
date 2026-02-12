@@ -4,7 +4,10 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.MappedSuperclass;
 
+import lombok.Getter;
+
 @MappedSuperclass
+@Getter
 public class BaseJpaEntity {
     private LocalDateTime createdAt;
 
