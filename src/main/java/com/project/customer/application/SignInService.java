@@ -8,6 +8,7 @@ import com.project.customer.infra.repository.CustomerJpaEntityRepository;
 import com.project.customer.web.dto.request.SignInRequest;
 import com.project.customer.web.dto.response.SignInResponse;
 import com.project.family.infra.repository.JpaFamilyMemberRepository;
+import com.project.global.auth.JwtTokenUtil;
 
 import lombok.RequiredArgsConstructor;
 

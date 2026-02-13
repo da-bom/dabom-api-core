@@ -9,9 +9,9 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import com.project.customer.application.JwtTokenUtil;
-import com.project.customer.application.LoginInterceptor;
 import com.project.customer.web.aop.CustomerArgumentResolver;
+import com.project.global.auth.JwtTokenUtil;
+import com.project.global.auth.LoginInterceptor;
 
 import lombok.RequiredArgsConstructor;
 
@@ -35,7 +35,8 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(final InterceptorRegistry registry) {
-        registry.addInterceptor(new LoginInterceptor(jwtTokenUtil)).excludePathPatterns("/auth/**");
+        registry.addInterceptor(new LoginInterceptor(jwtTokenUtil))
+                .excludePathPatterns("/auth/**", "/admin/auth/login");
     }
 
     @Override

@@ -1,4 +1,4 @@
-package com.project.customer.application;
+package com.project.global.auth;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
