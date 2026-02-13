@@ -24,7 +24,7 @@ import com.project.family.web.dto.response.FamilyMemberDetailResponse;
 import com.project.family.web.dto.response.FamilyMemberSimpleResponse;
 import com.project.family.web.dto.response.FamilySearchResponse;
 import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.GlobalErrorCode;
+import com.project.global.exception.code.FamilyErrorCode;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
@@ -312,6 +312,6 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
     }
 
     private ApplicationException invalidInput() {
-        return new ApplicationException(GlobalErrorCode.INVALID_INPUT_VALUE);
+        return new ApplicationException(FamilyErrorCode.FAMILY_INVALID_SEARCH_CONDITION);
     }
 }
