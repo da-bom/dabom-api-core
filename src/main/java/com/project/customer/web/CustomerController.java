@@ -1,10 +1,11 @@
-package com.project.customer.application;
+package com.project.customer.web;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.project.customer.application.SignInService;
 import com.project.customer.web.dto.request.SignInRequest;
 import com.project.customer.web.dto.response.SignInResponse;
 import com.project.global.api.response.ApiResponse;

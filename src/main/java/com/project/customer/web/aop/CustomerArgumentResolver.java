@@ -8,8 +8,8 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
-import com.project.customer.application.AuthorizationExtractor;
-import com.project.customer.application.JwtTokenUtil;
+import com.project.global.auth.AuthorizationExtractor;
+import com.project.global.auth.JwtTokenUtil;
 
 import lombok.RequiredArgsConstructor;
 
