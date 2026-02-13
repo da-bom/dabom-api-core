@@ -23,6 +23,6 @@ public record FamilySearchRequest(
     }
 
     public int getSize() {
-        return (size != null) ? size : 20;
+        return (size != null) ? Math.min(size, 100) : 20;
     }
 }
