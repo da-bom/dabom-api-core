@@ -24,6 +24,7 @@ public class AdminController {
     /** 로그인 */
     @GetMapping("/auth/login")
     public ApiResponse<SignInResponse> signIn(@Valid @RequestBody SignInRequest signInRequest) {
-        return ApiResponse.success(adminService.signIn(signInRequest.email(), signInRequest.password()));
+        return ApiResponse.success(
+                adminService.signIn(signInRequest.email(), signInRequest.password()));
     }
 }

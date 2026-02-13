@@ -10,7 +10,8 @@ import com.project.admin.infra.entity.AdminJpaEntity;
 public class AdminEntityMapper {
 
     public Admin toDomain(AdminJpaEntity entity) {
-        return Admin.withId(entity.getId(), entity.getEmail(), entity.getName(), entity.getPasswordHash());
+        return Admin.withId(
+                entity.getId(), entity.getEmail(), entity.getName(), entity.getPasswordHash());
     }
 
     public AdminJpaEntity toEntity(Admin admin) {
