@@ -95,7 +95,9 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
                         .where(familyJpaEntity.id.eq(familyId))
                         .fetchOne();
 
-        if (family == null){ return Optional.empty();}
+        if (family == null) {
+            return Optional.empty();
+        }
 
         List<Tuple> results =
                 queryFactory
@@ -158,7 +160,9 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
 
     /** 구성원 이름 필터 (서브쿼리) */
     private BooleanExpression createMemberNameFilter(FamilySearchRequest.StringCondition cond) {
-        if (cond == null || cond.value() == null || cond.operator() == null){ return null;}
+        if (cond == null || cond.value() == null || cond.operator() == null) {
+            return null;
+        }
 
         BooleanExpression customerMatch =
                 switch (cond.operator()) {
@@ -167,7 +171,9 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
                     default -> null;
                 };
 
-        if (customerMatch == null){ return null;}
+        if (customerMatch == null) {
+            return null;
+        }
 
         return familyJpaEntity.id.in(
                 JPAExpressions.select(familyMemberJpaEntity.familyId)
@@ -179,7 +185,9 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
 
     /** 구성원 전화번호 필터 (서브쿼리) */
     private BooleanExpression createMemberPhoneFilter(FamilySearchRequest.StringCondition cond) {
-        if (cond == null || cond.value() == null || cond.operator() == null){ return null;}
+        if (cond == null || cond.value() == null || cond.operator() == null) {
+            return null;
+        }
 
         BooleanExpression customerMatch =
                 switch (cond.operator()) {
@@ -188,7 +196,9 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
                     default -> null;
                 };
 
-        if (customerMatch == null){ return null;}
+        if (customerMatch == null) {
+            return null;
+        }
 
         return familyJpaEntity.id.in(
                 JPAExpressions.select(familyMemberJpaEntity.familyId)
@@ -200,7 +210,9 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
 
     /** 사용률 범위 필터 */
     private BooleanExpression createUsageRateFilter(FamilySearchRequest.RangeCondition cond) {
-        if (cond == null || cond.operator() == null){ return null;}
+        if (cond == null || cond.operator() == null) {
+            return null;
+        }
 
         NumberExpression<Double> usageRate =
                 familyJpaEntity
@@ -210,10 +222,15 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
                         .multiply(100.0);
 
         if ("between".equals(cond.operator())) {
-            if (cond.min() != null && cond.max() != null)
+            if (cond.min() != null && cond.max() != null) {
                 return usageRate.between(cond.min(), cond.max());
-            if (cond.min() != null) return usageRate.goe(cond.min());
-            if (cond.max() != null) return usageRate.loe(cond.max());
+            }
+            if (cond.min() != null) {
+                return usageRate.goe(cond.min());
+            }
+            if (cond.max() != null) {
+                return usageRate.loe(cond.max());
+            }
         }
         return null;
     }
@@ -242,7 +259,9 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
     }
 
     private Map<Long, List<FamilyMemberSimpleResponse>> fetchMembersMap(List<Long> familyIds) {
-        if (familyIds.isEmpty()){ return Collections.emptyMap();}
+        if (familyIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
 
         List<Tuple> results =
                 queryFactory

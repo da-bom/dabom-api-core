@@ -16,10 +16,7 @@ public record FamilySearchRequest(
             Double min,
             Double max) {}
 
-    public record SortCondition(
-            String field, // "usageRate", "createdAt"
-            String direction // "ASC", "DESC"
-            ) {}
+    public record SortCondition(String field, String direction) {}
 
     public int getPage() {
         return (page != null) ? page : 0;
