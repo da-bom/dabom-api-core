@@ -20,11 +20,12 @@ public class PolicyService {
 
     private final PolicyCommandRepository policyCommandRepository;
     private final PolicyQueryRepository policyQueryRepository;
+    private final com.project.family.infra.repository.JpaFamilyMemberRepository
+            jpaFamilyMemberRepository;
 
     /** customerId가 속한 가족의 모든 정책 조회 */
     @Transactional(readOnly = true)
     public FamilyPolicyResponse getFamilyPolicyResponse(Long customerId) {
-
         // QueryDSL로 데이터 조회
         List<FamilyPolicyDto> flatList =
                 policyQueryRepository.findAllFamilyPoliciesByCustomerId(customerId);
@@ -40,6 +41,13 @@ public class PolicyService {
             String newRules,
             Boolean isActive,
             Long actorId) {
+
+        // 1. 요청자(Actor) 권한 검증
+        com.project.customer.core.Role actorRole = jpaFamilyMemberRepository.findRoleById(actorId);
+        if (actorRole != com.project.customer.core.Role.OWNER) {
+            throw new IllegalArgumentException("가족장만 접근 가능합니다.");
+        }
+
         Long familyId =
                 policyQueryRepository
                         .findFamilyIdByTargetCustomerId(actorId)
