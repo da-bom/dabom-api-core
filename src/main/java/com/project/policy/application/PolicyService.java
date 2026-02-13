@@ -2,6 +2,7 @@ package com.project.policy.application;
 
 import java.util.List;
 
+import com.project.customer.core.Role;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,8 +44,8 @@ public class PolicyService {
             Long actorId) {
 
         // 1. 요청자(Actor) 권한 검증
-        com.project.customer.core.Role actorRole = jpaFamilyMemberRepository.findRoleById(actorId);
-        if (actorRole != com.project.customer.core.Role.OWNER) {
+        Role actorRole = jpaFamilyMemberRepository.findRoleById(actorId);
+        if (actorRole != Role.OWNER) {
             throw new IllegalArgumentException("가족장만 접근 가능합니다.");
         }
 
