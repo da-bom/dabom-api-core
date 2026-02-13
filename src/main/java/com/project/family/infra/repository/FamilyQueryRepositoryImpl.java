@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import com.querydsl.core.types.dsl.Expressions;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -214,12 +215,7 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
             return null;
         }
 
-        NumberExpression<Double> usageRate =
-                familyJpaEntity
-                        .usedBytes
-                        .doubleValue()
-                        .divide(familyJpaEntity.totalQuotaBytes)
-                        .multiply(100.0);
+        NumberExpression<Double> usageRate = usageRateExpression();
 
         if ("between".equals(cond.operator())) {
             if (cond.min() != null && cond.max() != null) {
@@ -244,15 +240,7 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
         Order order = "DESC".equalsIgnoreCase(sort.direction()) ? Order.DESC : Order.ASC;
 
         return switch (sort.field()) {
-            case "usageRate" -> {
-                NumberExpression<Double> rate =
-                        familyJpaEntity
-                                .usedBytes
-                                .doubleValue()
-                                .divide(familyJpaEntity.totalQuotaBytes)
-                                .multiply(100.0);
-                yield new OrderSpecifier<>(order, rate);
-            }
+            case "usageRate" -> new OrderSpecifier<>(order, usageRateExpression());
             case "createdAt" -> new OrderSpecifier<>(order, familyJpaEntity.createdAt);
             default -> new OrderSpecifier<>(Order.DESC, familyJpaEntity.id);
         };
@@ -285,5 +273,14 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
                                                         t.get(customerJpaEntity.id),
                                                         t.get(customerJpaEntity.name)),
                                         Collectors.toList())));
+    }
+
+    private NumberExpression<Double> usageRateExpression() {
+        return Expressions.numberTemplate(
+                Double.class,
+                "case when {0} = 0 then 0.0 else ({1} * 100.0 / {0}) end",
+                familyJpaEntity.totalQuotaBytes,
+                familyJpaEntity.usedBytes
+        );
     }
 }
