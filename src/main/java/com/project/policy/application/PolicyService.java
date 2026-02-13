@@ -2,10 +2,10 @@ package com.project.policy.application;
 
 import java.util.List;
 
-import com.project.customer.core.Role;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.project.customer.core.Role;
 import com.project.policy.application.dto.FamilyPolicyDto;
 import com.project.policy.application.repository.PolicyCommandRepository;
 import com.project.policy.application.repository.PolicyQueryRepository;
