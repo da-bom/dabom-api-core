@@ -29,4 +29,18 @@ public class PolicyAssignment {
         }
         this.isActive = active;
     }
+
+    public void update(String newRules, Boolean isActive, Long actorId) {
+        if (newRules != null) {
+            this.rules = newRules;
+        }
+        if (isActive != null) {
+            boolean newActiveState = isActive;
+            if (newActiveState && !this.isActive) {
+                this.appliedAt = LocalDateTime.now();
+                this.appliedById = actorId;
+            }
+            this.isActive = newActiveState;
+        }
+    }
 }

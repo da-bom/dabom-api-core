@@ -50,12 +50,9 @@ public class PolicyService {
                 policyQueryRepository
                         .findByTargetAndType(familyId, targetCustomerId, type)
                         .orElseThrow(() -> new IllegalArgumentException("해당 정책이 존재하지 않습니다."));
-        if (newRules != null) {
-            assignment.updateRules(newRules);
-        }
-        if (isActive != null) {
-            assignment.toggleActive(isActive, actorId);
-        }
+
+        assignment.update(newRules, isActive, actorId);
+
         policyCommandRepository.save(assignment);
     }
 }
