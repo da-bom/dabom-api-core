@@ -18,29 +18,17 @@ public class PolicyAssignment {
     private Long appliedById;
     private LocalDateTime deletedAt;
 
-    public void updateRules(String newRules) {
-        this.rules = newRules;
-    }
-
-    public void toggleActive(boolean active, Long actorId) {
-        if (active && !this.isActive) {
-            this.appliedAt = LocalDateTime.now();
-            this.appliedById = actorId;
-        }
-        this.isActive = active;
-    }
-
     public void update(String newRules, Boolean isActive, Long actorId) {
         if (newRules != null) {
             this.rules = newRules;
         }
         if (isActive != null) {
-            boolean newActiveState = isActive;
-            if (newActiveState && !this.isActive) {
+            boolean previousActiveState = this.isActive;
+            this.isActive = isActive;
+
+            if (isActive && !previousActiveState) {
                 this.appliedAt = LocalDateTime.now();
                 this.appliedById = actorId;
             }
-            this.isActive = newActiveState;
         }
-    }
 }
