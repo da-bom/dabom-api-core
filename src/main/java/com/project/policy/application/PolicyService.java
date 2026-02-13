@@ -37,7 +37,6 @@ public class PolicyService {
     /** 특정 멤버의 특정 타입 정책 수정 */
     @Transactional
     public void updateMemberPolicy(
-            Long ignoredFamilyId,
             Long targetCustomerId,
             PolicyType type,
             String newRules,

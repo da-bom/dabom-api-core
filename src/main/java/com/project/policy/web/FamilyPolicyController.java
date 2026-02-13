@@ -49,7 +49,6 @@ public class FamilyPolicyController {
                 : null;
 
         policyService.updateMemberPolicy(
-                null,
                 updateInfo.customerId(),
                 updateInfo.type(),
                 rulesJson,
