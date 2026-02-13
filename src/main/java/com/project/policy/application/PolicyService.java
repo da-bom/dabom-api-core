@@ -21,7 +21,6 @@ public class PolicyService {
 
     private final PolicyCommandRepository policyCommandRepository;
     private final PolicyQueryRepository policyQueryRepository;
-    private final ObjectMapper objectMapper;
 
     /** customerId가 속한 가족의 모든 정책 조회 */
     @Transactional(readOnly = true)
