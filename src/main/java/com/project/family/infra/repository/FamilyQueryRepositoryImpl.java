@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import com.querydsl.core.types.dsl.Expressions;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -24,10 +23,13 @@ import com.project.family.web.dto.response.FamilyDetailResponse;
 import com.project.family.web.dto.response.FamilyMemberDetailResponse;
 import com.project.family.web.dto.response.FamilyMemberSimpleResponse;
 import com.project.family.web.dto.response.FamilySearchResponse;
+import com.project.global.exception.ApplicationException;
+import com.project.global.exception.code.GlobalErrorCode;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -169,7 +171,7 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
                 switch (cond.operator()) {
                     case "contains" -> customerJpaEntity.name.contains(cond.value());
                     case "eq" -> customerJpaEntity.name.eq(cond.value());
-                    default -> null;
+                    default -> throw invalidInput();
                 };
 
         if (customerMatch == null) {
@@ -194,7 +196,7 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
                 switch (cond.operator()) {
                     case "contains" -> customerJpaEntity.phoneNumber.contains(cond.value());
                     case "eq" -> customerJpaEntity.phoneNumber.eq(cond.value());
-                    default -> null;
+                    default -> throw invalidInput();
                 };
 
         if (customerMatch == null) {
@@ -211,24 +213,26 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
 
     /** 사용률 범위 필터 */
     private BooleanExpression createUsageRateFilter(FamilySearchRequest.RangeCondition cond) {
-        if (cond == null || cond.operator() == null) {
+        if (cond == null) {
             return null;
+        }
+
+        if (cond.operator() == null || !"between".equalsIgnoreCase(cond.operator())) {
+            throw invalidInput();
+        }
+        if (cond.min() == null && cond.max() == null) {
+            throw invalidInput();
         }
 
         NumberExpression<Double> usageRate = usageRateExpression();
 
-        if ("between".equals(cond.operator())) {
-            if (cond.min() != null && cond.max() != null) {
-                return usageRate.between(cond.min(), cond.max());
-            }
-            if (cond.min() != null) {
-                return usageRate.goe(cond.min());
-            }
-            if (cond.max() != null) {
-                return usageRate.loe(cond.max());
-            }
+        if (cond.min() != null && cond.max() != null) {
+            return usageRate.between(cond.min(), cond.max());
         }
-        return null;
+        if (cond.min() != null) {
+            return usageRate.goe(cond.min());
+        }
+        return usageRate.loe(cond.max());
     }
 
     private OrderSpecifier<?> getSortOrder(List<FamilySearchRequest.SortCondition> sorts) {
@@ -237,12 +241,22 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
         }
 
         FamilySearchRequest.SortCondition sort = sorts.getFirst();
-        Order order = "DESC".equalsIgnoreCase(sort.direction()) ? Order.DESC : Order.ASC;
+
+        if (sort.field() == null || sort.direction() == null) {
+            throw invalidInput();
+        }
+
+        Order order =
+                switch (sort.direction().toUpperCase()) {
+                    case "ASC" -> Order.ASC;
+                    case "DESC" -> Order.DESC;
+                    default -> throw invalidInput();
+                };
 
         return switch (sort.field()) {
             case "usageRate" -> new OrderSpecifier<>(order, usageRateExpression());
             case "createdAt" -> new OrderSpecifier<>(order, familyJpaEntity.createdAt);
-            default -> new OrderSpecifier<>(Order.DESC, familyJpaEntity.id);
+            default -> throw invalidInput();
         };
     }
 
@@ -280,7 +294,24 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
                 Double.class,
                 "case when {0} = 0 then 0.0 else ({1} * 100.0 / {0}) end",
                 familyJpaEntity.totalQuotaBytes,
-                familyJpaEntity.usedBytes
-        );
+                familyJpaEntity.usedBytes);
+    }
+
+    private void validateStringCondition(FamilySearchRequest.StringCondition cond) {
+        if (cond.operator() == null || cond.operator().isBlank()) {
+            throw invalidInput();
+        }
+        if (cond.value() == null || cond.value().isBlank()) {
+            throw invalidInput();
+        }
+
+        String op = cond.operator().toLowerCase();
+        if (!"contains".equals(op) && !"eq".equals(op)) {
+            throw invalidInput();
+        }
+    }
+
+    private ApplicationException invalidInput() {
+        return new ApplicationException(GlobalErrorCode.INVALID_INPUT_VALUE);
     }
 }
