@@ -5,7 +5,6 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.policy.application.dto.FamilyPolicyDto;
 import com.project.policy.application.repository.PolicyCommandRepository;
 import com.project.policy.application.repository.PolicyQueryRepository;

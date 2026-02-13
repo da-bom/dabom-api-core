@@ -9,16 +9,15 @@ import com.project.policy.application.dto.FamilyPolicyDto;
 import com.project.policy.core.PolicyType;
 
 public record FamilyPolicyResponse(Long familyId, List<CustomerInfo> customers) {
-    // Flat DTO -> 계층형 응답 변환 팩토리 메서드
     public static FamilyPolicyResponse from(List<FamilyPolicyDto> dtos) {
         if (dtos == null || dtos.isEmpty()) {
             return new FamilyPolicyResponse(null, List.of());
         }
 
-        Long familyId = dtos.get(0).getFamilyId();
+        Long familyId = dtos.get(0).familyId();
 
         Map<Long, List<FamilyPolicyDto>> grouped =
-                dtos.stream().collect(Collectors.groupingBy(FamilyPolicyDto::getCustomerId));
+                dtos.stream().collect(Collectors.groupingBy(FamilyPolicyDto::customerId));
 
         List<CustomerInfo> customerInfos =
                 grouped.values().stream()
@@ -28,16 +27,16 @@ public record FamilyPolicyResponse(Long familyId, List<CustomerInfo> customers) 
 
                                     List<PolicyInfo> policies =
                                             list.stream()
-                                                    .filter(dto -> dto.getAssignmentId() != null)
+                                                    .filter(dto -> dto.assignmentId() != null)
                                                     .map(PolicyInfo::from)
                                                     .toList();
 
                                     return new CustomerInfo(
-                                            first.getCustomerId(),
-                                            first.getCustomerName(),
-                                            first.getPhoneNumber(),
-                                            first.getRole(),
-                                            0L, // 사용량 정보
+                                            first.customerId(),
+                                            first.customerName(),
+                                            first.phoneNumber(),
+                                            first.role(),
+                                            0L,
                                             policies);
                                 })
                         .toList();
@@ -62,12 +61,12 @@ public record FamilyPolicyResponse(Long familyId, List<CustomerInfo> customers) 
             @JsonRawValue String rules) {
         public static PolicyInfo from(FamilyPolicyDto dto) {
             return new PolicyInfo(
-                    dto.getAssignmentId(),
-                    dto.getPolicyId(),
-                    dto.getPolicyName(),
-                    dto.getType(),
+                    dto.assignmentId(),
+                    dto.policyId(),
+                    dto.policyName(),
+                    dto.type(),
                     dto.isActive(),
-                    dto.getRules());
+                    dto.rules());
         }
     }
 }

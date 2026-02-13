@@ -26,27 +26,24 @@ public class FamilyPolicyController {
     private final PolicyService policyService;
     private final ObjectMapper objectMapper;
 
-    /**
-     * 가족 구성원에게 적용되고 있는 정책 목록 조회
-     */
+    /** 가족 구성원에게 적용되고 있는 정책 목록 조회 */
     @GetMapping
     public ApiResponse<FamilyPolicyResponse> getFamilyPolicies(@CustomerId Long customerId) {
         FamilyPolicyResponse response = policyService.getFamilyPolicyResponse(customerId);
         return ApiResponse.success(response);
     }
 
-    /**
-     * 가족 구성원의 정책 부분 수정
-     */
+    /** 가족 구성원의 정책 부분 수정 */
     @PatchMapping
     public ApiResponse<PolicyUpdateResponse> updatePolicy(
             @CustomerId Long actorId, @RequestBody @Valid PolicyUpdateRequest request)
             throws JsonProcessingException {
 
         var updateInfo = request.update();
-        String rulesJson = (updateInfo.rules() != null)
-                ? objectMapper.writeValueAsString(updateInfo.rules())
-                : null;
+        String rulesJson =
+                (updateInfo.rules() != null)
+                        ? objectMapper.writeValueAsString(updateInfo.rules())
+                        : null;
 
         policyService.updateMemberPolicy(
                 updateInfo.customerId(),

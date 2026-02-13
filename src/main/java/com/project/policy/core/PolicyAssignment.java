@@ -31,4 +31,5 @@ public class PolicyAssignment {
                 this.appliedById = actorId;
             }
         }
+    }
 }
