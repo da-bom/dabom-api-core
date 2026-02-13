@@ -8,6 +8,6 @@ import com.project.family.infra.entity.FamilyMemberJpaEntity;
 
 public interface FamilyMemberRepository extends JpaRepository<FamilyMemberJpaEntity, Long> {
 
-    @Query("select f.role from FamilyMemberJpaEntity f where f.id = :id")
-    Role findRoleById(Long id);
+    @Query("select f.role from FamilyMemberJpaEntity f where f.customerId = :customerId")
+    Role findRoleById(Long customerId);
 }
