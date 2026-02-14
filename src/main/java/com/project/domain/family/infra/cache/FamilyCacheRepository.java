@@ -59,8 +59,8 @@ public class FamilyCacheRepository {
         return findLongValue(key);
     }
 
-    public Optional<Long> findUserMonthlyUsageBytes(Long familyId, Long userId) {
-        String key = redisKeyGenerator.generateFamilyUserMonthlyUsageKey(familyId, userId);
+    public Optional<Long> findCustomerMonthlyUsageBytes(Long familyId, Long customerId) {
+        String key = redisKeyGenerator.generateFamilyCustomerMonthlyUsageKey(familyId, customerId);
         return findLongValue(key);
     }
 
