@@ -73,8 +73,6 @@ public class FamilyServiceImpl implements FamilyService {
 
         Long finalUsedBytes =
                 customers.stream()
-        Long finalUsedBytes =
-                customers.stream()
                         .map(FamilyMemberDetailResponse::monthlyUsedBytes)
                         .filter(monthlyUsedBytes -> monthlyUsedBytes != null && monthlyUsedBytes > 0)
                         .mapToLong(Long::longValue)
