@@ -31,7 +31,7 @@ public class PolicyController {
 
     @GetMapping("/{policyId}")
     @AdminOnly
-    @Parameters({@Parameter(name = "policyId", description = "Policy ID", required = true)})
+    @Parameter(name = "policyId", description = "Policy ID", required = true)
     public ApiResponse<PolicyResponse.Detail> getPolicyDetail(@PathVariable Long policyId) {
         Policy policy = policyService.getPolicyDetail(policyId);
         return ApiResponse.success(PolicyResponse.Detail.from(policy));
@@ -55,7 +55,7 @@ public class PolicyController {
 
     @PutMapping("/{policyId}")
     @AdminOnly
-    @Parameters({@Parameter(name = "policyId", description = "Policy ID", required = true)})
+    @Parameter(name = "policyId", description = "Policy ID", required = true)
     public ApiResponse<PolicyResponse.Updated> updatePolicy(
             @PathVariable Long policyId, @RequestBody PolicyRequest.Update policyRequest) {
         Policy policy = policyService.updatePolicy(policyId, policyRequest);
