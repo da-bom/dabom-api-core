@@ -23,6 +23,7 @@ import com.project.domain.example.dto.request.CreateExampleRequest;
 import com.project.domain.example.dto.request.UpdateExampleRequest;
 import com.project.domain.example.entity.Example;
 import com.project.domain.example.service.ExampleService;
+import com.project.global.auth.JwtTokenUtil;
 
 @WebMvcTest(ExampleController.class)
 class ExampleControllerTest {
@@ -32,6 +33,8 @@ class ExampleControllerTest {
     @Autowired private ObjectMapper objectMapper;
 
     @MockitoBean private ExampleService exampleService;
+
+    @MockitoBean private JwtTokenUtil jwtTokenUtil;
 
     @Test
     @WithMockUser
