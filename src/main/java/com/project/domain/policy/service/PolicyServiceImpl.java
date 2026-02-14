@@ -40,11 +40,16 @@ public class PolicyServiceImpl implements PolicyService {
     @Transactional
     public PolicyResponse.Updated updatePolicy(
             Long policyId, PolicyRequest.Update updatePolicyRequest) {
+
         Policy policy =
                 policyRepository
                         .findById(policyId)
                         .orElseThrow(
                                 () -> new ApplicationException(PolicyErrorCode.POLICY_NOT_FOUND));
+
+        if (!policy.isModifiable()) {
+            throw new ApplicationException(PolicyErrorCode.POLICY_NOT_MODIFIABLE);
+        }
 
         // TODO : OverWrite 로직 구현
 
