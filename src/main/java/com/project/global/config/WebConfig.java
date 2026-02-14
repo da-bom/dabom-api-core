@@ -10,9 +10,9 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import com.project.customer.web.aop.CustomerArgumentResolver;
 import com.project.global.auth.JwtTokenUtil;
 import com.project.global.auth.LoginInterceptor;
+import com.project.global.auth.aop.CustomerArgumentResolver;
 
 import lombok.RequiredArgsConstructor;
 

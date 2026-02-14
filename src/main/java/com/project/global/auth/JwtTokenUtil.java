@@ -10,7 +10,7 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import com.project.customer.core.Role;
+import com.project.domain.customer.enums.RoleType;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -40,15 +40,15 @@ public class JwtTokenUtil {
         this.key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String createToken(Long memberId, Role role) {
+    public String createToken(Long memberId, RoleType role) {
         return generateToken(memberId.toString(), role, accessExpirationMillis, "access");
     }
 
-    public String createRefreshToken(Long memberId, Role role) {
+    public String createRefreshToken(Long memberId, RoleType role) {
         return generateToken(memberId.toString(), role, refreshExpirationMillis, "refresh");
     }
 
-    private String generateToken(String subject, Role role, Long expirationTime, String type) {
+    private String generateToken(String subject, RoleType role, Long expirationTime, String type) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + expirationTime);
         try {
@@ -86,9 +86,9 @@ public class JwtTokenUtil {
         return Long.parseLong(verify(token).getSubject());
     }
 
-    public Role getRole(String token) {
+    public RoleType getRole(String token) {
         String roleStr = verify(token).get("role", String.class);
-        return Role.valueOf(roleStr);
+        return RoleType.valueOf(roleStr);
     }
 
     public long getRefreshTokenExpirationMillis() {
