@@ -456,6 +456,16 @@ The following rules in the Naver coding convention cannot be checked by this con
         </module>
     </module>
 
+    <!--
+        [MODIFIED] Java 14+ switch expression 들여쓰기 허용
+        Checkstyle Indentation 모듈이 switch expression을 할당문 우변에 사용할 때
+        들여쓰기를 잘못 계산하는 한계가 있어, switch/case 관련 경고만 선택적으로 제외
+    -->
+    <module name="SuppressionSingleFilter">
+        <property name="checks" value="Indentation"/>
+        <property name="message" value="^'(switch|case|switch rcurly)'.*"/>
+    </module>
+
     <!-- Suppression -->
     <module name="SuppressionFilter">
         <property name="file" value="${config_loc}/checkstyle-suppressions.xml"/>
