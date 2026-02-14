@@ -57,7 +57,8 @@ public class FamilyServiceImpl implements FamilyService {
                         .map(
                                 c ->
                                         familyCacheRepository
-                                                .findCustomerMonthlyUsageBytes(familyId, c.customerId())
+                                                .findCustomerMonthlyUsageBytes(
+                                                        familyId, c.customerId())
                                                 .map(
                                                         realtimeUsage ->
                                                                 new FamilyMemberDetailResponse(
@@ -71,7 +72,9 @@ public class FamilyServiceImpl implements FamilyService {
         long summedUsedBytes =
                 customers.stream()
                         .map(FamilyMemberDetailResponse::monthlyUsedBytes)
-                        .filter(monthlyUsedBytes -> monthlyUsedBytes != null && monthlyUsedBytes > 0)
+                        .filter(
+                                monthlyUsedBytes ->
+                                        monthlyUsedBytes != null && monthlyUsedBytes > 0)
                         .mapToLong(Long::longValue)
                         .sum();
         Long finalUsedBytes = summedUsedBytes;
