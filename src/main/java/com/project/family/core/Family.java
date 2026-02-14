@@ -44,17 +44,4 @@ public class Family {
         }
         return (double) usedBytes / totalQuotaBytes * 100.0;
     }
-
-    /** 쿼터 수정 비즈니스 메서드 */
-    public Family updateQuota(Long newTotalQuota) {
-        FamilyRule.validateQuota(newTotalQuota);
-        return Family.builder()
-                .id(this.id)
-                .name(this.name)
-                .createdById(this.createdById)
-                .totalQuotaBytes(newTotalQuota)
-                .usedBytes(this.usedBytes)
-                .currentMonth(this.currentMonth)
-                .build();
-    }
 }

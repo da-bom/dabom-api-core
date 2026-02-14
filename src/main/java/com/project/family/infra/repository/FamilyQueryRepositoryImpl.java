@@ -13,17 +13,24 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 import com.project.family.application.repository.FamilyQueryRepository;
 import com.project.family.infra.entity.FamilyJpaEntity;
+import com.project.family.web.dto.request.FamilySearchRequest;
 import com.project.family.web.dto.response.FamilyDetailResponse;
 import com.project.family.web.dto.response.FamilyMemberDetailResponse;
 import com.project.family.web.dto.response.FamilyMemberSimpleResponse;
 import com.project.family.web.dto.response.FamilySearchResponse;
+import com.project.global.exception.ApplicationException;
+import com.project.global.exception.code.FamilyErrorCode;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.Order;
+import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
@@ -36,22 +43,31 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public Page<FamilySearchResponse> search(String keyword, Pageable pageable) {
-        // BooleanExpression 리팩토링 적용
+    public Page<FamilySearchResponse> search(FamilySearchRequest request) {
+        PageRequest pageable = PageRequest.of(request.getPage(), request.getSize());
+        FamilySearchRequest.Filters filters = request.filters();
+
+        // 1. 가족 정보 조회 (구성원 이름, 전화번호, 사용률 필터 적용)
         List<FamilyJpaEntity> families =
                 queryFactory
                         .selectFrom(familyJpaEntity)
-                        .where(searchKeywordContains(keyword))
+                        .where(
+                                createMemberNameFilter(filters != null ? filters.name() : null),
+                                createMemberPhoneFilter(filters != null ? filters.phone() : null),
+                                createUsageRateFilter(filters != null ? filters.usageRate() : null))
                         .offset(pageable.getOffset())
                         .limit(pageable.getPageSize())
-                        .orderBy(familyJpaEntity.id.desc())
+                        .orderBy(getSortOrder(request.sort()))
                         .fetch();
 
         Long total =
                 queryFactory
                         .select(familyJpaEntity.count())
                         .from(familyJpaEntity)
-                        .where(searchKeywordContains(keyword))
+                        .where(
+                                createMemberNameFilter(filters != null ? filters.name() : null),
+                                createMemberPhoneFilter(filters != null ? filters.phone() : null),
+                                createUsageRateFilter(filters != null ? filters.usageRate() : null))
                         .fetchOne();
 
         total = (total == null) ? 0L : total;
@@ -66,11 +82,6 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
                                         new FamilySearchResponse(
                                                 family.getId(),
                                                 family.getName(),
-                                                membersMap
-                                                        .getOrDefault(
-                                                                family.getId(),
-                                                                Collections.emptyList())
-                                                        .size(),
                                                 membersMap.getOrDefault(
                                                         family.getId(), Collections.emptyList()),
                                                 family.getCreatedAt()))
@@ -150,29 +161,103 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
                         family.getUpdatedAt()));
     }
 
-    // 📌 Helper Methods for BooleanExpression
-    private BooleanExpression searchKeywordContains(String keyword) {
-        if (keyword == null || keyword.isBlank()) {
+    /** 구성원 이름 필터 (서브쿼리) */
+    private BooleanExpression createMemberNameFilter(FamilySearchRequest.StringCondition cond) {
+        if (cond == null || cond.value() == null || cond.operator() == null) {
             return null;
         }
-        return familyNameContains(keyword).or(memberInfoContains(keyword));
-    }
 
-    private BooleanExpression familyNameContains(String keyword) {
-        return familyJpaEntity.name.contains(keyword);
-    }
+        BooleanExpression customerMatch =
+                switch (cond.operator()) {
+                    case "contains" -> customerJpaEntity.name.contains(cond.value());
+                    case "eq" -> customerJpaEntity.name.eq(cond.value());
+                    default -> throw invalidInput();
+                };
 
-    private BooleanExpression memberInfoContains(String keyword) {
+        if (customerMatch == null) {
+            return null;
+        }
+
         return familyJpaEntity.id.in(
                 JPAExpressions.select(familyMemberJpaEntity.familyId)
                         .from(familyMemberJpaEntity)
                         .join(customerJpaEntity)
                         .on(familyMemberJpaEntity.customerId.eq(customerJpaEntity.id))
-                        .where(
-                                customerJpaEntity
-                                        .name
-                                        .contains(keyword)
-                                        .or(customerJpaEntity.phoneNumber.contains(keyword))));
+                        .where(customerMatch));
+    }
+
+    /** 구성원 전화번호 필터 (서브쿼리) */
+    private BooleanExpression createMemberPhoneFilter(FamilySearchRequest.StringCondition cond) {
+        if (cond == null || cond.value() == null || cond.operator() == null) {
+            return null;
+        }
+
+        BooleanExpression customerMatch =
+                switch (cond.operator()) {
+                    case "contains" -> customerJpaEntity.phoneNumber.contains(cond.value());
+                    case "eq" -> customerJpaEntity.phoneNumber.eq(cond.value());
+                    default -> throw invalidInput();
+                };
+
+        if (customerMatch == null) {
+            return null;
+        }
+
+        return familyJpaEntity.id.in(
+                JPAExpressions.select(familyMemberJpaEntity.familyId)
+                        .from(familyMemberJpaEntity)
+                        .join(customerJpaEntity)
+                        .on(familyMemberJpaEntity.customerId.eq(customerJpaEntity.id))
+                        .where(customerMatch));
+    }
+
+    /** 사용률 범위 필터 */
+    private BooleanExpression createUsageRateFilter(FamilySearchRequest.RangeCondition cond) {
+        if (cond == null) {
+            return null;
+        }
+
+        if (cond.operator() == null || !"between".equalsIgnoreCase(cond.operator())) {
+            throw invalidInput();
+        }
+        if (cond.min() == null && cond.max() == null) {
+            throw invalidInput();
+        }
+
+        NumberExpression<Double> usageRate = usageRateExpression();
+
+        if (cond.min() != null && cond.max() != null) {
+            return usageRate.between(cond.min(), cond.max());
+        }
+        if (cond.min() != null) {
+            return usageRate.goe(cond.min());
+        }
+        return usageRate.loe(cond.max());
+    }
+
+    private OrderSpecifier<?> getSortOrder(List<FamilySearchRequest.SortCondition> sorts) {
+        if (sorts == null || sorts.isEmpty()) {
+            return new OrderSpecifier<>(Order.DESC, familyJpaEntity.id);
+        }
+
+        FamilySearchRequest.SortCondition sort = sorts.getFirst();
+
+        if (sort.field() == null || sort.direction() == null) {
+            throw invalidInput();
+        }
+
+        Order order =
+                switch (sort.direction().toUpperCase()) {
+                    case "ASC" -> Order.ASC;
+                    case "DESC" -> Order.DESC;
+                    default -> throw invalidInput();
+                };
+
+        return switch (sort.field()) {
+            case "usageRate" -> new OrderSpecifier<>(order, usageRateExpression());
+            case "createdAt" -> new OrderSpecifier<>(order, familyJpaEntity.createdAt);
+            default -> throw invalidInput();
+        };
     }
 
     private Map<Long, List<FamilyMemberSimpleResponse>> fetchMembersMap(List<Long> familyIds) {
@@ -202,5 +287,31 @@ public class FamilyQueryRepositoryImpl implements FamilyQueryRepository {
                                                         t.get(customerJpaEntity.id),
                                                         t.get(customerJpaEntity.name)),
                                         Collectors.toList())));
+    }
+
+    private NumberExpression<Double> usageRateExpression() {
+        return Expressions.numberTemplate(
+                Double.class,
+                "case when {0} = 0 then 0.0 else ({1} * 100.0 / {0}) end",
+                familyJpaEntity.totalQuotaBytes,
+                familyJpaEntity.usedBytes);
+    }
+
+    private void validateStringCondition(FamilySearchRequest.StringCondition cond) {
+        if (cond.operator() == null || cond.operator().isBlank()) {
+            throw invalidInput();
+        }
+        if (cond.value() == null || cond.value().isBlank()) {
+            throw invalidInput();
+        }
+
+        String op = cond.operator().toLowerCase();
+        if (!"contains".equals(op) && !"eq".equals(op)) {
+            throw invalidInput();
+        }
+    }
+
+    private ApplicationException invalidInput() {
+        return new ApplicationException(FamilyErrorCode.FAMILY_INVALID_SEARCH_CONDITION);
     }
 }
