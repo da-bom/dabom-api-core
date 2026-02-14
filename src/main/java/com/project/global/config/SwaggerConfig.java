@@ -1,5 +1,8 @@
 package com.project.global.config;
 
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,10 +22,22 @@ public class SwaggerConfig {
     @Bean
     public OpenAPI openApi() {
         return new OpenAPI()
+                .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
+                .components(
+                        new Components()
+                                .addSecuritySchemes("bearerAuth",
+                                        new SecurityScheme()
+                                                .name("Authorization")
+                                                .type(SecurityScheme.Type.HTTP)
+                                                .scheme("bearer")
+                                                .bearerFormat("JWT")
+                                )
+                )
                 .info(
                         new Info()
                                 .title(projectName)
                                 .description(projectName + " Documentation")
-                                .version(projectVersion));
+                                .version(projectVersion)
+                );
     }
 }
