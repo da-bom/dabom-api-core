@@ -46,8 +46,6 @@ public class PolicyServiceImpl implements PolicyService {
             throw new ApplicationException(PolicyErrorCode.POLICY_NOT_MODIFIABLE);
         }
 
-        // TODO : OverWrite 로직 구현
-
         policy.update(
                 updatePolicyRequest.description(),
                 updatePolicyRequest.requiredRole(),
