@@ -11,5 +11,5 @@ public interface FamilyService {
 
     FamilyDetailResponse getFamilyDetail(Long familyId);
 
-    void handleFamilyEvent(Long familyId, Long userId);
+    void handleFamilyEvent(Long familyId, Long customerId);
 }

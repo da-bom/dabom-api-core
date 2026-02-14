@@ -69,7 +69,7 @@ public class FamilyServiceImpl implements FamilyService {
                         .map(
                                 c ->
                                         familyCacheRepository
-                                                .findUserMonthlyUsageBytes(familyId, c.customerId())
+                                                .findCustomerMonthlyUsageBytes(familyId, c.customerId())
                                                 .map(
                                                         realtimeUsage ->
                                                                 new FamilyMemberDetailResponse(
@@ -104,7 +104,7 @@ public class FamilyServiceImpl implements FamilyService {
     }
 
     @Override
-    public void handleFamilyEvent(Long familyId, Long userId) {
-        log.info("Handling family event: familyId={}, userId={}", familyId, userId);
+    public void handleFamilyEvent(Long familyId, Long customerId) {
+        log.info("Handling family event: familyId={}, customerId={}", familyId, customerId);
     }
 }

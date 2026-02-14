@@ -5,7 +5,7 @@ import java.util.Map;
 public record UsagePayload(
         String eventId,
         Long familyId,
-        Long userId,
+        Long customerId,
         String appId,
         Long bytesUsed,
         Map<String, Object> metadata) {}

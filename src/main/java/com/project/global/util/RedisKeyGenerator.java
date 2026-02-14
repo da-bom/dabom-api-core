@@ -21,14 +21,14 @@ public class RedisKeyGenerator {
         return FAMILY_KEY_PREFIX + KEY_SEPARATOR + familyId + KEY_SEPARATOR + "remaining";
     }
 
-    public String generateFamilyUserMonthlyUsageKey(Long familyId, Long userId) {
+    public String generateFamilyCustomerMonthlyUsageKey(Long familyId, Long customerId) {
         return FAMILY_KEY_PREFIX
                 + KEY_SEPARATOR
                 + familyId
                 + KEY_SEPARATOR
-                + "user"
+                + "customer"
                 + KEY_SEPARATOR
-                + userId
+                + customerId
                 + KEY_SEPARATOR
                 + "usage"
                 + KEY_SEPARATOR

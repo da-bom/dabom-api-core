@@ -31,7 +31,7 @@ public class FamilyKafkaConsumer {
 
             UsagePayload payload = envelope.payload();
 
-            familyService.handleFamilyEvent(payload.familyId(), payload.userId());
+            familyService.handleFamilyEvent(payload.familyId(), payload.customerId());
         } catch (JsonProcessingException e) {
             log.error("Failed to parse family event payload", e);
         }
