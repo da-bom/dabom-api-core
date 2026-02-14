@@ -173,8 +173,8 @@ spotless {
 // ============================================================================
 sonar {
     properties {
-        property 'sonar.projectKey', 'backend'
-        property 'sonar.projectName', 'backend'
+        property 'sonar.projectKey', 'dabom-api-core'
+        property 'sonar.projectName', 'dabom-api-core'
         // Java 분석을 위한 바이너리 경로
         property 'sonar.java.binaries', 'build/classes/java/main'
         property 'sonar.java.libraries', "${System.getProperty('user.home')}/.gradle/caches/**/modules-*/files-*/**/*.jar"
