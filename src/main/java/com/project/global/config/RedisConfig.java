@@ -11,8 +11,8 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.project.example.infra.cache.dto.ExampleCacheDto;
-import com.project.family.infra.cache.dto.FamilyCacheDto;
+import com.project.domain.example.infra.cache.dto.ExampleCacheDto;
+import com.project.domain.family.infra.cache.dto.FamilyCacheDto;
 
 @Configuration
 public class RedisConfig {

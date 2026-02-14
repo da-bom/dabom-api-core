@@ -10,12 +10,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+import com.project.global.auth.JwtTokenUtil;
 
 @WebMvcTest(HomeController.class)
 class HomeControllerTest {
 
     @Autowired private MockMvc mockMvc;
+
+    @MockitoBean private JwtTokenUtil jwtTokenUtil;
 
     @Test
     @WithMockUser
@@ -24,9 +29,9 @@ class HomeControllerTest {
         mockMvc.perform(get("/"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("ok"))
-                .andExpect(jsonPath("$.version").exists())
-                .andExpect(jsonPath("$.docs").value("/swagger-ui.html"));
+                .andExpect(jsonPath("$.data.status").value("ok"))
+                .andExpect(jsonPath("$.data.version").exists())
+                .andExpect(jsonPath("$.data.docs").value("/swagger-ui.html"));
     }
 
     @Test
@@ -36,7 +41,7 @@ class HomeControllerTest {
         mockMvc.perform(get("/"))
                 .andExpect(status().isOk())
                 .andExpect(
-                        jsonPath("$.message")
+                        jsonPath("$.data.message")
                                 .value(org.hamcrest.Matchers.containsString("running")));
     }
 }

@@ -4,21 +4,19 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import com.project.customer.web.aop.CustomerArgumentResolver;
 import com.project.global.auth.JwtTokenUtil;
 import com.project.global.auth.LoginInterceptor;
+import com.project.global.auth.aop.CustomerArgumentResolver;
 
 import lombok.RequiredArgsConstructor;
 
 @Configuration
 @RequiredArgsConstructor
-@EnableJpaAuditing
 public class WebConfig implements WebMvcConfigurer {
 
     private final JwtTokenUtil jwtTokenUtil;
