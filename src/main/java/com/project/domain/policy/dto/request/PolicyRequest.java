@@ -19,13 +19,12 @@ public class PolicyRequest {
                             description = "정책별 세부 규칙 (JSON)",
                             example =
                                     """
-        {
-          "start": "22:00",
-          "end": "07:00",
-          "timezone": "Asia/Seoul"
-        }
-        """)
+                                    {
+                                      "start": "22:00",
+                                      "end": "07:00",
+                                      "timezone": "Asia/Seoul"
+                                    }
+                                    """)
                     Map<String, Object> defaultRules,
-            boolean isActive,
-            boolean overWrite) {}
+            boolean isActive) {}
 }
