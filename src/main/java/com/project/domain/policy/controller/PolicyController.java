@@ -2,7 +2,6 @@ package com.project.domain.policy.controller;
 
 import java.util.List;
 
-import com.project.global.auth.aop.AdminOnly;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,6 +14,7 @@ import com.project.domain.policy.dto.request.PolicyRequest;
 import com.project.domain.policy.dto.response.PolicyResponse;
 import com.project.domain.policy.service.PolicyService;
 import com.project.global.api.response.ApiResponse;
+import com.project.global.auth.aop.AdminOnly;
 
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;

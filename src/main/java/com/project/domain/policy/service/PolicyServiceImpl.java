@@ -46,7 +46,7 @@ public class PolicyServiceImpl implements PolicyService {
                         .orElseThrow(
                                 () -> new ApplicationException(PolicyErrorCode.POLICY_NOT_FOUND));
 
-        //TODO : OverWrite 로직 구현
+        // TODO : OverWrite 로직 구현
 
         policy.update(
                 updatePolicyRequest.description(),
