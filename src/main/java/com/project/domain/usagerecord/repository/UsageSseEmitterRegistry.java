@@ -49,7 +49,10 @@ public class UsageSseEmitterRegistry {
                                 id,
                                 rootMessage(throwable));
                     } else {
-                        log.error("SSE send failed: emitterId={}, cause={}", id, rootMessage(throwable));
+                        log.error(
+                                "SSE send failed: emitterId={}, cause={}",
+                                id,
+                                rootMessage(throwable));
                     }
                     cleanup.run();
                 });
@@ -86,7 +89,9 @@ public class UsageSseEmitterRegistry {
 
     private boolean isClientDisconnect(Throwable throwable) {
         String message = rootMessage(throwable).toLowerCase();
-        return message.contains("broken pipe") || message.contains("clientabort") || message.contains("eof");
+        return message.contains("broken pipe")
+                || message.contains("clientabort")
+                || message.contains("eof");
     }
 
     private boolean isAlreadyCompleted(Throwable throwable) {
