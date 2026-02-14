@@ -71,7 +71,7 @@ public class FamilyServiceImpl implements FamilyService {
                                                 .orElse(c))
                         .toList();
 
-        Long finalUsedBytes =
+        long finalUsedBytes =
                 customers.stream()
                         .map(FamilyMemberDetailResponse::monthlyUsedBytes)
                         .filter(
