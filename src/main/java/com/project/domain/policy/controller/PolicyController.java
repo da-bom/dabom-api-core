@@ -18,7 +18,6 @@ import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.AdminOnly;
 
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.Parameters;
 
 import lombok.RequiredArgsConstructor;
 
