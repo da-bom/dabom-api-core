@@ -58,9 +58,6 @@ public class Policy extends BaseEntity {
     @Column(name = "is_active")
     private boolean isActive;
 
-    @Column(name = "over_write")
-    private boolean overWrite;
-
     public boolean isModifiable() {
         return !isSystem && !isDeleted();
     }
@@ -70,13 +67,11 @@ public class Policy extends BaseEntity {
             RoleType requiredRole,
             PolicyType policyType,
             Map<String, Object> defaultRules,
-            boolean isActive,
-            boolean overWrite) {
+            boolean isActive) {
         this.description = description;
         this.requiredRole = requiredRole;
         this.policyType = policyType;
         this.defaultRules = defaultRules;
         this.isActive = isActive;
-        this.overWrite = overWrite;
     }
 }
