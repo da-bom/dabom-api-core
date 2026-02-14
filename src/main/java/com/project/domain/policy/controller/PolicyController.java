@@ -2,6 +2,7 @@ package com.project.domain.policy.controller;
 
 import java.util.List;
 
+import com.project.global.auth.aop.AdminOnly;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,23 +29,27 @@ public class PolicyController {
     private final PolicyService policyService;
 
     @GetMapping("/{policyId}")
+    @AdminOnly
     @Parameters({@Parameter(name = "policyId", description = "정책 ID", required = true)})
     public ApiResponse<PolicyResponse.Detail> getPolicyDetail(@PathVariable Long policyId) {
         return ApiResponse.success(policyService.getPolicyDetail(policyId));
     }
 
     @GetMapping
+    @AdminOnly
     public ApiResponse<List<PolicyResponse.Detail>> getPolicyList() {
         return ApiResponse.success(policyService.getPolicyList());
     }
 
     @PostMapping
+    @AdminOnly
     public ApiResponse<PolicyResponse.Create> createPolicy(
             @RequestBody PolicyRequest.Create policyRequest) {
         return ApiResponse.success(policyService.createPolicy(policyRequest));
     }
 
     @PutMapping("/{policyId}")
+    @AdminOnly
     @Parameters({@Parameter(name = "policyId", description = "정책 ID", required = true)})
     public ApiResponse<PolicyResponse.Updated> updatePolicy(
             @PathVariable Long policyId, @RequestBody PolicyRequest.Update policyRequest) {

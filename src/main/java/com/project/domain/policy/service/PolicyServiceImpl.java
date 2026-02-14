@@ -46,13 +46,14 @@ public class PolicyServiceImpl implements PolicyService {
                         .orElseThrow(
                                 () -> new ApplicationException(PolicyErrorCode.POLICY_NOT_FOUND));
 
+        //TODO : OverWrite 로직 구현
+
         policy.update(
                 updatePolicyRequest.description(),
                 updatePolicyRequest.requiredRole(),
                 updatePolicyRequest.policyType(),
                 updatePolicyRequest.defaultRules(),
-                updatePolicyRequest.isActive(),
-                updatePolicyRequest.overWrite());
+                updatePolicyRequest.isActive());
 
         return PolicyResponse.Updated.from(policy);
     }
@@ -66,7 +67,6 @@ public class PolicyServiceImpl implements PolicyService {
                         .policyType(createPolicyRequest.policyType())
                         .isSystem(false)
                         .isActive(true)
-                        .overWrite(false)
                         .build();
 
         policyRepository.save(policy);
