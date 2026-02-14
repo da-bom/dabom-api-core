@@ -52,24 +52,14 @@ public class FamilyServiceImpl implements FamilyService {
                 cachedFamily != null
                         ? cachedFamily.getTotalQuotaBytes()
                         : dbResponse.totalQuotaBytes();
-        Long usedBytes =
-                cachedFamily != null ? cachedFamily.getUsedBytes() : dbResponse.usedBytes();
 
-        if (totalQuotaBytes != null && totalQuotaBytes >= 0) {
-            usedBytes =
-                    familyCacheRepository
-                            .findFamilyRemainingBytes(familyId)
-                            .map(remaining -> Math.max(0L, totalQuotaBytes - remaining))
-                            .orElse(usedBytes);
-        }
-
-        final Long finalUsedBytes = usedBytes;
         List<FamilyMemberDetailResponse> customers =
                 dbResponse.customers().stream()
                         .map(
                                 c ->
                                         familyCacheRepository
-                                                .findUserMonthlyUsageBytes(familyId, c.customerId())
+                                                .findCustomerMonthlyUsageBytes(
+                                                        familyId, c.customerId())
                                                 .map(
                                                         realtimeUsage ->
                                                                 new FamilyMemberDetailResponse(
@@ -80,6 +70,15 @@ public class FamilyServiceImpl implements FamilyService {
                                                                         realtimeUsage))
                                                 .orElse(c))
                         .toList();
+
+        long finalUsedBytes =
+                customers.stream()
+                        .map(FamilyMemberDetailResponse::monthlyUsedBytes)
+                        .filter(
+                                monthlyUsedBytes ->
+                                        monthlyUsedBytes != null && monthlyUsedBytes > 0)
+                        .mapToLong(Long::longValue)
+                        .sum();
 
         double usedPercent =
                 (totalQuotaBytes != null && totalQuotaBytes > 0)
@@ -104,7 +103,7 @@ public class FamilyServiceImpl implements FamilyService {
     }
 
     @Override
-    public void handleFamilyEvent(Long familyId, Long userId) {
-        log.info("Handling family event: familyId={}, userId={}", familyId, userId);
+    public void handleFamilyEvent(Long familyId, Long customerId) {
+        log.info("Handling family event: familyId={}, customerId={}", familyId, customerId);
     }
 }
