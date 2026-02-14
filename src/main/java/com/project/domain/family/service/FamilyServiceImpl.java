@@ -52,6 +52,7 @@ public class FamilyServiceImpl implements FamilyService {
                 cachedFamily != null
                         ? cachedFamily.getTotalQuotaBytes()
                         : dbResponse.totalQuotaBytes();
+
         List<FamilyMemberDetailResponse> customers =
                 dbResponse.customers().stream()
                         .map(
@@ -69,7 +70,8 @@ public class FamilyServiceImpl implements FamilyService {
                                                                         realtimeUsage))
                                                 .orElse(c))
                         .toList();
-        long summedUsedBytes =
+
+        Long finalUsedBytes =
                 customers.stream()
                         .map(FamilyMemberDetailResponse::monthlyUsedBytes)
                         .filter(
@@ -77,7 +79,6 @@ public class FamilyServiceImpl implements FamilyService {
                                         monthlyUsedBytes != null && monthlyUsedBytes > 0)
                         .mapToLong(Long::longValue)
                         .sum();
-        Long finalUsedBytes = summedUsedBytes;
 
         double usedPercent =
                 (totalQuotaBytes != null && totalQuotaBytes > 0)
