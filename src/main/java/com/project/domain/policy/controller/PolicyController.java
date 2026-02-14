@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.project.domain.policy.dto.request.PolicyRequest;
 import com.project.domain.policy.dto.response.PolicyResponse;
+import com.project.domain.policy.entity.Policy;
 import com.project.domain.policy.service.PolicyService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.AdminOnly;
@@ -30,29 +31,34 @@ public class PolicyController {
 
     @GetMapping("/{policyId}")
     @AdminOnly
-    @Parameters({@Parameter(name = "policyId", description = "정책 ID", required = true)})
+    @Parameters({@Parameter(name = "policyId", description = "Policy ID", required = true)})
     public ApiResponse<PolicyResponse.Detail> getPolicyDetail(@PathVariable Long policyId) {
-        return ApiResponse.success(policyService.getPolicyDetail(policyId));
+        Policy policy = policyService.getPolicyDetail(policyId);
+        return ApiResponse.success(PolicyResponse.Detail.from(policy));
     }
 
     @GetMapping
     @AdminOnly
     public ApiResponse<List<PolicyResponse.Detail>> getPolicyList() {
-        return ApiResponse.success(policyService.getPolicyList());
+        List<PolicyResponse.Detail> response =
+                policyService.getPolicyList().stream().map(PolicyResponse.Detail::from).toList();
+        return ApiResponse.success(response);
     }
 
     @PostMapping
     @AdminOnly
     public ApiResponse<PolicyResponse.Create> createPolicy(
             @RequestBody PolicyRequest.Create policyRequest) {
-        return ApiResponse.success(policyService.createPolicy(policyRequest));
+        Policy policy = policyService.createPolicy(policyRequest);
+        return ApiResponse.success(PolicyResponse.Create.from(policy));
     }
 
     @PutMapping("/{policyId}")
     @AdminOnly
-    @Parameters({@Parameter(name = "policyId", description = "정책 ID", required = true)})
+    @Parameters({@Parameter(name = "policyId", description = "Policy ID", required = true)})
     public ApiResponse<PolicyResponse.Updated> updatePolicy(
             @PathVariable Long policyId, @RequestBody PolicyRequest.Update policyRequest) {
-        return ApiResponse.success(policyService.updatePolicy(policyId, policyRequest));
+        Policy policy = policyService.updatePolicy(policyId, policyRequest);
+        return ApiResponse.success(PolicyResponse.Updated.from(policy));
     }
 }

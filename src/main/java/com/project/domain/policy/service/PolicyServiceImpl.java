@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.project.domain.policy.dto.request.PolicyRequest;
-import com.project.domain.policy.dto.response.PolicyResponse;
 import com.project.domain.policy.entity.Policy;
 import com.project.domain.policy.repository.PolicyRepository;
 import com.project.global.exception.ApplicationException;
@@ -22,24 +21,20 @@ public class PolicyServiceImpl implements PolicyService {
     private final PolicyRepository policyRepository;
 
     @Override
-    public PolicyResponse.Detail getPolicyDetail(Long policyId) {
-        Policy policy =
-                policyRepository
-                        .findById(policyId)
-                        .orElseThrow(
-                                () -> new ApplicationException(PolicyErrorCode.POLICY_NOT_FOUND));
-        return PolicyResponse.Detail.from(policy);
+    public Policy getPolicyDetail(Long policyId) {
+        return policyRepository
+                .findById(policyId)
+                .orElseThrow(() -> new ApplicationException(PolicyErrorCode.POLICY_NOT_FOUND));
     }
 
     @Override
-    public List<PolicyResponse.Detail> getPolicyList() {
-        return policyRepository.findAll().stream().map(PolicyResponse.Detail::from).toList();
+    public List<Policy> getPolicyList() {
+        return policyRepository.findAll();
     }
 
     @Override
     @Transactional
-    public PolicyResponse.Updated updatePolicy(
-            Long policyId, PolicyRequest.Update updatePolicyRequest) {
+    public Policy updatePolicy(Long policyId, PolicyRequest.Update updatePolicyRequest) {
 
         Policy policy =
                 policyRepository
@@ -60,12 +55,12 @@ public class PolicyServiceImpl implements PolicyService {
                 updatePolicyRequest.defaultRules(),
                 updatePolicyRequest.isActive());
 
-        return PolicyResponse.Updated.from(policy);
+        return policy;
     }
 
     @Override
     @Transactional
-    public PolicyResponse.Create createPolicy(PolicyRequest.Create createPolicyRequest) {
+    public Policy createPolicy(PolicyRequest.Create createPolicyRequest) {
         Policy policy =
                 Policy.builder()
                         .name(createPolicyRequest.name())
@@ -76,6 +71,6 @@ public class PolicyServiceImpl implements PolicyService {
 
         policyRepository.save(policy);
 
-        return PolicyResponse.Create.from(policy);
+        return policy;
     }
 }
