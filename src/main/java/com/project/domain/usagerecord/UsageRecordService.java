@@ -1,13 +1,17 @@
 package com.project.domain.usagerecord;
 
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.project.domain.family.infra.cache.FamilyCacheRepository;
 import com.project.domain.family.repository.FamilyMemberRepository;
+import com.project.domain.usagerecord.dto.response.RealtimeUsageResponse;
 import com.project.domain.usagerecord.repository.UsageSseEmitterRegistry;
+import com.project.global.event.dto.usage.UsageRealtimePayload;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.FamilyErrorCode;
 
@@ -23,6 +27,8 @@ public class UsageRecordService {
     private final FamilyCacheRepository familyCacheRepository;
     private final FamilyMemberRepository familyMemberRepository;
 
+    private final ConcurrentHashMap<Long, Long> lastSeen = new ConcurrentHashMap<>();
+
     public SseEmitter subscribe(Long customerId) {
         Long familyId =
                 familyMemberRepository
@@ -33,13 +39,46 @@ public class UsageRecordService {
         return registry.register(familyId);
     }
 
-    public void pushLatest(Long familyId) {
-        Optional<Long> latest = familyCacheRepository.findFamilyRemainingBytes(familyId);
-        if (latest.isEmpty()) {
-            log.info("family id {} is not found in cache", familyId);
-            return; // TODO: 데이터베이스를 조회하게 수정
-        }
+    public void pushLatest(UsageRealtimePayload payload) {
+        RealtimeUsageResponse response =
+                new RealtimeUsageResponse(
+                        payload.familyId(),
+                        payload.totalUsedBytes(),
+                        payload.totalLimitBytes(),
+                        payload.remainingBytes());
 
-        registry.send(familyId, "usage-updated", latest);
+        registry.send(payload.familyId(), "usage-updated", response);
+    }
+
+    /** 스케줄링을 통한 push 테스트 메소드 */
+    @Scheduled(fixedDelay = 1000)
+    public void pollAndPushIfChanged() {
+        for (Long familyId : registry.activeFamilyIds()) {
+
+            Optional<Long> latestOpt = familyCacheRepository.findFamilyRemainingBytes(familyId);
+            if (latestOpt.isEmpty()) {
+                lastSeen.remove(familyId);
+                continue;
+            }
+
+            long latest = latestOpt.get();
+            Long prev = lastSeen.putIfAbsent(familyId, latest);
+
+            if (prev == null || prev.longValue() != latest) {
+                lastSeen.put(familyId, latest);
+
+                // 임시로 고정
+                long totalLimitBytes = 20000;
+                UsageRealtimePayload payload =
+                        new UsageRealtimePayload(
+                                familyId,
+                                latest,
+                                totalLimitBytes,
+                                totalLimitBytes - latest,
+                                (double) 30);
+
+                pushLatest(payload);
+            }
+        }
     }
 }
