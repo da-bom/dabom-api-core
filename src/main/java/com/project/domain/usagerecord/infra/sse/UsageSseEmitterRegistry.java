@@ -1,4 +1,4 @@
-package com.project.domain.usagerecord.repository;
+package com.project.domain.usagerecord.infra.sse;
 
 import java.io.IOException;
 import java.util.List;

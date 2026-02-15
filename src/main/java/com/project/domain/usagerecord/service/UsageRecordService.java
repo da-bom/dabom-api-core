@@ -1,4 +1,4 @@
-package com.project.domain.usagerecord;
+package com.project.domain.usagerecord.service;
 
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -10,7 +10,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.project.domain.family.infra.cache.FamilyCacheRepository;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.usagerecord.dto.response.RealtimeUsageResponse;
-import com.project.domain.usagerecord.repository.UsageSseEmitterRegistry;
+import com.project.domain.usagerecord.infra.sse.UsageSseEmitterRegistry;
 import com.project.global.event.dto.usage.UsageRealtimePayload;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.FamilyErrorCode;

@@ -14,7 +14,7 @@ import com.project.domain.family.dto.request.FamilySearchRequest;
 import com.project.domain.family.dto.response.FamilyDetailResponse;
 import com.project.domain.family.dto.response.FamilySearchResponse;
 import com.project.domain.family.service.FamilyService;
-import com.project.domain.usagerecord.UsageRecordService;
+import com.project.domain.usagerecord.service.UsageRecordService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.AdminOnly;
 import com.project.global.auth.aop.CustomerId;
@@ -44,7 +44,7 @@ public class FamilyController {
         return ApiResponse.success(result);
     }
 
-    @GetMapping(value = "reports/usage/current", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(value = "/usage/current", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter getCurrentUsage(@CustomerId Long customerId) {
         return usageRecordService.subscribe(customerId);
     }
