@@ -3,6 +3,7 @@ package com.project.domain.usagerecord.repository;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -21,6 +22,13 @@ public class UsageSseEmitterRegistry {
         int id = emitter.hashCode();
 
         map.computeIfAbsent(familyId, k -> new CopyOnWriteArrayList<>()).add(emitter);
+
+        try {
+            emitter.send(SseEmitter.event().name("connected").data("ok"));
+        } catch (IOException e) {
+            emitter.completeWithError(e);
+            return emitter;
+        }
 
         Runnable cleanup = () -> remove(familyId, emitter);
 
@@ -56,7 +64,7 @@ public class UsageSseEmitterRegistry {
                     }
                     cleanup.run();
                 });
-
+        log.info("진입");
         return emitter;
     }
 
@@ -100,5 +108,9 @@ public class UsageSseEmitterRegistry {
 
     private String rootMessage(Throwable throwable) {
         return (throwable.getCause() != null ? throwable.getCause() : throwable).getMessage();
+    }
+
+    public Set<Long> activeFamilyIds() {
+        return map.keySet();
     }
 }
