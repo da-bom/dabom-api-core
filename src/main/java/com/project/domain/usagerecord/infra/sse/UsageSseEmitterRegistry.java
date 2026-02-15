@@ -84,15 +84,16 @@ public class UsageSseEmitterRegistry {
         }
     }
 
-    private void remove(Long familyId, SseEmitter emitter) {
-        List<SseEmitter> list = map.get(familyId);
-        if (list == null) {
-            return;
-        }
-        list.remove(emitter);
-        if (list.isEmpty()) {
-            map.remove(familyId);
-        }
+    private void remove(Long familyId, SseEmitter emitter) {map.computeIfPresent(
+                familyId,
+                (id, list) -> {
+                    list.remove(emitter);
+
+                    if (list.isEmpty()) {
+                        return null;
+                    }
+                    return list;
+                });
     }
 
     private boolean isClientDisconnect(Throwable throwable) {
