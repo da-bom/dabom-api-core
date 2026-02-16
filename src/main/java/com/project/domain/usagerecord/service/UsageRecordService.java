@@ -39,7 +39,7 @@ public class UsageRecordService {
         return registry.register(familyId);
     }
 
-    public void pushLatest(UsageRealtimePayload payload) {
+    public void pushTotalUsageBytes(UsageRealtimePayload payload) {
         RealtimeUsageResponse response =
                 new RealtimeUsageResponse(
                         payload.familyId(),
@@ -82,7 +82,7 @@ public class UsageRecordService {
                                 null,
                                 null);
 
-                pushLatest(payload);
+                pushTotalUsageBytes(payload);
             }
         }
     }

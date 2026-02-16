@@ -35,7 +35,7 @@ public class UsageRecordKafkaConsumer {
             log.info(
                     "FamilyId:{}, totalUsedBytes:{}", payload.familyId(), payload.totalUsedBytes());
 
-            usageRecordService.pushLatest(payload);
+            usageRecordService.pushTotalUsageBytes(payload);
         } catch (JsonProcessingException e) {
             log.error("JSON 파싱 실패", e);
         }
