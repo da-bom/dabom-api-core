@@ -46,8 +46,8 @@ public class FamilyController {
     @GetMapping("/{familyId}")
     @AdminOnly
     @Operation(summary = "가족 상세 조회", description = "가족 ID로 가족 상세 정보를 조회합니다.")
-    @Parameter(name = "familyId", description = "가족 ID", required = true)
-    public ApiResponse<FamilyDetailResponse> getFamilyDetail(@PathVariable Long familyId) {
+    public ApiResponse<FamilyDetailResponse> getFamilyDetail(
+            @Parameter(description = "가족 ID", required = true) @PathVariable Long familyId) {
         FamilyDetailResponse result = familyService.getFamilyDetail(familyId);
         return ApiResponse.success(result);
     }
