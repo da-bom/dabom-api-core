@@ -1,12 +1,15 @@
 package com.project.domain.usagerecord.infra.messaging;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.project.domain.usagerecord.infra.event.RealtimeUsageMemberEvent;
+import com.project.domain.usagerecord.infra.event.TotalUsageBytesUpdateEvent;
 import com.project.domain.usagerecord.service.UsageRecordService;
 import com.project.global.event.dto.EventEnvelope;
 import com.project.global.event.dto.usage.UsageRealtimePayload;
@@ -21,6 +24,7 @@ public class UsageRecordKafkaConsumer {
 
     private final ObjectMapper objectMapper;
     private final UsageRecordService usageRecordService;
+    private final ApplicationEventPublisher publisher;
 
     @KafkaListener(topics = "usage-realtime", groupId = "usage-service")
     public void consume(ConsumerRecord<String, String> record) {
@@ -35,7 +39,8 @@ public class UsageRecordKafkaConsumer {
             log.info(
                     "FamilyId:{}, totalUsedBytes:{}", payload.familyId(), payload.totalUsedBytes());
 
-            usageRecordService.pushTotalUsageBytes(payload);
+            publisher.publishEvent(new TotalUsageBytesUpdateEvent(payload));
+            publisher.publishEvent(new RealtimeUsageMemberEvent(payload));
         } catch (JsonProcessingException e) {
             log.error("JSON 파싱 실패", e);
         }
