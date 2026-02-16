@@ -61,10 +61,10 @@ jobs:
             echo "$DEPLOY_ENV_FILE" > .env
 
             # 빌드 및 배포
-            docker compose -f docker-compose.deploy.yml up -d --build --remove-orphans
+            sudo docker compose -f docker-compose.deploy.yml up -d --build --remove-orphans
 
             # 미사용 이미지 정리
-            docker image prune -f
+            sudo docker image prune -f
 
       - name: Deployment Summary
         run: |
