@@ -1,0 +1,27 @@
+# ============================================================================
+# Docker Compose - Deploy (Spring Application Only)
+# ============================================================================
+# 배포 환경에서 Spring Boot 애플리케이션만 실행합니다.
+# 인프라(MySQL, Redis, Kafka)는 별도로 관리됩니다.
+#
+# 사용법:
+#   docker compose -f docker-compose.deploy.yml up -d --build
+# ============================================================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dabom-api-core
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s

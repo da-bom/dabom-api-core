@@ -1,0 +1,74 @@
+# ============================================================================
+# Deploy to Azure VM (develop)
+# ============================================================================
+# 역할:
+#   - Integrate workflow 성공 후 자동 실행
+#   - Azure VM에 SSH 접속하여 git pull → docker build → docker compose up
+#
+# GitHub Secrets:
+#   - AZURE_VM_HOST       : Azure VM IP 또는 호스트명
+#   - AZURE_VM_USER       : SSH 사용자명
+#   - AZURE_VM_SSH_KEY    : SSH 개인 키
+#   - GH_PAT              : GitHub Personal Access Token (private repo pull용)
+#   - DEPLOY_ENV_FILE     : VM에 배포할 .env 파일 내용 (환경변수 전체)
+#
+# VM 최초 셋업:
+#   git clone https://<GH_PAT>@github.com/<owner>/dabom-api-core.git /opt/dabom-api-core
+# ============================================================================
+
+name: Deploy to Azure VM
+
+on:
+  workflow_run:
+    workflows: ["Integrate Backend"]
+    types:
+      - completed
+    branches:
+      - develop
+  workflow_dispatch:
+
+env:
+  DEPLOY_PATH: /opt/dabom-api-core
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        env:
+          DEPLOY_ENV_FILE: ${{ secrets.DEPLOY_ENV_FILE }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+        with:
+          host: ${{ secrets.AZURE_VM_HOST }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          envs: DEPLOY_ENV_FILE,GH_PAT
+          script: |
+            cd ${{ env.DEPLOY_PATH }}
+
+            # PAT을 사용하여 private repo pull
+            git remote set-url origin https://${GH_PAT}@github.com/${{ github.repository }}.git
+            git pull origin develop
+
+            # .env 파일 생성
+            echo "$DEPLOY_ENV_FILE" > .env
+
+            # 빌드 및 배포
+            docker compose -f docker-compose.deploy.yml up -d --build --remove-orphans
+
+            # 미사용 이미지 정리
+            docker image prune -f
+
+      - name: Deployment Summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target**: ${{ secrets.AZURE_VM_HOST }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Path**: ${{ env.DEPLOY_PATH }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
