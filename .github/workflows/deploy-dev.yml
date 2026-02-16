@@ -50,7 +50,9 @@ jobs:
           distribution: 'temurin'
 
       - name: Build JAR
-        run: ./gradlew bootJar -x checkstyleMain -x checkstyleTest -x spotlessCheck --no-daemon
+        run: |
+          chmod +x gradlew
+          ./gradlew bootJar -x checkstyleMain -x checkstyleTest -x spotlessCheck --no-daemon
 
       # ── 2. VM 준비 ──
       - name: Prepare deploy directory
