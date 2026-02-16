@@ -36,6 +36,9 @@ public class KafkaConfig {
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
 
+    @Value("${spring.kafka.consumer.group-id:dabom-api-core-dev}")
+    private String groupId;
+
     // ========================================================================
     // 1. Producer 설정
     // ========================================================================
@@ -66,7 +69,7 @@ public class KafkaConfig {
     public ConsumerFactory<String, Object> consumerFactory() {
         Map<String, Object> config = new HashMap<>();
         config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        config.put(ConsumerConfig.GROUP_ID_CONFIG, "example-group"); // 기본 그룹 ID 지정
+        config.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 
         // 에러 처리

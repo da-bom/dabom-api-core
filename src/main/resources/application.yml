@@ -10,9 +10,9 @@ spring:
     name: backend
 
   datasource:
-    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3310}/${MYSQL_DATABASE:app_db}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    username: ${MYSQL_USER:app_user}
-    password: ${MYSQL_PASSWORD:app_password}
+    url: ${DATABASE_URL:jdbc:mysql://localhost:3310/app_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+    username: ${DATABASE_USER:app_user}
+    password: ${DATABASE_PASSWORD:app_password}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -25,27 +25,27 @@ spring:
         format_sql: true
 
   jwt:
-    secret-key: 06ea6f4c33fe8d51a32087252ce84c08e059f556e1496666375eb9a797b1914f
+    secret-key: ${JWT_SECRET_KEY:changeme}
     token:
-      access-expiration-time: 720000000
-      refresh-expiration-time: 1209600000
+      access-expiration-time: ${JWT_ACCESS_TOKEN_EXPIRES_IN:720000000}
+      refresh-expiration-time: ${JWT_REFRESH_TOKEN_EXPIRES_IN:1209600000}
 
   data:
     redis:
       host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6378}
+      port: ${REDIS_PORT:6379}
 
   kafka:
-    bootstrap-servers: ${KAFKA_HOST:localhost}:${KAFKA_PORT:9092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
-      group-id: ${CONSUMER_GROUP:example-group}
-      auto-offset-reset: ${CONSUMER_AUTO_OFFSET:earliest}
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:dabom-api-core-dev}
+      auto-offset-reset: ${KAFKA_AUTO_OFFSET_RESET:earliest}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 springdoc:
   api-docs:
