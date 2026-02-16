@@ -18,7 +18,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "admin_jpa_entity")
+@Table(name = "admin")
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

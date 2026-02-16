@@ -2,8 +2,8 @@ package com.project.global.event.dto.notification;
 
 public record QuotaUpdatedPayload(
         Long familyId,
-        Long userId,
+        Long customerId,
         Long familyRemainingBytes,
         Double familyUsedPercent,
-        Long userUsedBytesCurrentMonth)
+        Long customerUsedBytesCurrentMonth)
         implements NotificationPayload {}

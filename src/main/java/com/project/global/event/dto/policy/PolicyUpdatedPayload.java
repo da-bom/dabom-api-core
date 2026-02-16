@@ -2,7 +2,7 @@ package com.project.global.event.dto.policy;
 
 public record PolicyUpdatedPayload(
         Long familyId,
-        Long targetUserId,
+        Long targetCustomerId,
         String policyKey,
         String oldValue,
         String newValue,

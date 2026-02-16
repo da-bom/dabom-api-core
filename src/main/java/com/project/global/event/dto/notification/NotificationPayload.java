@@ -10,8 +10,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         defaultImpl = Void.class)
 @JsonSubTypes({
     @JsonSubTypes.Type(value = QuotaUpdatedPayload.class, name = "QUOTA_UPDATED"),
-    @JsonSubTypes.Type(value = UserBlockedPayload.class, name = "USER_BLOCKED"),
+    @JsonSubTypes.Type(value = CustomerBlockedPayload.class, name = "CUSTOMER_BLOCKED"),
     @JsonSubTypes.Type(value = ThresholdAlertPayload.class, name = "THRESHOLD_ALERT")
 })
 public sealed interface NotificationPayload
-        permits QuotaUpdatedPayload, UserBlockedPayload, ThresholdAlertPayload {}
+        permits QuotaUpdatedPayload, CustomerBlockedPayload, ThresholdAlertPayload {}
