@@ -9,7 +9,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.project.domain.family.infra.cache.FamilyCacheRepository;
 import com.project.domain.family.repository.FamilyMemberRepository;
-import com.project.domain.usagerecord.dto.response.RealtimeUsageResponse;
+import com.project.domain.usagerecord.dto.response.RealtimeTotalUsageResponse;
 import com.project.domain.usagerecord.infra.sse.UsageSseEmitterRegistry;
 import com.project.global.event.dto.usage.UsageRealtimePayload;
 import com.project.global.exception.ApplicationException;
@@ -40,14 +40,18 @@ public class UsageRecordService {
     }
 
     public void pushTotalUsageBytes(UsageRealtimePayload payload) {
-        RealtimeUsageResponse response =
-                new RealtimeUsageResponse(
+        RealtimeTotalUsageResponse response =
+                new RealtimeTotalUsageResponse(
                         payload.familyId(),
                         payload.totalUsedBytes(),
                         payload.totalLimitBytes(),
                         payload.remainingBytes());
 
         registry.send(payload.familyId(), "usage-updated", response);
+    }
+
+    public void pushMemberUsageBytes(UsageRealtimePayload payload) {
+
     }
 
     /** 스케줄링을 통한 push 테스트 메소드 */
