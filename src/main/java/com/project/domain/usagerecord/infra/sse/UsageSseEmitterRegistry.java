@@ -84,7 +84,8 @@ public class UsageSseEmitterRegistry {
         }
     }
 
-    private void remove(Long familyId, SseEmitter emitter) {map.computeIfPresent(
+    private void remove(Long familyId, SseEmitter emitter) {
+        map.computeIfPresent(
                 familyId,
                 (id, list) -> {
                     list.remove(emitter);
