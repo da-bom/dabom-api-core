@@ -115,12 +115,14 @@ public class FamilyServiceImpl implements FamilyService {
         Long familyId =
                 familyMemberRepository
                         .findFamilyIdByCustomerId(customerId)
-                        .orElseThrow(() -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
+                        .orElseThrow(
+                                () -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
 
         Family familyEntity =
                 familyRepository
                         .findById(familyId)
-                        .orElseThrow(() -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
+                        .orElseThrow(
+                                () -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
 
         List<FamilyUsageReportResponse.CustomerUsage> customers =
                 familyQueryRepository.findUsageReportCustomers(familyId, targetMonth).stream()
@@ -139,7 +141,9 @@ public class FamilyServiceImpl implements FamilyService {
         long totalUsedBytes =
                 customers.stream()
                         .map(FamilyUsageReportResponse.CustomerUsage::monthlyUsedBytes)
-                        .filter(monthlyUsedBytes -> monthlyUsedBytes != null && monthlyUsedBytes > 0)
+                        .filter(
+                                monthlyUsedBytes ->
+                                        monthlyUsedBytes != null && monthlyUsedBytes > 0)
                         .mapToLong(Long::longValue)
                         .sum();
 

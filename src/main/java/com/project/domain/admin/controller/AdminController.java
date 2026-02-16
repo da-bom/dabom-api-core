@@ -22,7 +22,8 @@ public class AdminController {
     private final AdminService adminService;
 
     @PostMapping("/auth/login")
-    public ApiResponse<SignInResponse> signIn(@Valid @RequestBody AdminSignInRequest signInRequest) {
+    public ApiResponse<SignInResponse> signIn(
+            @Valid @RequestBody AdminSignInRequest signInRequest) {
         return ApiResponse.success(
                 adminService.signIn(signInRequest.email(), signInRequest.password()));
     }

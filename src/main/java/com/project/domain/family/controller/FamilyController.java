@@ -5,7 +5,6 @@ import jakarta.validation.constraints.Min;
 
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -64,15 +63,15 @@ public class FamilyController {
     }
 
     @GetMapping("/reports/usage")
-    @Operation(
-            summary = "과거 가족 데이터 조회",
-            description = "Year, Month에 맞는 가족 데이터를 조회합니다.")
+    @Operation(summary = "과거 가족 데이터 조회", description = "Year, Month에 맞는 가족 데이터를 조회합니다.")
     public ApiResponse<FamilyUsageReportResponse> getFamilyUsageReport(
             @Parameter(hidden = true) @CustomerId Long customerId,
-            @Parameter(description = "Year (yyyy)", required = true) @RequestParam @Min(2000) int year,
+            @Parameter(description = "Year (yyyy)", required = true) @RequestParam @Min(2000)
+                    int year,
             @Parameter(description = "Month (1-12)", required = true) @RequestParam @Min(1) @Max(12)
                     int month) {
-        FamilyUsageReportResponse response = familyService.getFamilyUsageReport(customerId, year, month);
+        FamilyUsageReportResponse response =
+                familyService.getFamilyUsageReport(customerId, year, month);
         return ApiResponse.success(response);
     }
 }

@@ -154,7 +154,8 @@ public class FamilyQueryRepository {
                         familyEntity.getUpdatedAt()));
     }
 
-    public List<FamilyUsageCustomerRow> findUsageReportCustomers(Long familyId, LocalDate targetMonth) {
+    public List<FamilyUsageCustomerRow> findUsageReportCustomers(
+            Long familyId, LocalDate targetMonth) {
         List<Tuple> results =
                 queryFactory
                         .select(
