@@ -5,6 +5,7 @@ import static com.project.domain.customer.entity.QCustomerQuota.customerQuota;
 import static com.project.domain.family.entity.QFamily.family;
 import static com.project.domain.family.entity.QFamilyMember.familyMember;
 
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -153,6 +154,44 @@ public class FamilyQueryRepository {
                         familyEntity.getUpdatedAt()));
     }
 
+    public List<FamilyUsageCustomerRow> findUsageReportCustomers(Long familyId, LocalDate targetMonth) {
+        List<Tuple> results =
+                queryFactory
+                        .select(
+                                customer.id,
+                                customer.name,
+                                customerQuota.monthlyUsedBytes,
+                                customerQuota.monthlyLimitBytes,
+                                customerQuota.isBlocked,
+                                customerQuota.blockReason)
+                        .from(familyMember)
+                        .join(customer)
+                        .on(familyMember.customerId.eq(customer.id))
+                        .leftJoin(customerQuota)
+                        .on(
+                                customerQuota
+                                        .customerId
+                                        .eq(customer.id)
+                                        .and(customerQuota.familyId.eq(familyId))
+                                        .and(customerQuota.currentMonth.eq(targetMonth)))
+                        .where(familyMember.familyId.eq(familyId))
+                        .fetch();
+
+        return results.stream()
+                .map(
+                        tuple ->
+                                new FamilyUsageCustomerRow(
+                                        tuple.get(customer.id),
+                                        tuple.get(customer.name),
+                                        tuple.get(customerQuota.monthlyUsedBytes) != null
+                                                ? tuple.get(customerQuota.monthlyUsedBytes)
+                                                : 0L,
+                                        tuple.get(customerQuota.monthlyLimitBytes),
+                                        Boolean.TRUE.equals(tuple.get(customerQuota.isBlocked)),
+                                        tuple.get(customerQuota.blockReason)))
+                .toList();
+    }
+
     private BooleanExpression createMemberNameFilter(FamilySearchRequest.StringCondition cond) {
         if (cond == null || cond.value() == null || cond.operator() == null) {
             return null;
@@ -277,4 +316,12 @@ public class FamilyQueryRepository {
     private ApplicationException invalidInput() {
         return new ApplicationException(FamilyErrorCode.FAMILY_INVALID_SEARCH_CONDITION);
     }
+
+    public record FamilyUsageCustomerRow(
+            Long customerId,
+            String name,
+            Long monthlyUsedBytes,
+            Long monthlyLimitBytes,
+            boolean isBlocked,
+            String blockReason) {}
 }
