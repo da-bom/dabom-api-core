@@ -12,7 +12,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.deploy
     container_name: dabom-api-core
     ports:
       - "${SERVER_PORT:-8080}:8080"
