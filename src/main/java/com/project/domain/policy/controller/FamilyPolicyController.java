@@ -17,24 +17,33 @@ import com.project.domain.policy.service.FamilyPolicyService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.CustomerId;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/families/policies")
 @RequiredArgsConstructor
+@Tag(name = "Family Policy", description = "가족 구성원 정책 조회/수정 API")
 public class FamilyPolicyController {
     private final FamilyPolicyService familyPolicyService;
     private final ObjectMapper objectMapper;
 
     @GetMapping
-    public ApiResponse<FamilyPolicyResponse> getFamilyPolicies(@CustomerId Long customerId) {
+    @Operation(summary = "가족 정책 조회", description = "로그인한 고객이 속한 가족의 구성원별 정책 목록을 조회합니다.")
+    public ApiResponse<FamilyPolicyResponse> getFamilyPolicies(
+            @Parameter(hidden = true) @CustomerId Long customerId) {
         FamilyPolicyResponse response = familyPolicyService.getFamilyPolicyResponse(customerId);
         return ApiResponse.success(response);
     }
 
     @PatchMapping
+    @Operation(summary = "구성원 정책 수정", description = "특정 구성원의 정책을 수정합니다.")
     public ApiResponse<PolicyUpdateResponse> updatePolicy(
-            @CustomerId Long actorId, @RequestBody @Valid PolicyUpdateRequest request)
+            @Parameter(hidden = true) @CustomerId Long actorId,
+            @RequestBody @Valid PolicyUpdateRequest request)
             throws JsonProcessingException {
 
         var updateInfo = request.update();
