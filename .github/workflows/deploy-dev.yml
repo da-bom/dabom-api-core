@@ -12,8 +12,7 @@
 #   - GH_PAT              : GitHub Personal Access Token (private repo pull용)
 #   - DEPLOY_ENV_FILE     : VM에 배포할 .env 파일 내용 (환경변수 전체)
 #
-# VM 최초 셋업:
-#   git clone https://<GH_PAT>@github.com/<owner>/dabom-api-core.git /opt/dabom-api-core
+# VM 최초 셋업은 자동으로 처리됩니다 (디렉토리 없으면 자동 clone)
 # ============================================================================
 
 name: Deploy to Azure VM
@@ -51,11 +50,24 @@ jobs:
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           envs: DEPLOY_ENV_FILE,GH_PAT
           script: |
-            cd ${{ env.DEPLOY_PATH }}
+            set -e
+
+            DEPLOY_DIR="${{ env.DEPLOY_PATH }}"
+            REPO_URL="https://${GH_PAT}@github.com/${{ github.repository }}.git"
+
+            # 최초 셋업: 디렉토리가 없거나 git repo가 아닌 경우 자동 clone
+            if [ ! -d "$DEPLOY_DIR/.git" ]; then
+              sudo rm -rf "$DEPLOY_DIR"
+              sudo git clone "$REPO_URL" "$DEPLOY_DIR"
+              sudo chown -R $(whoami):$(whoami) "$DEPLOY_DIR"
+            fi
+
+            cd "$DEPLOY_DIR"
 
             # PAT을 사용하여 private repo pull
-            git remote set-url origin https://${GH_PAT}@github.com/${{ github.repository }}.git
-            git pull origin develop
+            git remote set-url origin "$REPO_URL"
+            git fetch origin develop
+            git reset --hard origin/develop
 
             # .env 파일 생성
             echo "$DEPLOY_ENV_FILE" > .env
