@@ -61,21 +61,26 @@ public class UsageRecordService {
                 continue;
             }
 
-            long latest = latestOpt.get();
-            Long prev = lastSeen.putIfAbsent(familyId, latest);
+            long remainingBytes = latestOpt.get();
+            Long prev = lastSeen.putIfAbsent(familyId, remainingBytes);
 
-            if (prev == null || prev.longValue() != latest) {
-                lastSeen.put(familyId, latest);
+            if (prev == null || prev.longValue() != remainingBytes) {
+                lastSeen.put(familyId, remainingBytes);
 
                 // 임시로 고정
                 long totalLimitBytes = 20000;
+                long totalUsedBytes = totalLimitBytes - remainingBytes;
                 UsageRealtimePayload payload =
                         new UsageRealtimePayload(
                                 familyId,
-                                latest,
+                                null,
+                                totalUsedBytes,
                                 totalLimitBytes,
-                                totalLimitBytes - latest,
-                                (double) 30);
+                                remainingBytes,
+                                30.0,
+                                null,
+                                null,
+                                null);
 
                 pushLatest(payload);
             }
