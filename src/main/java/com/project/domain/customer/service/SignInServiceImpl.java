@@ -3,7 +3,7 @@ package com.project.domain.customer.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.project.domain.customer.dto.request.SignInRequest;
+import com.project.domain.customer.dto.request.CustomerSignInRequest;
 import com.project.domain.customer.dto.response.SignInResponse;
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.enums.RoleType;
@@ -23,7 +23,7 @@ public class SignInServiceImpl implements SignInService {
     private final JwtTokenUtil jwtTokenUtil;
 
     @Override
-    public SignInResponse signIn(SignInRequest requestDto) {
+    public SignInResponse signIn(CustomerSignInRequest requestDto) {
         Customer customer = customerRepository.findByPhoneNumber(requestDto.phoneNumber());
 
         if (customer == null) {

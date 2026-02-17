@@ -5,9 +5,11 @@ import static com.project.domain.customer.entity.QCustomerQuota.customerQuota;
 import static com.project.domain.family.entity.QFamily.family;
 import static com.project.domain.family.entity.QFamilyMember.familyMember;
 
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -22,6 +24,7 @@ import com.project.domain.family.dto.response.FamilyMemberDetailResponse;
 import com.project.domain.family.dto.response.FamilyMemberSimpleResponse;
 import com.project.domain.family.dto.response.FamilySearchResponse;
 import com.project.domain.family.entity.Family;
+import com.project.domain.family.repository.projection.FamilyUsageCustomerRow;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.FamilyErrorCode;
 import com.querydsl.core.Tuple;
@@ -153,6 +156,45 @@ public class FamilyQueryRepository {
                         familyEntity.getUpdatedAt()));
     }
 
+    public List<FamilyUsageCustomerRow> findUsageReportCustomers(
+            Long familyId, LocalDate targetMonth) {
+        List<Tuple> results =
+                queryFactory
+                        .select(
+                                customer.id,
+                                customer.name,
+                                customerQuota.monthlyUsedBytes,
+                                customerQuota.monthlyLimitBytes,
+                                customerQuota.isBlocked,
+                                customerQuota.blockReason)
+                        .from(familyMember)
+                        .join(customer)
+                        .on(familyMember.customerId.eq(customer.id))
+                        .leftJoin(customerQuota)
+                        .on(
+                                customerQuota
+                                        .customerId
+                                        .eq(customer.id)
+                                        .and(customerQuota.familyId.eq(familyId))
+                                        .and(customerQuota.currentMonth.eq(targetMonth)))
+                        .where(familyMember.familyId.eq(familyId))
+                        .fetch();
+
+        return results.stream()
+                .map(
+                        tuple ->
+                                new FamilyUsageCustomerRow(
+                                        tuple.get(customer.id),
+                                        tuple.get(customer.name),
+                                        tuple.get(customerQuota.monthlyUsedBytes) != null
+                                                ? tuple.get(customerQuota.monthlyUsedBytes)
+                                                : 0L,
+                                        tuple.get(customerQuota.monthlyLimitBytes),
+                                        Boolean.TRUE.equals(tuple.get(customerQuota.isBlocked)),
+                                        tuple.get(customerQuota.blockReason)))
+                .toList();
+    }
+
     private BooleanExpression createMemberNameFilter(FamilySearchRequest.StringCondition cond) {
         if (cond == null || cond.value() == null || cond.operator() == null) {
             return null;
@@ -258,7 +300,10 @@ public class FamilyQueryRepository {
         return results.stream()
                 .collect(
                         Collectors.groupingBy(
-                                t -> t.get(familyMember.familyId),
+                                t ->
+                                        Objects.requireNonNull(
+                                                t.get(familyMember.familyId),
+                                                "familyId must not be null"),
                                 Collectors.mapping(
                                         t ->
                                                 new FamilyMemberSimpleResponse(
