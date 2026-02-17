@@ -18,13 +18,13 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
-import com.project.domain.family.repository.projection.FamilyUsageCustomerRow;
 import com.project.domain.family.dto.request.FamilySearchRequest;
 import com.project.domain.family.dto.response.FamilyDetailResponse;
 import com.project.domain.family.dto.response.FamilyMemberDetailResponse;
 import com.project.domain.family.dto.response.FamilyMemberSimpleResponse;
 import com.project.domain.family.dto.response.FamilySearchResponse;
 import com.project.domain.family.entity.Family;
+import com.project.domain.family.repository.projection.FamilyUsageCustomerRow;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.FamilyErrorCode;
 import com.querydsl.core.Tuple;
