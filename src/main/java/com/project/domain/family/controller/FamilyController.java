@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Min;
 
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.project.domain.family.model.FamilyUsageReport;
 import com.project.domain.family.dto.request.FamilySearchRequest;
 import com.project.domain.family.dto.response.FamilyDetailResponse;
 import com.project.domain.family.dto.response.FamilySearchResponse;
@@ -62,6 +64,7 @@ public class FamilyController {
         return usageRecordService.subscribe(customerId);
     }
 
+    @Validated
     @GetMapping("/reports/usage")
     @Operation(summary = "과거 가족 데이터 조회", description = "Year, Month에 맞는 가족 데이터를 조회합니다.")
     public ApiResponse<FamilyUsageReportResponse> getFamilyUsageReport(
@@ -70,8 +73,7 @@ public class FamilyController {
                     int year,
             @Parameter(description = "Month (1-12)", required = true) @RequestParam @Min(1) @Max(12)
                     int month) {
-        FamilyUsageReportResponse response =
-                familyService.getFamilyUsageReport(customerId, year, month);
-        return ApiResponse.success(response);
+        FamilyUsageReport report = familyService.getFamilyUsageReport(customerId, year, month);
+        return ApiResponse.success(FamilyUsageReportResponse.from(report));
     }
 }

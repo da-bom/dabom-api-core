@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import com.project.domain.family.dto.projection.FamilyUsageCustomerRow;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -318,11 +319,4 @@ public class FamilyQueryRepository {
         return new ApplicationException(FamilyErrorCode.FAMILY_INVALID_SEARCH_CONDITION);
     }
 
-    public record FamilyUsageCustomerRow(
-            Long customerId,
-            String name,
-            Long monthlyUsedBytes,
-            Long monthlyLimitBytes,
-            boolean isBlocked,
-            String blockReason) {}
 }

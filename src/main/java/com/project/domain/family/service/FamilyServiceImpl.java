@@ -7,11 +7,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.project.domain.family.model.FamilyUsageReport;
 import com.project.domain.family.dto.request.FamilySearchRequest;
 import com.project.domain.family.dto.response.FamilyDetailResponse;
 import com.project.domain.family.dto.response.FamilyMemberDetailResponse;
 import com.project.domain.family.dto.response.FamilySearchResponse;
-import com.project.domain.family.dto.response.FamilyUsageReportResponse;
 import com.project.domain.family.entity.Family;
 import com.project.domain.family.infra.cache.FamilyCacheRepository;
 import com.project.domain.family.repository.FamilyMemberRepository;
@@ -109,7 +109,7 @@ public class FamilyServiceImpl implements FamilyService {
     }
 
     @Override
-    public FamilyUsageReportResponse getFamilyUsageReport(Long customerId, int year, int month) {
+    public FamilyUsageReport getFamilyUsageReport(Long customerId, int year, int month) {
         LocalDate targetMonth = LocalDate.of(year, month, 1);
 
         Long familyId =
@@ -124,11 +124,11 @@ public class FamilyServiceImpl implements FamilyService {
                         .orElseThrow(
                                 () -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
 
-        List<FamilyUsageReportResponse.CustomerUsage> customers =
+        List<FamilyUsageReport.CustomerUsage> customers =
                 familyQueryRepository.findUsageReportCustomers(familyId, targetMonth).stream()
                         .map(
                                 row ->
-                                        new FamilyUsageReportResponse.CustomerUsage(
+                                        new FamilyUsageReport.CustomerUsage(
                                                 row.customerId(),
                                                 row.name(),
                                                 row.monthlyUsedBytes(),
@@ -140,10 +140,9 @@ public class FamilyServiceImpl implements FamilyService {
 
         long totalUsedBytes =
                 customers.stream()
-                        .map(FamilyUsageReportResponse.CustomerUsage::monthlyUsedBytes)
+                        .map(FamilyUsageReport.CustomerUsage::monthlyUsedBytes)
                         .filter(
-                                monthlyUsedBytes ->
-                                        monthlyUsedBytes != null && monthlyUsedBytes > 0)
+                                monthlyUsedBytes -> monthlyUsedBytes > 0)
                         .mapToLong(Long::longValue)
                         .sum();
 
@@ -151,7 +150,7 @@ public class FamilyServiceImpl implements FamilyService {
                 familyEntity.getTotalQuotaBytes() != null ? familyEntity.getTotalQuotaBytes() : 0L;
         long remainingBytes = Math.max(totalQuotaBytes - totalUsedBytes, 0L);
 
-        return new FamilyUsageReportResponse(
+        return new FamilyUsageReport(
                 familyEntity.getId(),
                 familyEntity.getName(),
                 year,
