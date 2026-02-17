@@ -38,7 +38,8 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(new LoginInterceptor(jwtTokenUtil))
                 .excludePathPatterns(
                         "/auth/**",
-                        "/admin/auth/login",
+                        "/admin/login",
+                        "/customers/login",
                         "/swagger-ui/**",
                         "/v3/api-docs/**",
                         "/swagger-ui.html");

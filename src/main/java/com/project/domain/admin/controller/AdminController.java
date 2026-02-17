@@ -12,16 +12,21 @@ import com.project.domain.admin.service.AdminService;
 import com.project.domain.customer.dto.response.SignInResponse;
 import com.project.global.api.response.ApiResponse;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/admin")
 @RequiredArgsConstructor
+@Tag(name = "Admin", description = "관리자 인증 API")
 public class AdminController {
 
     private final AdminService adminService;
 
-    @PostMapping("/auth/login")
+    @PostMapping("/login")
+    @Operation(summary = "관리자 로그인", description = "관리자 이메일/비밀번호로 로그인합니다.")
     public ApiResponse<SignInResponse> signIn(
             @Valid @RequestBody AdminSignInRequest signInRequest) {
         return ApiResponse.success(
