@@ -32,6 +32,12 @@ public class Customer extends BaseEntity {
     @Column(nullable = false, length = 10)
     private String name;
 
+    public Customer(String phoneNumber, String passwordHash, String name) {
+        this.phoneNumber = phoneNumber;
+        this.passwordHash = passwordHash;
+        this.name = name;
+    }
+
     public void validatePassword(String password) {
         if (!password.equals(passwordHash)) {
             throw new IllegalArgumentException("Invalid password");
