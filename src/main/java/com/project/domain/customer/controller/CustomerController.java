@@ -1,6 +1,7 @@
 package com.project.domain.customer.controller;
 
 import jakarta.validation.Valid;
+
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,7 +22,8 @@ public class CustomerController {
     private final SignInService signInService;
 
     @PostMapping("/signin")
-    public ApiResponse<SignInResponse> signIn(@Valid @RequestBody CustomerSignInRequest requestDto) {
+    public ApiResponse<SignInResponse> signIn(
+            @Valid @RequestBody CustomerSignInRequest requestDto) {
         return ApiResponse.success(signInService.signIn(requestDto));
     }
 }

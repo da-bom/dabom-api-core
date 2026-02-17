@@ -12,12 +12,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import com.project.domain.family.dto.projection.FamilyUsageCustomerRow;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
+import com.project.domain.family.repository.projection.FamilyUsageCustomerRow;
 import com.project.domain.family.dto.request.FamilySearchRequest;
 import com.project.domain.family.dto.response.FamilyDetailResponse;
 import com.project.domain.family.dto.response.FamilyMemberDetailResponse;
@@ -318,5 +318,4 @@ public class FamilyQueryRepository {
     private ApplicationException invalidInput() {
         return new ApplicationException(FamilyErrorCode.FAMILY_INVALID_SEARCH_CONDITION);
     }
-
 }

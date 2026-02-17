@@ -7,13 +7,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.project.domain.family.model.FamilyUsageReport;
 import com.project.domain.family.dto.request.FamilySearchRequest;
 import com.project.domain.family.dto.response.FamilyDetailResponse;
 import com.project.domain.family.dto.response.FamilyMemberDetailResponse;
 import com.project.domain.family.dto.response.FamilySearchResponse;
 import com.project.domain.family.entity.Family;
 import com.project.domain.family.infra.cache.FamilyCacheRepository;
+import com.project.domain.family.model.FamilyUsageReport;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.family.repository.FamilyQueryRepository;
 import com.project.domain.family.repository.FamilyRepository;
@@ -141,8 +141,7 @@ public class FamilyServiceImpl implements FamilyService {
         long totalUsedBytes =
                 customers.stream()
                         .map(FamilyUsageReport.CustomerUsage::monthlyUsedBytes)
-                        .filter(
-                                monthlyUsedBytes -> monthlyUsedBytes > 0)
+                        .filter(monthlyUsedBytes -> monthlyUsedBytes > 0)
                         .mapToLong(Long::longValue)
                         .sum();
 
