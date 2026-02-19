@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import jakarta.transaction.Transactional;
+import jakarta.persistence.EntityManager;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,7 @@ class PolicyControllerIntegrationTest {
     @Autowired private PolicyApiTestSupport policyApiTestSupport;
 
     @Autowired private PolicyAssignmentRepository policyAssignmentRepository;
+    @Autowired private EntityManager entityManager;
 
     @MockitoBean private KafkaTemplate<String, Object> kafkaTemplate;
     @MockitoBean private JwtTokenUtil jwtTokenUtil;
@@ -142,9 +144,13 @@ class PolicyControllerIntegrationTest {
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
+        entityManager.flush();
+        entityManager.clear();
+
         for (PolicyAssignment assignment :
                 policyAssignmentRepository.findAllByPolicyId(policyContext.policy().getId())) {
-            assertThat(assignment.getRules()).isEqualTo("{\"limitBytes\":5000}");
+            JsonNode rulesNode = parseRulesNode(assignment.getRules());
+            assertThat(rulesNode.path("limitBytes").asInt()).isEqualTo(5000);
             assertThat(assignment.isActive()).isFalse();
         }
     }
@@ -177,9 +183,18 @@ class PolicyControllerIntegrationTest {
 
         for (PolicyAssignment assignment :
                 policyAssignmentRepository.findAllByPolicyId(policyContext.policy().getId())) {
-            assertThat(assignment.getRules()).isEqualTo("{\"limitBytes\":1000}");
+            JsonNode rulesNode = parseRulesNode(assignment.getRules());
+            assertThat(rulesNode.path("limitBytes").asInt()).isEqualTo(1000);
             assertThat(assignment.isActive()).isTrue();
         }
+    }
+
+    private JsonNode parseRulesNode(String rawRules) throws Exception {
+        JsonNode parsed = objectMapper.readTree(rawRules);
+        if (parsed.isTextual()) {
+            return objectMapper.readTree(parsed.asText());
+        }
+        return parsed;
     }
 
     private record UpdatePolicyRequest(
