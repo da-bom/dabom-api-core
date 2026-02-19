@@ -22,7 +22,7 @@ public class WebConfig implements WebMvcConfigurer {
     private final JwtTokenUtil jwtTokenUtil;
 
     @Value("${cors.allowed-origins:http://localhost:3000}")
-    private String allowedOrigins;
+    private String[] allowedOrigins;
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
