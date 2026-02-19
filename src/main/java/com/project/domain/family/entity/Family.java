@@ -9,7 +9,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import com.project.domain.family.util.FamilyUsageCalculator;
 import com.project.global.util.BaseEntity;
 
 import lombok.AccessLevel;
@@ -56,10 +55,6 @@ public class Family extends BaseEntity {
         this.totalQuotaBytes = totalQuotaBytes;
         this.usedBytes = usedBytes;
         this.currentMonth = currentMonth;
-    }
-
-    public double calculateUsedPercent() {
-        return FamilyUsageCalculator.calculateUsedPercent(usedBytes, totalQuotaBytes);
     }
 
     public void changeName(String name) {
