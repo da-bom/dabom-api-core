@@ -46,8 +46,8 @@ public class PolicyController {
         PolicyResponse.ListResult response =
                 PolicyResponse.ListResult.of(
                         page.getContent(),        // policies
-                        page.getNumber(),         // page
-                        page.getSize()+1,         // size + 1 (1페이지 부터 시작)
+                        page.getNumber()+1,       // page ( 1-base page)
+                        page.getSize(),           // size
                         page.getTotalElements(),  // totalElements
                         page.getTotalPages());    // totalPages
         return ApiResponse.success(response);
