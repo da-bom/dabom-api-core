@@ -97,12 +97,12 @@ public class PolicyServiceImpl implements PolicyService {
     // 덮어쓰기가 true일 경우, 가족구성원에 부여된 정책들을 전부 조회하고 즉시 수정
     private void applyToExistingAssignments(Policy policy) {
         String newRules = convertRulesToJson(policy.getDefaultRules());
-        List<PolicyAssignment> assignments =
-                policyAssignmentRepository.findAllByPolicyId(policy.getId());
 
-        for (PolicyAssignment assignment : assignments) {
-            assignment.update(newRules, policy.isActive(), null);
-        }
+        policyAssignmentRepository.bulkUpdateAssignments(
+                policy.getId(),
+                newRules,
+                policy.isActive()
+        );
     }
 
     // 정책 안 세부 규칙을 JSON으로 변환하는 메소드
@@ -112,7 +112,7 @@ public class PolicyServiceImpl implements PolicyService {
         try {
             return objectMapper.writeValueAsString(safeRules);
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to serialize policy default rules", e);
+            throw new ApplicationException(PolicyErrorCode.POLICY_RULES_SERIALIZATION_FAILED);
         }
     }
 }
