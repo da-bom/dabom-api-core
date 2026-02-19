@@ -25,6 +25,7 @@ import com.project.domain.family.model.FamilyMemberDetail;
 import com.project.domain.family.model.FamilyMemberSummary;
 import com.project.domain.family.model.FamilySearchResult;
 import com.project.domain.family.repository.projection.FamilyUsageCustomerRow;
+import com.project.domain.family.util.FamilyUsageCalculator;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.FamilyErrorCode;
 import com.querydsl.core.Tuple;
@@ -136,11 +137,8 @@ public class FamilyQueryRepository {
                         .toList();
 
         double usedPercent =
-                familyEntity.getTotalQuotaBytes() > 0
-                        ? (double) familyEntity.getUsedBytes()
-                                / familyEntity.getTotalQuotaBytes()
-                                * 100.0
-                        : 0.0;
+                FamilyUsageCalculator.calculateUsedPercent(
+                        familyEntity.getUsedBytes(), familyEntity.getTotalQuotaBytes());
 
         return Optional.of(
                 new FamilyDetail(

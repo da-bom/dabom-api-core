@@ -17,6 +17,7 @@ import com.project.domain.family.model.FamilyUsageReport;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.family.repository.FamilyQueryRepository;
 import com.project.domain.family.repository.FamilyRepository;
+import com.project.domain.family.util.FamilyUsageCalculator;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.FamilyErrorCode;
 
@@ -86,9 +87,7 @@ public class FamilyServiceImpl implements FamilyService {
                         .sum();
 
         double usedPercent =
-                (totalQuotaBytes != null && totalQuotaBytes > 0)
-                        ? (double) finalUsedBytes / totalQuotaBytes * 100.0
-                        : 0.0;
+                FamilyUsageCalculator.calculateUsedPercent(finalUsedBytes, totalQuotaBytes);
 
         // 가족 메타 정보(name, quota, currentMonth 등)는 DB 조회 결과를 그대로 사용
         return new FamilyDetail(
