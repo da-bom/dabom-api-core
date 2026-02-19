@@ -8,11 +8,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.project.domain.family.dto.request.FamilySearchRequest;
-import com.project.domain.family.dto.response.FamilyDetailResponse;
-import com.project.domain.family.dto.response.FamilyMemberDetailResponse;
 import com.project.domain.family.dto.response.FamilySearchResponse;
 import com.project.domain.family.entity.Family;
 import com.project.domain.family.infra.cache.FamilyCacheRepository;
+import com.project.domain.family.model.FamilyDetail;
+import com.project.domain.family.model.FamilyMemberDetail;
 import com.project.domain.family.model.FamilyUsageReport;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.family.repository.FamilyQueryRepository;
@@ -40,18 +40,18 @@ public class FamilyServiceImpl implements FamilyService {
     }
 
     @Override
-    public FamilyDetailResponse getFamilyDetail(Long familyId) {
+    public FamilyDetail getFamilyDetail(Long familyId) {
         // 가족 상세 데이터는 DB에서 조회
-        FamilyDetailResponse dbResponse =
+        FamilyDetail familyDetail =
                 familyQueryRepository
                         .findDetailById(familyId)
                         .orElseThrow(
                                 () -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
 
-        Long totalQuotaBytes = dbResponse.totalQuotaBytes();
+        Long totalQuotaBytes = familyDetail.totalQuotaBytes();
 
-        List<FamilyMemberDetailResponse> customers =
-                dbResponse.customers().stream()
+        List<FamilyMemberDetail> customers =
+                familyDetail.customers().stream()
                         .map(
                                 c ->
                                         // 구성원별 실시간 사용량은 Redis 값이 있으면 덮어씀
@@ -60,19 +60,25 @@ public class FamilyServiceImpl implements FamilyService {
                                                         familyId, c.customerId())
                                                 .map(
                                                         realtimeUsage ->
-                                                                new FamilyMemberDetailResponse(
+                                                                new FamilyMemberDetail(
                                                                         c.customerId(),
                                                                         c.name(),
                                                                         c.role(),
                                                                         c.monthlyLimitBytes(),
                                                                         realtimeUsage))
-                                                .orElse(c))
+                                                .orElse(
+                                                        new FamilyMemberDetail(
+                                                                c.customerId(),
+                                                                c.name(),
+                                                                c.role(),
+                                                                c.monthlyLimitBytes(),
+                                                                c.monthlyUsedBytes())))
                         .toList();
 
         // 응답 usedBytes/usedPercent는 보정된 구성원 사용량 합계를 기준으로 계산
         long finalUsedBytes =
                 customers.stream()
-                        .map(FamilyMemberDetailResponse::monthlyUsedBytes)
+                        .map(FamilyMemberDetail::monthlyUsedBytes)
                         .filter(
                                 monthlyUsedBytes ->
                                         monthlyUsedBytes != null && monthlyUsedBytes > 0)
@@ -85,17 +91,17 @@ public class FamilyServiceImpl implements FamilyService {
                         : 0.0;
 
         // 가족 메타 정보(name, quota, currentMonth 등)는 DB 조회 결과를 그대로 사용
-        return new FamilyDetailResponse(
-                dbResponse.familyId(),
-                dbResponse.familyName(),
-                dbResponse.createdById(),
+        return new FamilyDetail(
+                familyDetail.familyId(),
+                familyDetail.familyName(),
+                familyDetail.createdById(),
                 customers,
                 totalQuotaBytes,
                 finalUsedBytes,
                 usedPercent,
-                dbResponse.currentMonth(),
-                dbResponse.createdAt(),
-                dbResponse.updatedAt());
+                familyDetail.currentMonth(),
+                familyDetail.createdAt(),
+                familyDetail.updatedAt());
     }
 
     @Override
