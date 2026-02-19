@@ -1,7 +1,8 @@
 package com.project.domain.policy.controller;
 
-import java.util.List;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,9 +39,17 @@ public class PolicyController {
 
     @GetMapping
     @AdminOnly
-    public ApiResponse<List<PolicyResponse.Detail>> getPolicyList() {
-        List<PolicyResponse.Detail> response =
-                policyService.getPolicyList().stream().map(PolicyResponse.Detail::from).toList();
+    public ApiResponse<PolicyResponse.ListResult> getPolicyList(
+            @PageableDefault(page = 0, size = 10) Pageable pageable) {
+        Page<PolicyResponse.Detail> page =
+                policyService.getPolicyList(pageable).map(PolicyResponse.Detail::from);
+        PolicyResponse.ListResult response =
+                PolicyResponse.ListResult.of(
+                        page.getContent(),        // policies
+                        page.getNumber(),         // page
+                        page.getSize()+1,         // size + 1 (1페이지 부터 시작)
+                        page.getTotalElements(),  // totalElements
+                        page.getTotalPages());    // totalPages
         return ApiResponse.success(response);
     }
 

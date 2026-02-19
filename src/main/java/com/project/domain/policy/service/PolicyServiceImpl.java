@@ -4,6 +4,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,8 +38,8 @@ public class PolicyServiceImpl implements PolicyService {
 
     // 정책 리스트 조회
     @Override
-    public List<Policy> getPolicyList() {
-        return policyRepository.findAll();
+    public Page<Policy> getPolicyList(Pageable pageable) {
+        return policyRepository.findAll(pageable);
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.project.domain.policy.dto.response;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 import com.project.domain.customer.enums.RoleType;
@@ -8,6 +9,14 @@ import com.project.domain.policy.entity.Policy;
 import com.project.domain.policy.enums.PolicyType;
 
 public class PolicyResponse {
+
+    public record ListResult(
+            List<Detail> policies, int page, int size, long totalElements, int totalPages) {
+        public static ListResult of(
+                List<Detail> policies, int page, int size, long totalElements, int totalPages) {
+            return new ListResult(policies, page, size, totalElements, totalPages);
+        }
+    }
 
     public record Summary(Long id, String name, String policyType, LocalDateTime createdAt) {
         public static Summary from(Policy policy) {
