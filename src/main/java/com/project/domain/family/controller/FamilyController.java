@@ -20,6 +20,7 @@ import com.project.domain.family.dto.response.FamilyDetailResponse;
 import com.project.domain.family.dto.response.FamilySearchResponse;
 import com.project.domain.family.dto.response.FamilyUsageReportResponse;
 import com.project.domain.family.model.FamilyDetail;
+import com.project.domain.family.model.FamilySearchResult;
 import com.project.domain.family.model.FamilyUsageReport;
 import com.project.domain.family.service.FamilyService;
 import com.project.domain.usagerecord.service.UsageRecordService;
@@ -47,7 +48,8 @@ public class FamilyController {
     @Operation(summary = "가족 목록 검색", description = "페이지, 필터, 검색 조건으로 가족 목록을 조회합니다.")
     public ApiResponse<Page<FamilySearchResponse>> searchFamilies(
             @RequestBody FamilySearchRequest familySearchRequest) {
-        Page<FamilySearchResponse> result = familyService.searchFamilies(familySearchRequest);
+        Page<FamilySearchResult> searchResult = familyService.searchFamilies(familySearchRequest);
+        Page<FamilySearchResponse> result = searchResult.map(FamilySearchResponse::from);
         return ApiResponse.success(result);
     }
 

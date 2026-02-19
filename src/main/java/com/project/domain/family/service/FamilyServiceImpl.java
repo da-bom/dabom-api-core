@@ -8,11 +8,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.project.domain.family.dto.request.FamilySearchRequest;
-import com.project.domain.family.dto.response.FamilySearchResponse;
 import com.project.domain.family.entity.Family;
 import com.project.domain.family.infra.cache.FamilyCacheRepository;
 import com.project.domain.family.model.FamilyDetail;
 import com.project.domain.family.model.FamilyMemberDetail;
+import com.project.domain.family.model.FamilySearchResult;
 import com.project.domain.family.model.FamilyUsageReport;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.family.repository.FamilyQueryRepository;
@@ -35,7 +35,7 @@ public class FamilyServiceImpl implements FamilyService {
     private final FamilyRepository familyRepository;
 
     @Override
-    public Page<FamilySearchResponse> searchFamilies(FamilySearchRequest familySearchRequest) {
+    public Page<FamilySearchResult> searchFamilies(FamilySearchRequest familySearchRequest) {
         return familyQueryRepository.search(familySearchRequest);
     }
 
