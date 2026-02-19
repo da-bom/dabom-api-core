@@ -44,12 +44,7 @@ public class PolicyController {
         Page<PolicyResponse.Detail> page =
                 policyService.getPolicyList(pageable).map(PolicyResponse.Detail::from);
         PolicyResponse.ListResult response =
-                PolicyResponse.ListResult.of(
-                        page.getContent(), // policies
-                        page.getNumber() + 1, // page ( 1-base page)
-                        page.getSize(), // size
-                        page.getTotalElements(), // totalElements
-                        page.getTotalPages()); // totalPages
+                PolicyResponse.ListResult.from(page);
         return ApiResponse.success(response);
     }
 

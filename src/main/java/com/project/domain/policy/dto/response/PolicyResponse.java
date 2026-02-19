@@ -7,6 +7,7 @@ import java.util.Map;
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.policy.entity.Policy;
 import com.project.domain.policy.enums.PolicyType;
+import org.springframework.data.domain.Page;
 
 public class PolicyResponse {
 
@@ -15,6 +16,14 @@ public class PolicyResponse {
         public static ListResult of(
                 List<Detail> policies, int page, int size, long totalElements, int totalPages) {
             return new ListResult(policies, page, size, totalElements, totalPages);
+        }
+        public static ListResult from(Page<Detail> page) {
+            return new ListResult(
+                    page.getContent(), // policies
+                    page.getNumber() + 1, // page ( 1-base page)
+                    page.getSize(), // size
+                    page.getTotalElements(), // totalElements
+                    page.getTotalPages()); // totalPages
         }
     }
 
