@@ -59,7 +59,7 @@ public class Policy extends BaseEntity {
     private boolean isActive;
 
     public boolean isModifiable() {
-        return !isSystem ;
+        return !isSystem;
     }
 
     public void update(

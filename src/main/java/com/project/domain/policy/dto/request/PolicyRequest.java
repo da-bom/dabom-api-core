@@ -26,5 +26,6 @@ public class PolicyRequest {
                                     }
                                     """)
                     Map<String, Object> defaultRules,
-            boolean isActive, boolean overWrite) {}
+            boolean isActive,
+            boolean overWrite) {}
 }

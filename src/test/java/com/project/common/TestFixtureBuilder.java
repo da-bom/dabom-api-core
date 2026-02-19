@@ -48,14 +48,15 @@ public class TestFixtureBuilder {
         bs.customerQuotaRepository().delete(customerQuota);
     }
 
-
     // 정책 (Policy)
     public Policy buildPolicy(Policy policy) {
         return bs.policyRepository().save(policy);
     }
+
     public PolicyAssignment buildPolicyAssignment(PolicyAssignment policyAssignment) {
         return bs.policyAssignmentRepository().save(policyAssignment);
     }
+
     public List<PolicyAssignment> buildPolicyAssignments(List<PolicyAssignment> policyAssignments) {
         return bs.policyAssignmentRepository().saveAll(policyAssignments);
     }

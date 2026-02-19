@@ -29,6 +29,8 @@ public interface PolicyAssignmentRepository extends JpaRepository<PolicyAssignme
             @Param("type") PolicyType type);
 
     // 정책 ID에 해당하는 가족구성원에게 할당된 정책 전체 조회
-    @Query("SELECT pa FROM PolicyAssignment pa WHERE pa.policyId = :policyId AND pa.deletedAt IS NULL")
+    @Query(
+            "SELECT pa FROM PolicyAssignment pa WHERE pa.policyId = :policyId AND pa.deletedAt IS"
+                    + " NULL")
     List<PolicyAssignment> findAllByPolicyId(@Param("policyId") Long policyId);
 }

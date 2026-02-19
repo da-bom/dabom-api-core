@@ -29,7 +29,13 @@ public class PolicyFixtures {
 
     // 모든 필드로 정책 생성
     public static Policy makePolicy(
-            String name, String description, Map<String, Object> defaultRules, RoleType requiredRole, PolicyType policyType, boolean isSystem, boolean isActive) {
+            String name,
+            String description,
+            Map<String, Object> defaultRules,
+            RoleType requiredRole,
+            PolicyType policyType,
+            boolean isSystem,
+            boolean isActive) {
         return Policy.builder()
                 .name(name)
                 .description(description)

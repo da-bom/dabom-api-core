@@ -107,7 +107,8 @@ public class PolicyServiceImpl implements PolicyService {
 
     // 정책 안 세부 규칙을 JSON으로 변환하는 메소드
     private String convertRulesToJson(Map<String, Object> defaultRules) {
-        Map<String, Object> safeRules = defaultRules == null ? Collections.emptyMap() : defaultRules;
+        Map<String, Object> safeRules =
+                defaultRules == null ? Collections.emptyMap() : defaultRules;
         try {
             return objectMapper.writeValueAsString(safeRules);
         } catch (JsonProcessingException e) {

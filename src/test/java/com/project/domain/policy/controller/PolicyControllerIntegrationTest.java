@@ -9,8 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 import java.util.Map;
 
-import com.project.domain.policy.entity.Policy;
-import com.project.domain.policy.enums.PolicyType;
+import jakarta.transaction.Transactional;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +18,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,16 +28,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.policy.entity.PolicyAssignment;
+import com.project.domain.policy.enums.PolicyType;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.domain.policy.support.PolicyApiTestSupport;
 import com.project.global.auth.JwtTokenUtil;
-
-import jakarta.transaction.Transactional;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
+@EmbeddedKafka( //
+        partitions = 1,
+        topics = {"usage-events"},
+        brokerProperties = {"listeners=PLAINTEXT://localhost:0", "port=0"})
 class PolicyControllerIntegrationTest {
 
     private static final String ADMIN_TOKEN = "ADMIN";
@@ -45,13 +49,11 @@ class PolicyControllerIntegrationTest {
 
     @Autowired private ObjectMapper objectMapper;
 
-
     @Autowired private PolicyApiTestSupport policyApiTestSupport;
 
     @Autowired private PolicyAssignmentRepository policyAssignmentRepository;
 
-    @MockitoBean
-    private KafkaTemplate<String, Object> kafkaTemplate;
+    @MockitoBean private KafkaTemplate<String, Object> kafkaTemplate;
     @MockitoBean private JwtTokenUtil jwtTokenUtil;
 
     @Test
@@ -117,7 +119,8 @@ class PolicyControllerIntegrationTest {
     @Test
     @DisplayName("PUT /policies/{policyId} - overWrite=true 가족에 적용된 정책을 즉시 수정한다.")
     void updatePolicyOverwriteTrueUpdatesExistingAssignments() throws Exception {
-        PolicyApiTestSupport.FamilyContext familyContext = policyApiTestSupport.buildFamilyContext(100L);
+        PolicyApiTestSupport.FamilyContext familyContext =
+                policyApiTestSupport.buildFamilyContext(100L);
         PolicyApiTestSupport.PolicyContext policyContext =
                 policyApiTestSupport.buildPolicyContext(familyContext);
 
@@ -149,7 +152,8 @@ class PolicyControllerIntegrationTest {
     @Test
     @DisplayName("PUT /policies/{policyId} - overWrite=false 부여된 정책들은 놔두고 새로 생성되는 정책에 경우 적용")
     void updatePolicyOverwriteFalseKeepsExistingAssignments() throws Exception {
-        PolicyApiTestSupport.FamilyContext familyContext = policyApiTestSupport.buildFamilyContext(101L);
+        PolicyApiTestSupport.FamilyContext familyContext =
+                policyApiTestSupport.buildFamilyContext(101L);
         PolicyApiTestSupport.PolicyContext policyContext =
                 policyApiTestSupport.buildPolicyContext(familyContext);
 

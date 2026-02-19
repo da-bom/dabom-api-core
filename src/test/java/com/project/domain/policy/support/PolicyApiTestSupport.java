@@ -3,8 +3,6 @@ package com.project.domain.policy.support;
 import java.util.List;
 import java.util.Map;
 
-import com.project.domain.customer.enums.RoleType;
-import com.project.domain.policy.enums.PolicyType;
 import org.springframework.stereotype.Component;
 
 import com.project.common.TestFixtureBuilder;
@@ -13,9 +11,11 @@ import com.project.common.fixtures.FamilyMemberFixtures;
 import com.project.common.fixtures.PolicyAssignmentFixtures;
 import com.project.common.fixtures.PolicyFixtures;
 import com.project.domain.customer.entity.Customer;
+import com.project.domain.customer.enums.RoleType;
 import com.project.domain.family.entity.FamilyMember;
 import com.project.domain.policy.entity.Policy;
 import com.project.domain.policy.entity.PolicyAssignment;
+import com.project.domain.policy.enums.PolicyType;
 
 @Component
 public class PolicyApiTestSupport {
@@ -41,7 +41,8 @@ public class PolicyApiTestSupport {
                 testFixtureBuilder.buildFamilyMember(
                         FamilyMemberFixtures.member(familyId, member2.getId()));
 
-        return new FamilyContext(owner, member1, member2, ownerMember, familyMember1, familyMember2);
+        return new FamilyContext(
+                owner, member1, member2, ownerMember, familyMember1, familyMember2);
     }
 
     public PolicyContext buildPolicyContext(FamilyContext familyContext) {
@@ -76,11 +77,23 @@ public class PolicyApiTestSupport {
                 PolicyFixtures.monthlyLimitPolicy(name, defaultRules, isActive));
     }
 
-    public Policy buildDetailPolicy(String name, String description, RoleType requiredRole, PolicyType policyType, Map<String, Object> defaultRules,boolean isSystem, boolean isActive){
+    public Policy buildDetailPolicy(
+            String name,
+            String description,
+            RoleType requiredRole,
+            PolicyType policyType,
+            Map<String, Object> defaultRules,
+            boolean isSystem,
+            boolean isActive) {
         return testFixtureBuilder.buildPolicy(
-                PolicyFixtures.makePolicy(name, description, defaultRules, requiredRole, policyType,
-                        isSystem, isActive)
-        );
+                PolicyFixtures.makePolicy(
+                        name,
+                        description,
+                        defaultRules,
+                        requiredRole,
+                        policyType,
+                        isSystem,
+                        isActive));
     }
 
     public record FamilyContext(
