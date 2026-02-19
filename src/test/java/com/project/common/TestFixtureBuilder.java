@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.entity.CustomerQuota;
 import com.project.domain.family.entity.FamilyMember;
+import com.project.domain.policy.entity.Policy;
+import com.project.domain.policy.entity.PolicyAssignment;
 
 @Component
 public class TestFixtureBuilder {
@@ -44,5 +46,17 @@ public class TestFixtureBuilder {
 
     public void deleteCustomerQuota(CustomerQuota customerQuota) {
         bs.customerQuotaRepository().delete(customerQuota);
+    }
+
+
+    // 정책 (Policy)
+    public Policy buildPolicy(Policy policy) {
+        return bs.policyRepository().save(policy);
+    }
+    public PolicyAssignment buildPolicyAssignment(PolicyAssignment policyAssignment) {
+        return bs.policyAssignmentRepository().save(policyAssignment);
+    }
+    public List<PolicyAssignment> buildPolicyAssignments(List<PolicyAssignment> policyAssignments) {
+        return bs.policyAssignmentRepository().saveAll(policyAssignments);
     }
 }
