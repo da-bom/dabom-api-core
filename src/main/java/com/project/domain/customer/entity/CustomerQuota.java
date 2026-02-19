@@ -8,10 +8,10 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import com.project.global.util.BaseEntity;
 
-import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,9 +21,9 @@ import lombok.NoArgsConstructor;
 @Table(
         name = "customer_quota",
         uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_customer_quota_family_customer_month",
-                        columnNames = {"family_id", "customer_id", "current_month"})
+            @UniqueConstraint(
+                    name = "uk_customer_quota_family_customer_month",
+                    columnNames = {"family_id", "customer_id", "current_month"})
         })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
