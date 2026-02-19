@@ -19,6 +19,7 @@ import com.project.domain.family.dto.request.FamilySearchRequest;
 import com.project.domain.family.dto.response.FamilyDetailResponse;
 import com.project.domain.family.dto.response.FamilySearchResponse;
 import com.project.domain.family.dto.response.FamilyUsageReportResponse;
+import com.project.domain.family.model.FamilyDetail;
 import com.project.domain.family.model.FamilyUsageReport;
 import com.project.domain.family.service.FamilyService;
 import com.project.domain.usagerecord.service.UsageRecordService;
@@ -55,8 +56,8 @@ public class FamilyController {
     @Operation(summary = "가족 상세 조회", description = "가족 ID로 가족 상세 정보를 조회합니다.")
     public ApiResponse<FamilyDetailResponse> getFamilyDetail(
             @Parameter(description = "가족 ID", required = true) @PathVariable Long familyId) {
-        FamilyDetailResponse result = familyService.getFamilyDetail(familyId);
-        return ApiResponse.success(result);
+        FamilyDetail familyDetail = familyService.getFamilyDetail(familyId);
+        return ApiResponse.success(FamilyDetailResponse.from(familyDetail));
     }
 
     @GetMapping(value = "/usage/current", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
