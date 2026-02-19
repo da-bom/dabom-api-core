@@ -9,6 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 import java.util.Map;
 
+import com.project.domain.policy.entity.Policy;
+import com.project.domain.policy.enums.PolicyType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,6 +77,41 @@ class PolicyControllerIntegrationTest {
         List<String> policyNames =
                 data.path("policies").findValuesAsText("name").stream().sorted().toList();
         assertThat(policyNames).containsExactly("list-policy-1", "list-policy-2");
+    }
+
+    @Test
+    @DisplayName("GET /policies/{policyId} - 정책 상세 정보를 반환한다")
+    void getPolicyDetailReturnsPolicyDetail() throws Exception {
+        var policy =
+                policyApiTestSupport.buildDetailPolicy(
+                        "detail-policy",
+                        "detail description",
+                        RoleType.OWNER,
+                        PolicyType.MONTHLY_LIMIT,
+                        Map.of("limitBytes", 4096),
+                        true,
+                        true);
+
+        given(jwtTokenUtil.getRole(ADMIN_TOKEN)).willReturn(RoleType.ADMIN);
+
+        MvcResult mvcResult =
+                mockMvc.perform(
+                                get("/policies/{policyId}", policy.getId())
+                                        .header("Authorization", "Bearer " + ADMIN_TOKEN))
+                        .andExpect(status().isOk())
+                        .andReturn();
+
+        JsonNode data =
+                objectMapper.readTree(mvcResult.getResponse().getContentAsString()).path("data");
+
+        assertThat(data.path("id").asLong()).isEqualTo(policy.getId());
+        assertThat(data.path("name").asText()).isEqualTo("detail-policy");
+        assertThat(data.path("description").asText()).isEqualTo("detail description");
+        assertThat(data.path("requiredRole").asText()).isEqualTo("OWNER");
+        assertThat(data.path("policyType").asText()).isEqualTo("MONTHLY_LIMIT");
+        assertThat(data.path("defaultRules").path("limitBytes").asInt()).isEqualTo(4096);
+        assertThat(data.path("isSystem").asBoolean()).isTrue();
+        assertThat(data.path("isActive").asBoolean()).isTrue();
     }
 
     @Test

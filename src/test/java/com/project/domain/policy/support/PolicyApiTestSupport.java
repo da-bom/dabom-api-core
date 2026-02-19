@@ -3,6 +3,8 @@ package com.project.domain.policy.support;
 import java.util.List;
 import java.util.Map;
 
+import com.project.domain.customer.enums.RoleType;
+import com.project.domain.policy.enums.PolicyType;
 import org.springframework.stereotype.Component;
 
 import com.project.common.TestFixtureBuilder;
@@ -72,6 +74,13 @@ public class PolicyApiTestSupport {
     public Policy buildPolicy(String name, Map<String, Object> defaultRules, boolean isActive) {
         return testFixtureBuilder.buildPolicy(
                 PolicyFixtures.monthlyLimitPolicy(name, defaultRules, isActive));
+    }
+
+    public Policy buildDetailPolicy(String name, String description, RoleType requiredRole, PolicyType policyType, Map<String, Object> defaultRules,boolean isSystem, boolean isActive){
+        return testFixtureBuilder.buildPolicy(
+                PolicyFixtures.makePolicy(name, description, defaultRules, requiredRole, policyType,
+                        isSystem, isActive)
+        );
     }
 
     public record FamilyContext(
