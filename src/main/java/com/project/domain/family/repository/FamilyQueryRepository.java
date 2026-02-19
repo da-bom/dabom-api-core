@@ -19,11 +19,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 import com.project.domain.family.dto.request.FamilySearchRequest;
-import com.project.domain.family.dto.response.FamilyDetailResponse;
-import com.project.domain.family.dto.response.FamilyMemberDetailResponse;
 import com.project.domain.family.dto.response.FamilyMemberSimpleResponse;
 import com.project.domain.family.dto.response.FamilySearchResponse;
 import com.project.domain.family.entity.Family;
+import com.project.domain.family.model.FamilyDetail;
+import com.project.domain.family.model.FamilyMemberDetail;
 import com.project.domain.family.repository.projection.FamilyUsageCustomerRow;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.FamilyErrorCode;
@@ -90,7 +90,7 @@ public class FamilyQueryRepository {
         return new PageImpl<>(content, pageable, total);
     }
 
-    public Optional<FamilyDetailResponse> findDetailById(Long familyId) {
+    public Optional<FamilyDetail> findDetailById(Long familyId) {
         Family familyEntity =
                 queryFactory.selectFrom(family).where(family.id.eq(familyId)).fetchOne();
 
@@ -121,11 +121,11 @@ public class FamilyQueryRepository {
                         .where(familyMember.familyId.eq(familyId))
                         .fetch();
 
-        List<FamilyMemberDetailResponse> customers =
+        List<FamilyMemberDetail> customers =
                 results.stream()
                         .map(
                                 t ->
-                                        new FamilyMemberDetailResponse(
+                                        new FamilyMemberDetail(
                                                 t.get(customer.id),
                                                 t.get(customer.name),
                                                 t.get(familyMember.role),
@@ -143,7 +143,7 @@ public class FamilyQueryRepository {
                         : 0.0;
 
         return Optional.of(
-                new FamilyDetailResponse(
+                new FamilyDetail(
                         familyEntity.getId(),
                         familyEntity.getName(),
                         familyEntity.getCreatedById(),
