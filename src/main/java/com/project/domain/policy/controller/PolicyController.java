@@ -43,8 +43,7 @@ public class PolicyController {
             @PageableDefault(page = 0, size = 10) Pageable pageable) {
         Page<PolicyResponse.Detail> page =
                 policyService.getPolicyList(pageable).map(PolicyResponse.Detail::from);
-        PolicyResponse.ListResult response =
-                PolicyResponse.ListResult.from(page);
+        PolicyResponse.ListResult response = PolicyResponse.ListResult.from(page);
         return ApiResponse.success(response);
     }
 

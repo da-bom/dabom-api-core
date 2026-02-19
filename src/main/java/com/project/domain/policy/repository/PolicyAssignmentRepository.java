@@ -37,16 +37,16 @@ public interface PolicyAssignmentRepository extends JpaRepository<PolicyAssignme
 
     // 가족 구성원에 할당된 정책 전체 수정(Bulk를 활용하여 N+1문제 해결)
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("""
+    @Query(
+            """
         UPDATE PolicyAssignment pa
         SET pa.rules = :rules,
             pa.isActive = :active
         WHERE pa.policyId = :policyId
           AND pa.deletedAt IS NULL
-    """)
+        """)
     int bulkUpdateAssignments(
             @Param("policyId") Long policyId,
             @Param("rules") String rules,
-            @Param("active") boolean active
-    );
+            @Param("active") boolean active);
 }

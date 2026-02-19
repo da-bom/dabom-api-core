@@ -4,10 +4,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.data.domain.Page;
+
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.policy.entity.Policy;
 import com.project.domain.policy.enums.PolicyType;
-import org.springframework.data.domain.Page;
 
 public class PolicyResponse {
 
@@ -17,6 +18,7 @@ public class PolicyResponse {
                 List<Detail> policies, int page, int size, long totalElements, int totalPages) {
             return new ListResult(policies, page, size, totalElements, totalPages);
         }
+
         public static ListResult from(Page<Detail> page) {
             return new ListResult(
                     page.getContent(), // policies

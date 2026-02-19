@@ -1,7 +1,6 @@
 package com.project.domain.policy.service;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 import org.springframework.data.domain.Page;
@@ -13,7 +12,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.policy.dto.request.PolicyRequest;
 import com.project.domain.policy.entity.Policy;
-import com.project.domain.policy.entity.PolicyAssignment;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.domain.policy.repository.PolicyRepository;
 import com.project.global.exception.ApplicationException;
@@ -99,10 +97,7 @@ public class PolicyServiceImpl implements PolicyService {
         String newRules = convertRulesToJson(policy.getDefaultRules());
 
         policyAssignmentRepository.bulkUpdateAssignments(
-                policy.getId(),
-                newRules,
-                policy.isActive()
-        );
+                policy.getId(), newRules, policy.isActive());
     }
 
     // 정책 안 세부 규칙을 JSON으로 변환하는 메소드
