@@ -11,13 +11,20 @@ import jakarta.persistence.Table;
 
 import com.project.global.util.BaseEntity;
 
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "customer_quota")
+@Table(
+        name = "customer_quota",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_customer_quota_family_customer_month",
+                        columnNames = {"family_id", "customer_id", "current_month"})
+        })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CustomerQuota extends BaseEntity {
