@@ -1,7 +1,5 @@
 package com.project.domain.customer.entity;
 
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.CustomerErrorCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -9,6 +7,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import com.project.global.exception.ApplicationException;
+import com.project.global.exception.code.CustomerErrorCode;
 import com.project.global.util.BaseEntity;
 
 import lombok.AccessLevel;
@@ -28,7 +28,7 @@ public class Customer extends BaseEntity {
     @Column(nullable = false, unique = true, length = 11)
     private String phoneNumber;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 60)
     private String passwordHash;
 
     @Column(nullable = false, length = 10)
