@@ -57,13 +57,6 @@ public class Family extends BaseEntity {
         this.currentMonth = currentMonth;
     }
 
-    public double calculateUsedPercent() {
-        if (totalQuotaBytes == null || totalQuotaBytes == 0) {
-            return 0.0;
-        }
-        return (double) usedBytes / totalQuotaBytes * 100.0;
-    }
-
     public void changeName(String name) {
         this.name = name;
     }

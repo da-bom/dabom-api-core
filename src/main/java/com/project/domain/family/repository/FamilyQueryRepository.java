@@ -19,12 +19,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 import com.project.domain.family.dto.request.FamilySearchRequest;
-import com.project.domain.family.dto.response.FamilyDetailResponse;
-import com.project.domain.family.dto.response.FamilyMemberDetailResponse;
-import com.project.domain.family.dto.response.FamilyMemberSimpleResponse;
-import com.project.domain.family.dto.response.FamilySearchResponse;
 import com.project.domain.family.entity.Family;
+import com.project.domain.family.model.FamilyDetail;
+import com.project.domain.family.model.FamilyMemberDetail;
+import com.project.domain.family.model.FamilyMemberSummary;
+import com.project.domain.family.model.FamilySearchResult;
 import com.project.domain.family.repository.projection.FamilyUsageCustomerRow;
+import com.project.domain.family.util.FamilyUsageCalculator;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.FamilyErrorCode;
 import com.querydsl.core.Tuple;
@@ -44,7 +45,7 @@ public class FamilyQueryRepository {
 
     private final JPAQueryFactory queryFactory;
 
-    public Page<FamilySearchResponse> search(FamilySearchRequest request) {
+    public Page<FamilySearchResult> search(FamilySearchRequest request) {
         PageRequest pageable = PageRequest.of(request.getPage(), request.getSize());
         FamilySearchRequest.Filters filters = request.filters();
 
@@ -73,13 +74,13 @@ public class FamilyQueryRepository {
         total = (total == null) ? 0L : total;
 
         List<Long> familyIds = families.stream().map(Family::getId).toList();
-        Map<Long, List<FamilyMemberSimpleResponse>> membersMap = fetchMembersMap(familyIds);
+        Map<Long, List<FamilyMemberSummary>> membersMap = fetchMembersMap(familyIds);
 
-        List<FamilySearchResponse> content =
+        List<FamilySearchResult> content =
                 families.stream()
                         .map(
                                 f ->
-                                        new FamilySearchResponse(
+                                        new FamilySearchResult(
                                                 f.getId(),
                                                 f.getName(),
                                                 membersMap.getOrDefault(
@@ -90,7 +91,7 @@ public class FamilyQueryRepository {
         return new PageImpl<>(content, pageable, total);
     }
 
-    public Optional<FamilyDetailResponse> findDetailById(Long familyId) {
+    public Optional<FamilyDetail> findDetailById(Long familyId) {
         Family familyEntity =
                 queryFactory.selectFrom(family).where(family.id.eq(familyId)).fetchOne();
 
@@ -121,11 +122,11 @@ public class FamilyQueryRepository {
                         .where(familyMember.familyId.eq(familyId))
                         .fetch();
 
-        List<FamilyMemberDetailResponse> customers =
+        List<FamilyMemberDetail> customers =
                 results.stream()
                         .map(
                                 t ->
-                                        new FamilyMemberDetailResponse(
+                                        new FamilyMemberDetail(
                                                 t.get(customer.id),
                                                 t.get(customer.name),
                                                 t.get(familyMember.role),
@@ -136,14 +137,11 @@ public class FamilyQueryRepository {
                         .toList();
 
         double usedPercent =
-                familyEntity.getTotalQuotaBytes() > 0
-                        ? (double) familyEntity.getUsedBytes()
-                                / familyEntity.getTotalQuotaBytes()
-                                * 100.0
-                        : 0.0;
+                FamilyUsageCalculator.calculateUsedPercent(
+                        familyEntity.getUsedBytes(), familyEntity.getTotalQuotaBytes());
 
         return Optional.of(
-                new FamilyDetailResponse(
+                new FamilyDetail(
                         familyEntity.getId(),
                         familyEntity.getName(),
                         familyEntity.getCreatedById(),
@@ -283,7 +281,7 @@ public class FamilyQueryRepository {
         };
     }
 
-    private Map<Long, List<FamilyMemberSimpleResponse>> fetchMembersMap(List<Long> familyIds) {
+    private Map<Long, List<FamilyMemberSummary>> fetchMembersMap(List<Long> familyIds) {
         if (familyIds.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -306,7 +304,7 @@ public class FamilyQueryRepository {
                                                 "familyId must not be null"),
                                 Collectors.mapping(
                                         t ->
-                                                new FamilyMemberSimpleResponse(
+                                                new FamilyMemberSummary(
                                                         t.get(customer.id), t.get(customer.name)),
                                         Collectors.toList())));
     }
