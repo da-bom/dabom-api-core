@@ -10,7 +10,8 @@ import lombok.RequiredArgsConstructor;
 public enum PolicyErrorCode implements BaseErrorCode {
     POLICY_NOT_FOUND(HttpStatus.NOT_FOUND, "POLICY_001", "정책을 찾을 수 없습니다"),
     POLICY_ASSIGNMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "POLICY_002", "해당 정책 할당을 찾을 수 없습니다"),
-    POLICY_NOT_MODIFIABLE(HttpStatus.BAD_REQUEST, "POLICY_003", "수정할 수 없는 정책입니다");
+    POLICY_NOT_MODIFIABLE(HttpStatus.BAD_REQUEST, "POLICY_003", "수정할 수 없는 정책입니다"),
+    POLICY_RULES_SERIALIZATION_FAILED(HttpStatus.BAD_REQUEST, "POLICY_004", "상세 규칙 직렬화 과정 실패");
 
     private final HttpStatus httpStatus;
     private final String customCode;

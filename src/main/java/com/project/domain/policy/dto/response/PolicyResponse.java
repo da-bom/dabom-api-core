@@ -1,13 +1,33 @@
 package com.project.domain.policy.dto.response;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
+
+import org.springframework.data.domain.Page;
 
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.policy.entity.Policy;
 import com.project.domain.policy.enums.PolicyType;
 
 public class PolicyResponse {
+
+    public record ListResult(
+            List<Detail> policies, int page, int size, long totalElements, int totalPages) {
+        public static ListResult of(
+                List<Detail> policies, int page, int size, long totalElements, int totalPages) {
+            return new ListResult(policies, page, size, totalElements, totalPages);
+        }
+
+        public static ListResult from(Page<Detail> page) {
+            return new ListResult(
+                    page.getContent(), // policies
+                    page.getNumber() + 1, // page ( 1-base page)
+                    page.getSize(), // size
+                    page.getTotalElements(), // totalElements
+                    page.getTotalPages()); // totalPages
+        }
+    }
 
     public record Summary(Long id, String name, String policyType, LocalDateTime createdAt) {
         public static Summary from(Policy policy) {
