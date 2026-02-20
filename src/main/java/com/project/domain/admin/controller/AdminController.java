@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.project.domain.admin.dto.request.AdminSignInRequest;
 import com.project.domain.admin.service.AdminService;
 import com.project.domain.customer.dto.response.SignInResponse;
+import com.project.domain.customer.dto.response.SignUpResponse;
 import com.project.global.api.response.ApiResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,5 +32,13 @@ public class AdminController {
             @Valid @RequestBody AdminSignInRequest signInRequest) {
         return ApiResponse.success(
                 adminService.signIn(signInRequest.email(), signInRequest.password()));
+    }
+
+    @PostMapping("/signup")
+    @Operation(summary = "관리자 회원가입", description = "관리자 이메일/비밀번호로 회원가입합니다.")
+    public ApiResponse<SignUpResponse> signUp(
+            @Valid @RequestBody AdminSignInRequest signInRequest) {
+        return ApiResponse.success(
+                adminService.signUp(signInRequest.email(), signInRequest.password()));
     }
 }

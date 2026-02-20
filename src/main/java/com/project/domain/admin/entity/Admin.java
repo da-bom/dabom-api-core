@@ -34,7 +34,7 @@ public class Admin extends BaseEntity {
 
     @Column private String name;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 60)
     private String passwordHash;
 
     public void validatePassword(String password) {
