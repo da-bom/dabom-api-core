@@ -1,5 +1,7 @@
 package com.project.domain.customer.entity;
 
+import com.project.global.exception.ApplicationException;
+import com.project.global.exception.code.CustomerErrorCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -40,7 +42,7 @@ public class Customer extends BaseEntity {
 
     public void validatePassword(String password) {
         if (!password.equals(passwordHash)) {
-            throw new IllegalArgumentException("Invalid password");
+            throw new ApplicationException(CustomerErrorCode.CUSTOMER_SIGN_IN_FAILED);
         }
     }
 }

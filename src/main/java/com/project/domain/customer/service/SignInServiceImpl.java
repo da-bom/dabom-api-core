@@ -1,5 +1,7 @@
 package com.project.domain.customer.service;
 
+import com.project.global.exception.ApplicationException;
+import com.project.global.exception.code.CustomerErrorCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +29,7 @@ public class SignInServiceImpl implements SignInService {
         Customer customer = customerRepository.findByPhoneNumber(requestDto.phoneNumber());
 
         if (customer == null) {
-            throw new IllegalArgumentException("Invalid phone number");
+            throw new ApplicationException(CustomerErrorCode.CUSTOMER_UNAUTHORIZED);
         }
 
         customer.validatePassword(requestDto.password());
