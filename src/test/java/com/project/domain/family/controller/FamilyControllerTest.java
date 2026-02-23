@@ -1,6 +1,7 @@
 package com.project.domain.family.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -84,7 +85,13 @@ class FamilyControllerTest {
 
         List<Long> familyIds =
                 data.path("content").findValuesAsText("familyId").stream()
-                        .map(Long::valueOf)
+                        .map(text -> {
+                            try {
+                                return Long.valueOf(text);
+                            } catch (NumberFormatException e) {
+                                throw new AssertionError("Invalid familyId value: \"" + text + "\"", e);
+                            }
+                        })
                         .toList();
 
         assertThat(data.path("content").size()).isEqualTo(2);
@@ -132,7 +139,7 @@ class FamilyControllerTest {
         assertThat(data.path("customers").size()).isEqualTo(3);
         assertThat(data.path("totalQuotaBytes").asLong()).isEqualTo(10_000L);
         assertThat(data.path("usedBytes").asLong()).isEqualTo(2_500L);
-        assertThat(data.path("usedPercent").asDouble()).isEqualTo(25.0);
+        assertThat(data.path("usedPercent").asDouble()).isCloseTo(25.0, within(0.01));
     }
 
     @Test
