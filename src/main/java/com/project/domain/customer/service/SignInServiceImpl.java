@@ -32,7 +32,7 @@ public class SignInServiceImpl implements SignInService {
         Customer customer = customerRepository.findByPhoneNumber(requestDto.phoneNumber());
 
         if (customer == null) {
-            throw new ApplicationException(CustomerErrorCode.CUSTOMER_UNAUTHORIZED);
+            throw new ApplicationException(CustomerErrorCode.CUSTOMER_NOT_FOUND);
         }
 
         if (!PasswordHash.matches(requestDto.password(), customer.getPasswordHash())) {

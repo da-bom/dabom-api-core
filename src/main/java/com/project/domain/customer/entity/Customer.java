@@ -7,8 +7,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.CustomerErrorCode;
 import com.project.global.util.BaseEntity;
 
 import lombok.AccessLevel;
@@ -38,11 +36,5 @@ public class Customer extends BaseEntity {
         this.phoneNumber = phoneNumber;
         this.passwordHash = passwordHash;
         this.name = name;
-    }
-
-    public void validatePassword(String password) {
-        if (!password.equals(passwordHash)) {
-            throw new ApplicationException(CustomerErrorCode.CUSTOMER_SIGN_IN_FAILED);
-        }
     }
 }

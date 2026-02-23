@@ -14,6 +14,7 @@ import com.project.global.exception.code.AdminErrorCode;
 import com.project.global.exception.code.CustomerErrorCode;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +44,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    @Transactional
     public SignUpResponse signUp(String email, String password) {
         String hashed = PasswordHash.hash(password);
 
