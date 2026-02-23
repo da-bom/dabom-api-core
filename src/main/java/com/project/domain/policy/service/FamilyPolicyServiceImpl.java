@@ -72,7 +72,7 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
 
         String policyKey = rulesUtil.toPolicyKey(type);
         policyUpdateEventPublish.publish(
-                new PolicyUpdatedPayload(
-                        familyId, targetCustomerId, policyKey, newRules, oldRules, actorId));
+        new PolicyUpdatedPayload(
+                familyId, targetCustomerId, policyKey, oldRules, newRules, actorId));
     }
 }
