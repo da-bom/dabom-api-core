@@ -6,7 +6,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 import com.project.domain.family.entity.Family;
-import com.project.domain.family.service.port.FamilyEventPublisher;
+import com.project.domain.family.service.port.FamilyProducer;
 import com.project.global.event.dto.EventEnvelope;
 import com.project.global.event.dto.usage.UsagePayload;
 
@@ -14,12 +14,12 @@ import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
-public class FamilyKafkaProducer implements FamilyEventPublisher {
+public class FamilyProducerImpl implements FamilyProducer {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @Override
-    public void publishFamilyCreated(Family family) {
+    public void produceFamilyCreated(Family family) {
         UsagePayload payload =
                 new UsagePayload(
                         "family_created_" + family.getId(),
