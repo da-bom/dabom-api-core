@@ -4,7 +4,6 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 
 import org.springframework.data.domain.Page;
-import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,16 +12,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.project.domain.family.dto.request.FamilySearchRequest;
 import com.project.domain.family.dto.response.FamilyDetailResponse;
 import com.project.domain.family.dto.response.FamilySearchResponse;
-import com.project.domain.family.dto.response.FamilyUsageReportResponse;
 import com.project.domain.family.model.FamilyDetail;
 import com.project.domain.family.model.FamilySearchResult;
-import com.project.domain.family.model.FamilyUsageReport;
 import com.project.domain.family.service.FamilyService;
+import com.project.domain.usagerecord.dto.response.FamilyCustomersUsageResponse;
+import com.project.domain.usagerecord.dto.response.FamilyUsageResponse;
 import com.project.domain.usagerecord.service.UsageRecordService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.AdminOnly;
@@ -62,21 +60,29 @@ public class FamilyController {
         return ApiResponse.success(FamilyDetailResponse.from(familyDetail));
     }
 
-    @GetMapping(value = "/usage/current", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter getCurrentUsage(@CustomerId Long customerId) {
-        return usageRecordService.subscribe(customerId);
+    @GetMapping(value = "/usage/current")
+    @Operation(
+            summary = "가족 구성원 현재 총 데이터 조회",
+            description = "홈화면 상단부분에 속하는 가족 구성원의 총 데이터 사용량/제한량을 조회합니다.")
+    public ApiResponse<FamilyUsageResponse> getCurrentFamilyUsage(
+            @Parameter(hidden = true) @CustomerId Long customerId) {
+        FamilyUsageResponse response = usageRecordService.getCurrentFamilyUsage(customerId);
+        return ApiResponse.success(response);
     }
 
     @Validated
-    @GetMapping("/reports/usage")
-    @Operation(summary = "과거 가족 데이터 조회", description = "Year, Month에 맞는 가족 데이터를 조회합니다.")
-    public ApiResponse<FamilyUsageReportResponse> getFamilyUsageReport(
+    @GetMapping("/usage/customers")
+    @Operation(
+            summary = "가족 데이터 상세 조회",
+            description = "홈화면 하단부분에 속하는 Year, Month에 맞는 가족별 데이터 사용량/제한량을 조회합니다.")
+    public ApiResponse<FamilyCustomersUsageResponse> getCustomersUsage(
             @Parameter(hidden = true) @CustomerId Long customerId,
             @Parameter(description = "Year (yyyy)", required = true) @RequestParam @Min(2000)
                     int year,
             @Parameter(description = "Month (1-12)", required = true) @RequestParam @Min(1) @Max(12)
                     int month) {
-        FamilyUsageReport report = familyService.getFamilyUsageReport(customerId, year, month);
-        return ApiResponse.success(FamilyUsageReportResponse.from(report));
+        FamilyCustomersUsageResponse response =
+                usageRecordService.getCustomersUsageReport(customerId, year, month);
+        return ApiResponse.success(response);
     }
 }
