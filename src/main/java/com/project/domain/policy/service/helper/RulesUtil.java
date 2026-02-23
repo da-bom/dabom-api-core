@@ -3,6 +3,8 @@ package com.project.domain.policy.service.helper;
 import org.springframework.stereotype.Component;
 
 import com.project.domain.policy.enums.PolicyType;
+import com.project.global.exception.ApplicationException;
+import com.project.global.exception.code.PolicyErrorCode;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +19,7 @@ public class RulesUtil {
             case MANUAL_BLOCK -> "BLOCK:ACCESS";
             case MONTHLY_LIMIT -> "LIMIT:DATA:MONTHLY";
             case TIME_BLOCK -> "BLOCK:TIME";
-            default -> throw new IllegalArgumentException("지원하지 않는 정책 타입입니다: " + type);
+            default -> throw new ApplicationException(PolicyErrorCode.UNSUPPORTED_POLICY_TYPE);
         };
     }
 }

@@ -16,6 +16,7 @@ import com.project.domain.policy.repository.PolicyQueryRepository;
 import com.project.domain.policy.service.helper.RulesUtil;
 import com.project.global.event.dto.policy.PolicyUpdatedPayload;
 import com.project.global.exception.ApplicationException;
+import com.project.global.exception.code.FamilyErrorCode;
 import com.project.global.exception.code.PolicyErrorCode;
 
 import lombok.RequiredArgsConstructor;
@@ -51,13 +52,14 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
 
         RoleType actorRole = familyMemberRepository.findRoleById(actorId);
         if (actorRole != RoleType.OWNER) {
-            throw new IllegalArgumentException("가족장만 접근 가능합니다.");
+            throw new ApplicationException(PolicyErrorCode.POLICY_OWNER_ONLY);
         }
 
         Long familyId =
                 policyQueryRepository
                         .findFamilyIdByTargetCustomerId(actorId)
-                        .orElseThrow(() -> new IllegalArgumentException("가족 정보를 찾을 수 없습니다."));
+                        .orElseThrow(
+                                () -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
 
         PolicyAssignment assignment =
                 policyAssignmentRepository
@@ -72,7 +74,7 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
 
         String policyKey = rulesUtil.toPolicyKey(type);
         policyUpdateEventPublish.publish(
-        new PolicyUpdatedPayload(
-                familyId, targetCustomerId, policyKey, oldRules, newRules, actorId));
+                new PolicyUpdatedPayload(
+                        familyId, targetCustomerId, policyKey, oldRules, newRules, actorId));
     }
 }
