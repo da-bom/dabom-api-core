@@ -1,6 +1,7 @@
 package com.project.domain.admin.service;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.project.domain.admin.entity.Admin;
 import com.project.domain.admin.repository.AdminRepository;
@@ -14,7 +15,6 @@ import com.project.global.exception.code.AdminErrorCode;
 import com.project.global.exception.code.CustomerErrorCode;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
