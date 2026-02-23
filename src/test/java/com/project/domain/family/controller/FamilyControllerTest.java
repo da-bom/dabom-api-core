@@ -19,6 +19,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -32,10 +34,14 @@ import com.project.domain.family.infra.cache.FamilyCacheRepository;
 import com.project.domain.family.support.FamilyApiTestSupport;
 import com.project.global.auth.JwtTokenUtil;
 
-@SpringBootTest(properties = "spring.kafka.bootstrap-servers=localhost:9092")
+@SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
+@EmbeddedKafka( //
+        partitions = 1,
+        topics = {"usage-events"},
+        brokerProperties = {"listeners=PLAINTEXT://localhost:0", "port=0"})
 class FamilyControllerTest {
 
     private static final String ADMIN_TOKEN = "ADMIN";
@@ -45,6 +51,7 @@ class FamilyControllerTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private FamilyApiTestSupport familyApiTestSupport;
 
+    @MockitoBean private KafkaTemplate<String, Object> kafkaTemplate;
     @MockitoBean private JwtTokenUtil jwtTokenUtil;
     @MockitoBean private FamilyCacheRepository familyCacheRepository;
 
