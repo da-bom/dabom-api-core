@@ -92,7 +92,15 @@ class FamilyControllerTest {
 
         List<Long> familyIds =
                 data.path("content").findValuesAsText("familyId").stream()
-                        .map(Long::valueOf)
+                        .map(
+                                text -> {
+                                    try {
+                                        return Long.valueOf(text);
+                                    } catch (NumberFormatException e) {
+                                        throw new AssertionError(
+                                                "Invalid familyId value: \"" + text + "\"", e);
+                                    }
+                                })
                         .toList();
 
         assertThat(data.path("content").size()).isEqualTo(2);
