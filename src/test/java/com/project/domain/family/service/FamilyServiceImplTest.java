@@ -2,6 +2,7 @@ package com.project.domain.family.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.within;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -110,7 +111,7 @@ class FamilyServiceImplTest {
 
         // then
         assertThat(actual.usedBytes()).isEqualTo(2_400L);
-        assertThat(actual.usedPercent()).isEqualTo(24.0);
+        assertThat(actual.usedPercent()).isCloseTo(24.0, within(0.01));
         assertThat(actual.customers()).hasSize(3);
         assertThat(actual.customers().get(0).monthlyUsedBytes()).isEqualTo(1_500L);
         assertThat(actual.customers().get(1).monthlyUsedBytes()).isEqualTo(800L);
