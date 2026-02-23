@@ -12,7 +12,7 @@ public class FamilyFixtures {
                 .createdById(createdById)
                 .totalQuotaBytes(10_000L)
                 .usedBytes(3_000L)
-                .currentMonth(LocalDate.now().withDayOfMonth(1))
+                .currentMonth(LocalDate.of(2026, 2, 1))
                 .build();
     }
 }
