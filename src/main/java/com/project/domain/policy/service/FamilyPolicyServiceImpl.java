@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.project.domain.customer.enums.RoleType;
+import com.project.domain.customer.repository.CustomerQuotaRepository;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.policy.dto.response.FamilyPolicyResponse;
 import com.project.domain.policy.entity.PolicyAssignment;
@@ -25,6 +26,7 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
     private final PolicyAssignmentRepository policyAssignmentRepository;
     private final PolicyQueryRepository policyQueryRepository;
     private final FamilyMemberRepository familyMemberRepository;
+    private final CustomerQuotaRepository customerQuotaRepository;
 
     @Override
     public FamilyPolicyResponse getFamilyPolicyResponse(Long customerId) {

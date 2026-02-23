@@ -15,6 +15,7 @@ public record FamilyPolicyResponse(Long familyId, List<CustomerInfo> customers) 
             String customerName,
             String phoneNumber,
             String role,
+            Long usedBytes,
             Long assignmentId,
             Long policyId,
             String policyName,
@@ -49,7 +50,7 @@ public record FamilyPolicyResponse(Long familyId, List<CustomerInfo> customers) 
                                             first.customerName(),
                                             first.phoneNumber(),
                                             first.role(),
-                                            0L,
+                                            first.usedBytes() != null ? first.usedBytes() : 0L,
                                             policies);
                                 })
                         .toList();
