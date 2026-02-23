@@ -46,7 +46,7 @@ public class FamilyPolicyController {
             @RequestBody @Valid PolicyUpdateRequest request)
             throws JsonProcessingException {
 
-        var updateInfo = request.update();
+        var updateInfo = request.updateInfo();
         String rulesJson =
                 (updateInfo.rules() != null)
                         ? objectMapper.writeValueAsString(updateInfo.rules())

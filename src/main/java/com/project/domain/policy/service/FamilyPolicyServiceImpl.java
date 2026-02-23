@@ -2,6 +2,9 @@ package com.project.domain.policy.service;
 
 import java.util.List;
 
+import com.project.domain.policy.infra.messaging.PolicyUpdateEventPublish;
+import com.project.domain.policy.service.helper.RulesUtil;
+import com.project.global.event.dto.policy.PolicyUpdatedPayload;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +28,10 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
     private final PolicyAssignmentRepository policyAssignmentRepository;
     private final PolicyQueryRepository policyQueryRepository;
     private final FamilyMemberRepository familyMemberRepository;
+
+    private final RulesUtil rulesUtil;
+
+    private  final PolicyUpdateEventPublish policyUpdateEventPublish;
 
     @Override
     public FamilyPolicyResponse getFamilyPolicyResponse(Long customerId) {
@@ -60,6 +67,19 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
                                         new ApplicationException(
                                                 PolicyErrorCode.POLICY_ASSIGNMENT_NOT_FOUND));
 
+        String oldRules = assignment.getRules();
         assignment.update(newRules, isActive, actorId);
+
+        String policyKey = rulesUtil.toPolicyKey(type);
+        policyUpdateEventPublish.publish(
+                new PolicyUpdatedPayload(
+                        familyId,
+                        targetCustomerId,
+                        policyKey,
+                        newRules,
+                        oldRules,
+                        actorId
+                        )
+        );
     }
 }

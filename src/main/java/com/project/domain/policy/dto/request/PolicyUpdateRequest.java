@@ -15,7 +15,7 @@ public record PolicyUpdateRequest(
         @Schema(description = "정책 수정 정보", requiredMode = Schema.RequiredMode.REQUIRED)
                 @Valid
                 @NotNull
-                UpdateInfo update) {
+                UpdateInfo updateInfo) {
     @Schema(description = "정책 수정 대상 정보")
     public record UpdateInfo(
             @Schema(
