@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.entity.CustomerQuota;
+import com.project.domain.family.entity.Family;
 import com.project.domain.family.entity.FamilyMember;
 import com.project.domain.policy.entity.Policy;
 import com.project.domain.policy.entity.PolicyAssignment;
@@ -34,6 +35,14 @@ public class TestFixtureBuilder {
 
     public List<FamilyMember> buildFamilyMembers(List<FamilyMember> familyMembers) {
         return bs.familyMemberRepository().saveAll(familyMembers);
+    }
+
+    public Family buildFamily(Family family) {
+        return bs.familyRepository().save(family);
+    }
+
+    public List<Family> buildFamilies(List<Family> families) {
+        return bs.familyRepository().saveAll(families);
     }
 
     public CustomerQuota buildCustomerQuota(CustomerQuota customerQuota) {
