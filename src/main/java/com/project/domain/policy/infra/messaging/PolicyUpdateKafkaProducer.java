@@ -24,7 +24,7 @@ public class PolicyUpdateKafkaProducer implements PolicyUpdateEventPublish {
 
         EventEnvelope<PolicyUpdatedPayload> envelope = EventEnvelope.of(EVENT_TYPE, payload);
 
-        kafkaTemplate.send(TOPIC, payload);
+        kafkaTemplate.send(TOPIC, envelope);
 
         log.info(
                 "Published PolicyUpdate event: {} (PolicyKey: {})",
