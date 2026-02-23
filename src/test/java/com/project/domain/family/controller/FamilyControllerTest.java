@@ -52,7 +52,9 @@ class FamilyControllerTest {
     void searchFamilies_validRequest_returnsFamilyList() throws Exception {
         // given
         FamilyApiTestSupport.FamilyContext familyContext =
-                familyApiTestSupport.buildFamilyContext();
+                familyApiTestSupport.buildFamilyContext("다봄 가족");
+        FamilyApiTestSupport.FamilyContext secondFamilyContext =
+                familyApiTestSupport.buildFamilyContext("다봄 가족2");
 
         FamilySearchRequest request =
                 new FamilySearchRequest(
@@ -80,10 +82,14 @@ class FamilyControllerTest {
         JsonNode data =
                 objectMapper.readTree(mvcResult.getResponse().getContentAsString()).path("data");
 
-        assertThat(data.path("content").size()).isEqualTo(1);
-        assertThat(data.path("content").get(0).path("familyId").asLong())
-                .isEqualTo(familyContext.family().getId());
-        assertThat(data.path("content").get(0).path("familyName").asText()).isEqualTo("다봄 가족");
+        List<Long> familyIds =
+                data.path("content").findValuesAsText("familyId").stream()
+                        .map(Long::valueOf)
+                        .toList();
+
+        assertThat(data.path("content").size()).isEqualTo(2);
+        assertThat(familyIds)
+                .contains(familyContext.family().getId(), secondFamilyContext.family().getId());
         assertThat(data.path("content").get(0).path("customers").size()).isEqualTo(3);
     }
 
@@ -92,7 +98,7 @@ class FamilyControllerTest {
     void getFamilyDetail_validFamilyId_returnsFamilyDetail() throws Exception {
         // given
         FamilyApiTestSupport.FamilyContext familyContext =
-                familyApiTestSupport.buildFamilyContext();
+                familyApiTestSupport.buildFamilyContext("다봄 가족");
         familyApiTestSupport.buildQuotas(familyContext, 1_200L, 800L, 500L);
 
         given(jwtTokenUtil.getRole(ADMIN_TOKEN)).willReturn(RoleType.ADMIN);
@@ -170,7 +176,7 @@ class FamilyControllerTest {
     void getFamilyDetail_nonAdminRole_returnsForbidden() throws Exception {
         // given
         FamilyApiTestSupport.FamilyContext familyContext =
-                familyApiTestSupport.buildFamilyContext();
+                familyApiTestSupport.buildFamilyContext("다봄 가족");
         given(jwtTokenUtil.getRole(MEMBER_TOKEN)).willReturn(RoleType.MEMBER);
 
         // when & then
