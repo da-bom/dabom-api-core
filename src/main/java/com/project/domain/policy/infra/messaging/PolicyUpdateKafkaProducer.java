@@ -1,11 +1,13 @@
 package com.project.domain.policy.infra.messaging;
 
-import com.project.global.event.dto.EventEnvelope;
-import com.project.global.event.dto.policy.PolicyUpdatedPayload;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+
+import com.project.global.event.dto.EventEnvelope;
+import com.project.global.event.dto.policy.PolicyUpdatedPayload;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component

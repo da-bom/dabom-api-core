@@ -1,9 +1,11 @@
 package com.project.domain.policy.service.helper;
 
+import org.springframework.stereotype.Component;
+
 import com.project.domain.policy.enums.PolicyType;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
