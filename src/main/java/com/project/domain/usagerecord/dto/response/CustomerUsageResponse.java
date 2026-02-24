@@ -1,24 +1,23 @@
 package com.project.domain.usagerecord.dto.response;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
-@JsonInclude(JsonInclude.Include.NON_NULL)
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class CustomerUsageResponse {
-
-    private Long customerId;
-    private String name;
-
-    private Long monthlyUsedBytes;
-    private Long monthlyLimitBytes;
-
-    private Boolean isMe;
+// 사용자의 데이터 사용량 dto
+public record CustomerUsageResponse(
+        Long customerId,
+        String name,
+        Long monthlyUsedBytes,
+        Long monthlyLimitBytes,
+        boolean isBlocked,
+        String blockReason,
+        boolean isMe) {
+    public static CustomerUsageResponse from(
+            com.project.domain.usagerecord.model.CustomerUsage customerUsage) {
+        return new CustomerUsageResponse(
+                customerUsage.customerId(),
+                customerUsage.name(),
+                customerUsage.monthlyUsedBytes(),
+                customerUsage.monthlyLimitBytes(),
+                customerUsage.isBlocked(),
+                customerUsage.blockReason(),
+                customerUsage.isMe());
+    }
 }

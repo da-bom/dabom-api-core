@@ -18,8 +18,6 @@ import com.project.common.fixtures.CustomerFixtures;
 import com.project.common.fixtures.CustomerQuotaFixtures;
 import com.project.common.fixtures.FamilyMemberFixtures;
 import com.project.domain.customer.entity.Customer;
-import com.project.domain.customer.repository.CustomerQuotaQueryRepository;
-import com.project.domain.customer.repository.impl.CustomerQuotaQueryRepositoryImpl;
 import com.project.domain.family.entity.FamilyMember;
 import com.project.domain.usagerecord.repository.CustomerQuotaQueryRepositoryTest.TestConfig;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -29,12 +27,9 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
     TestFixtureBuilder.class,
     BuilderSupporter.class,
     TestConfig.class,
-    CustomerQuotaQueryRepositoryImpl.class
 })
 @ActiveProfiles("test")
 class CustomerQuotaQueryRepositoryTest {
-
-    @Autowired private CustomerQuotaQueryRepository repository;
 
     @Autowired private TestFixtureBuilder testFixtureBuilder;
 

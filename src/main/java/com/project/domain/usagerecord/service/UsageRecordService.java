@@ -2,23 +2,14 @@ package com.project.domain.usagerecord.service;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import com.project.domain.customer.repository.CustomerQuotaQueryRepository;
-import com.project.domain.family.infra.cache.FamilyCacheRepository;
-import com.project.domain.family.repository.FamilyMemberRepository;
-import com.project.domain.usagerecord.dto.response.CustomerUsageResponse;
-import com.project.domain.usagerecord.dto.response.RealtimeFamilyUsageResponse;
-import com.project.domain.usagerecord.dto.response.RealtimeTotalUsageResponse;
-import com.project.domain.usagerecord.infra.sse.UsageSseEmitterRegistry;
-import com.project.global.event.dto.usage.UsageRealtimePayload;
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.FamilyErrorCode;
+import com.project.domain.family.entity.Family;
+import com.project.domain.family.service.FamilyService;
+import com.project.domain.usagerecord.model.CustomerUsage;
+import com.project.domain.usagerecord.model.FamilyCustomersUsage;
+import com.project.domain.usagerecord.model.FamilyUsage;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,103 +19,46 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class UsageRecordService {
 
-    private final UsageSseEmitterRegistry registry;
-    private final FamilyCacheRepository familyCacheRepository;
-    private final FamilyMemberRepository familyMemberRepository;
-    private final CustomerQuotaQueryRepository customerQuotaQueryRepository;
+    private final FamilyService familyService;
 
-    private final ConcurrentHashMap<Long, Long> lastSeen = new ConcurrentHashMap<>();
+    // 현재 가족 데이터 사용량/제한량 조회
+    public FamilyUsage getCurrentFamilyUsage(Long customerId) {
+        Long familyId = familyService.getFamilyIdByCustomerId(customerId);
+        Family familyEntity = familyService.getFamilyById(familyId);
 
-    public SseEmitter subscribe(Long customerId) {
-        Long familyId =
-                familyMemberRepository
-                        .findFamilyIdByCustomerId(customerId)
-                        .orElseThrow(
-                                () -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
+        long totalQuotaBytes =
+                familyEntity.getTotalQuotaBytes() != null ? familyEntity.getTotalQuotaBytes() : 0L;
+        long totalUsedBytes =
+                familyEntity.getUsedBytes() != null ? familyEntity.getUsedBytes() : 0L;
+        long remainingBytes = Math.max(totalQuotaBytes - totalUsedBytes, 0L);
 
-        return registry.register(familyId);
+        return new FamilyUsage(
+                familyEntity.getId(), familyEntity.getName(), totalQuotaBytes, remainingBytes);
     }
 
-    public void pushTotalUsageBytes(UsageRealtimePayload payload) {
-        RealtimeTotalUsageResponse response =
-                new RealtimeTotalUsageResponse(
-                        payload.familyId(),
-                        payload.totalUsedBytes(),
-                        payload.totalLimitBytes(),
-                        payload.remainingBytes());
-
-        registry.send(payload.familyId(), "usage-updated", response);
+    // 해당 년,월에 해당하는 가족 별 데이터 사용량/제한량 조회
+    public FamilyCustomersUsage getCustomersUsageReport(Long customerId, int year, int month) {
+        Long familyId = familyService.getFamilyIdByCustomerId(customerId);
+        LocalDate targetMonth = LocalDate.of(year, month, 1);
+        List<CustomerUsage> customers =
+                getCustomersUsageByFamilyId(familyId, customerId, targetMonth);
+        return new FamilyCustomersUsage(familyId, year, month, customers);
     }
 
-    public void pushMemberUsageBytes(UsageRealtimePayload payload) {
-        Long familyId = payload.familyId();
-        Long customerId = payload.customerId();
-
-        LocalDate now = LocalDate.now();
-        int year = now.getYear();
-        int month = now.getMonthValue();
-
-        // 전체 가족 구성원의 monthlyLimitBytes를 데이터베이스에서 조회한다
-        List<CustomerUsageResponse> customerUsageResponses =
-                customerQuotaQueryRepository.findCustomerUsage(familyId, customerId);
-
-        // 이벤트 대상이 아닌 가족 구성원들의 monthlyUsedBytes를 캐시에서 조회한다
-        for (CustomerUsageResponse customerUsageResponse : customerUsageResponses) {
-            long componentId = customerUsageResponse.getCustomerId();
-
-            if (componentId != customerId) {
-                Optional<Long> usageOpt =
-                        familyCacheRepository.findCustomerMonthlyUsageBytes(familyId, componentId);
-
-                Long usageByte = usageOpt.orElse(0L);
-                customerUsageResponse.setMonthlyUsedBytes(usageByte);
-
-            } else if (componentId == customerId) {
-                customerUsageResponse.setMonthlyUsedBytes(payload.monthlyUsedBytes());
-            }
-        }
-
-        // dto를 조합한다
-        RealtimeFamilyUsageResponse response =
-                new RealtimeFamilyUsageResponse(familyId, year, month, customerUsageResponses);
-        registry.send(familyId, "usage-updated-by-member", response);
-    }
-
-    /** 스케줄링을 통한 push 테스트 메소드 */
-    @Scheduled(fixedDelay = 1000)
-    public void pollAndPushIfChanged() {
-        for (Long familyId : registry.activeFamilyIds()) {
-
-            Optional<Long> latestOpt = familyCacheRepository.findFamilyRemainingBytes(familyId);
-            if (latestOpt.isEmpty()) {
-                lastSeen.remove(familyId);
-                continue;
-            }
-
-            long remainingBytes = latestOpt.get();
-            Long prev = lastSeen.putIfAbsent(familyId, remainingBytes);
-
-            if (prev == null || prev.longValue() != remainingBytes) {
-                lastSeen.put(familyId, remainingBytes);
-
-                // 임시로 고정
-                long totalLimitBytes = 20000;
-                long totalUsedBytes = totalLimitBytes - remainingBytes;
-                UsageRealtimePayload payload =
-                        new UsageRealtimePayload(
-                                familyId,
-                                1L,
-                                totalUsedBytes,
-                                totalLimitBytes,
-                                remainingBytes,
-                                30.0,
-                                null,
-                                null,
-                                null);
-
-                pushTotalUsageBytes(payload);
-                pushMemberUsageBytes(payload);
-            }
-        }
+    // 가족 ID를 통해 구성원 List 데이터 조회
+    private List<CustomerUsage> getCustomersUsageByFamilyId(
+            Long familyId, Long customerId, LocalDate targetMonth) {
+        return familyService.getUsageReportCustomers(familyId, targetMonth).stream()
+                .map(
+                        row ->
+                                new CustomerUsage(
+                                        row.customerId(),
+                                        row.name(),
+                                        row.monthlyUsedBytes(),
+                                        row.monthlyLimitBytes(),
+                                        row.isBlocked(),
+                                        row.blockReason(),
+                                        row.customerId().equals(customerId)))
+                .toList();
     }
 }
