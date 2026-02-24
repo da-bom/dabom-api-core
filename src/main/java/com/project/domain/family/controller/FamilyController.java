@@ -21,6 +21,7 @@ import com.project.domain.family.model.FamilySearchResult;
 import com.project.domain.family.service.FamilyService;
 import com.project.domain.usagerecord.dto.response.FamilyCustomersUsageResponse;
 import com.project.domain.usagerecord.dto.response.FamilyUsageResponse;
+import com.project.domain.usagerecord.model.FamilyCustomersUsage;
 import com.project.domain.usagerecord.model.FamilyUsage;
 import com.project.domain.usagerecord.service.UsageRecordService;
 import com.project.global.api.response.ApiResponse;
@@ -83,8 +84,9 @@ public class FamilyController {
                     int year,
             @Parameter(description = "Month (1-12)", required = true) @RequestParam @Min(1) @Max(12)
                     int month) {
-        FamilyCustomersUsageResponse response =
+        FamilyCustomersUsage familyCustomersUsage =
                 usageRecordService.getCustomersUsageReport(customerId, year, month);
+        FamilyCustomersUsageResponse response = FamilyCustomersUsageResponse.from(familyCustomersUsage);
         return ApiResponse.success(response);
     }
 }

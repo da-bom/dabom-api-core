@@ -1,6 +1,5 @@
-package com.project.domain.usagerecord.dto.response;
+package com.project.domain.usagerecord.model;
 
-// 사용자의 데이터 사용량 dto
 public record CustomerUsage(
         Long customerId,
         String name,

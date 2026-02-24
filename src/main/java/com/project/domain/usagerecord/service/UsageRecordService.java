@@ -9,8 +9,8 @@ import com.project.domain.family.entity.Family;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.family.repository.FamilyQueryRepository;
 import com.project.domain.family.repository.FamilyRepository;
-import com.project.domain.usagerecord.dto.response.CustomerUsage;
-import com.project.domain.usagerecord.dto.response.FamilyCustomersUsageResponse;
+import com.project.domain.usagerecord.model.CustomerUsage;
+import com.project.domain.usagerecord.model.FamilyCustomersUsage;
 import com.project.domain.usagerecord.model.FamilyUsage;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.FamilyErrorCode;
@@ -48,13 +48,12 @@ public class UsageRecordService {
     }
 
     // 해당 년,월에 해당하는 가족 별 데이터 사용량/제한량 조회
-    public FamilyCustomersUsageResponse getCustomersUsageReport(
-            Long customerId, int year, int month) {
+    public FamilyCustomersUsage getCustomersUsageReport(Long customerId, int year, int month) {
         Long familyId = resolveFamilyId(customerId);
         LocalDate targetMonth = LocalDate.of(year, month, 1);
         List<CustomerUsage> customers =
                 getCustomersUsageByFamilyId(familyId, customerId, targetMonth);
-        return new FamilyCustomersUsageResponse(familyId, year, month, customers);
+        return new FamilyCustomersUsage(familyId, year, month, customers);
     }
 
     // 가족 ID를 통해 구성원 List 데이터 조회
