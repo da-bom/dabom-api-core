@@ -199,7 +199,7 @@ class PolicyControllerIntegrationTest {
 
     private record UpdatePolicyRequest(
             String description,
-            RoleType requiredRole,
+            RoleType requireRole,
             String type,
             Map<String, Object> defaultRules,
             boolean isActive,
