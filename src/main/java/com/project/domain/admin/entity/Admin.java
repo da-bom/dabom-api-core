@@ -7,8 +7,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.AdminErrorCode;
 import com.project.global.util.BaseEntity;
 
 import lombok.AccessLevel;
@@ -34,12 +32,6 @@ public class Admin extends BaseEntity {
 
     @Column private String name;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 60)
     private String passwordHash;
-
-    public void validatePassword(String password) {
-        if (password == null || !password.equals(passwordHash)) {
-            throw new ApplicationException(AdminErrorCode.ADMIN_SIGN_IN_FAILED);
-        }
-    }
 }
