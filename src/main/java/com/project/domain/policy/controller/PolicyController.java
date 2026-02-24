@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.project.domain.policy.dto.request.PolicyRequest;
 import com.project.domain.policy.dto.response.PolicyResponse;
 import com.project.domain.policy.entity.Policy;
@@ -59,7 +60,8 @@ public class PolicyController {
     @AdminOnly
     @Parameter(name = "policyId", description = "Policy ID", required = true)
     public ApiResponse<PolicyResponse.Updated> updatePolicy(
-            @PathVariable Long policyId, @RequestBody PolicyRequest.Update policyRequest) {
+            @PathVariable Long policyId, @RequestBody PolicyRequest.Update policyRequest)
+            throws JsonProcessingException {
         Policy policy = policyService.updatePolicy(policyId, policyRequest);
         return ApiResponse.success(PolicyResponse.Updated.from(policy));
     }

@@ -12,8 +12,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.policy.dto.request.PolicyRequest;
 import com.project.domain.policy.entity.Policy;
+import com.project.domain.policy.infra.messaging.PolicyUpdateEventPublish;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.domain.policy.repository.PolicyRepository;
+import com.project.domain.policy.service.helper.RulesUtil;
+import com.project.global.event.dto.policy.PolicyUpdatedPayload;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.PolicyErrorCode;
 
@@ -27,6 +30,9 @@ public class PolicyServiceImpl implements PolicyService {
     private final PolicyRepository policyRepository;
     private final PolicyAssignmentRepository policyAssignmentRepository;
     private final ObjectMapper objectMapper;
+
+    private final PolicyUpdateEventPublish policyUpdateEventPublish;
+    private final RulesUtil rulesUtil;
 
     // 정책 상세 정보 조회
     @Override
@@ -56,7 +62,19 @@ public class PolicyServiceImpl implements PolicyService {
 
         // 2) 덮어쓰기가 True일 경우 가족 구성원에게 부여된 정책들 즉시 수정
         if (updatePolicyRequest.overWrite()) {
-            applyToExistingAssignments(policy);
+            String policyKey = rulesUtil.toPolicyKey(policy.getPolicyType());
+
+            try {
+                String rule =
+                        (policy.getDefaultRules() != null)
+                                ? objectMapper.writeValueAsString(policy.getDefaultRules())
+                                : null;
+                applyToExistingAssignments(policy);
+                policyUpdateEventPublish.publish(
+                        new PolicyUpdatedPayload(null, null, policyKey, rule, policy.isActive()));
+            } catch (JsonProcessingException e) {
+                throw new ApplicationException(PolicyErrorCode.POLICY_RULES_SERIALIZATION_FAILED);
+            }
         }
 
         return policy;

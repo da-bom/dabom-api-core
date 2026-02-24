@@ -98,7 +98,7 @@ class ExampleServiceImplTest {
     }
 
     @Test
-    @DisplayName("update - Example 업데이트 성공 (DB + Cache)")
+    @DisplayName("updateInfo - Example 업데이트 성공 (DB + Cache)")
     void updateSavesExample() {
         // given
         Long exampleId = 1L;

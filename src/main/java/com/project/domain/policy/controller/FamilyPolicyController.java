@@ -16,6 +16,8 @@ import com.project.domain.policy.dto.response.PolicyUpdateResponse;
 import com.project.domain.policy.service.FamilyPolicyService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.CustomerId;
+import com.project.global.exception.ApplicationException;
+import com.project.global.exception.code.PolicyErrorCode;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -43,21 +45,24 @@ public class FamilyPolicyController {
     @Operation(summary = "구성원 정책 수정", description = "특정 구성원의 정책을 수정합니다.")
     public ApiResponse<PolicyUpdateResponse> updatePolicy(
             @Parameter(hidden = true) @CustomerId Long actorId,
-            @RequestBody @Valid PolicyUpdateRequest request)
-            throws JsonProcessingException {
+            @RequestBody @Valid PolicyUpdateRequest request) {
 
-        var updateInfo = request.update();
-        String rulesJson =
-                (updateInfo.rules() != null)
-                        ? objectMapper.writeValueAsString(updateInfo.rules())
-                        : null;
+        var updateInfo = request.updateInfo();
+        try {
+            String rulesJson =
+                    (updateInfo.rules() != null)
+                            ? objectMapper.writeValueAsString(updateInfo.rules())
+                            : null;
 
-        familyPolicyService.updateMemberPolicy(
-                updateInfo.customerId(),
-                updateInfo.type(),
-                rulesJson,
-                updateInfo.isActive(),
-                actorId);
+            familyPolicyService.updateMemberPolicy(
+                    updateInfo.customerId(),
+                    updateInfo.type(),
+                    rulesJson,
+                    updateInfo.isActive(),
+                    actorId);
+        } catch (JsonProcessingException e) {
+            throw new ApplicationException(PolicyErrorCode.POLICY_RULES_SERIALIZATION_FAILED);
+        }
 
         return ApiResponse.success(
                 PolicyUpdateResponse.success(updateInfo.customerId(), updateInfo.type()));
