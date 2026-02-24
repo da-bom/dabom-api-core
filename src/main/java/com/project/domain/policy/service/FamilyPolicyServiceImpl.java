@@ -69,12 +69,11 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
                                         new ApplicationException(
                                                 PolicyErrorCode.POLICY_ASSIGNMENT_NOT_FOUND));
 
-        String oldRules = assignment.getRules();
         assignment.update(newRules, isActive, actorId);
 
         String policyKey = rulesUtil.toPolicyKey(type);
         policyUpdateEventPublish.publish(
                 new PolicyUpdatedPayload(
-                        familyId, targetCustomerId, policyKey, oldRules, newRules, actorId));
+                        familyId, targetCustomerId, policyKey, newRules, isActive));
     }
 }
