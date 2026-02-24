@@ -48,8 +48,7 @@ public class PolicyServiceImpl implements PolicyService {
 
     @Override
     @Transactional
-    public Policy updatePolicy(Long policyId, PolicyRequest.Update updatePolicyRequest)
-            throws JsonProcessingException {
+    public Policy updatePolicy(Long policyId, PolicyRequest.Update updatePolicyRequest) {
         Policy policy = findPolicyOrThrow(policyId);
         validateModifiable(policy);
 
@@ -64,13 +63,18 @@ public class PolicyServiceImpl implements PolicyService {
         // 2) 덮어쓰기가 True일 경우 가족 구성원에게 부여된 정책들 즉시 수정
         if (updatePolicyRequest.overWrite()) {
             String policyKey = rulesUtil.toPolicyKey(policy.getPolicyType());
-            String rule =
-                    (policy.getDefaultRules() != null)
-                            ? objectMapper.writeValueAsString(policy.getDefaultRules())
-                            : null;
-            applyToExistingAssignments(policy);
-            policyUpdateEventPublish.publish(
-                    new PolicyUpdatedPayload(null, null, policyKey, rule, policy.isActive()));
+
+            try {
+                String rule =
+                        (policy.getDefaultRules() != null)
+                                ? objectMapper.writeValueAsString(policy.getDefaultRules())
+                                : null;
+                applyToExistingAssignments(policy);
+                policyUpdateEventPublish.publish(
+                        new PolicyUpdatedPayload(null, null, policyKey, rule, policy.isActive()));
+            } catch (JsonProcessingException e) {
+                throw new ApplicationException(PolicyErrorCode.POLICY_RULES_SERIALIZATION_FAILED);
+            }
         }
 
         return policy;
