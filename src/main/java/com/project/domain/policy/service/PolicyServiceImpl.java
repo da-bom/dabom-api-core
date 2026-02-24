@@ -3,9 +3,6 @@ package com.project.domain.policy.service;
 import java.util.Collections;
 import java.util.Map;
 
-import com.project.domain.policy.infra.messaging.PolicyUpdateEventPublish;
-import com.project.domain.policy.service.helper.RulesUtil;
-import com.project.global.event.dto.policy.PolicyUpdatedPayload;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -15,8 +12,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.policy.dto.request.PolicyRequest;
 import com.project.domain.policy.entity.Policy;
+import com.project.domain.policy.infra.messaging.PolicyUpdateEventPublish;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.domain.policy.repository.PolicyRepository;
+import com.project.domain.policy.service.helper.RulesUtil;
+import com.project.global.event.dto.policy.PolicyUpdatedPayload;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.PolicyErrorCode;
 
@@ -48,7 +48,8 @@ public class PolicyServiceImpl implements PolicyService {
 
     @Override
     @Transactional
-    public Policy updatePolicy (Long policyId, PolicyRequest.Update updatePolicyRequest) throws JsonProcessingException {
+    public Policy updatePolicy(Long policyId, PolicyRequest.Update updatePolicyRequest)
+            throws JsonProcessingException {
         Policy policy = findPolicyOrThrow(policyId);
         validateModifiable(policy);
 
@@ -69,8 +70,7 @@ public class PolicyServiceImpl implements PolicyService {
                             : null;
             applyToExistingAssignments(policy);
             policyUpdateEventPublish.publish(
-                    new PolicyUpdatedPayload(
-                            null, null, policyKey, rule, policy.isActive()));
+                    new PolicyUpdatedPayload(null, null, policyKey, rule, policy.isActive()));
         }
 
         return policy;
