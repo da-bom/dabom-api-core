@@ -118,7 +118,8 @@ public class FamilyServiceImpl implements FamilyService {
     }
 
     @Override
-    public List<FamilyUsageCustomerRow> getUsageReportCustomers(Long familyId, LocalDate targetMonth) {
+    public List<FamilyUsageCustomerRow> getUsageReportCustomers(
+            Long familyId, LocalDate targetMonth) {
         return familyQueryRepository.findUsageReportCustomers(familyId, targetMonth);
     }
 

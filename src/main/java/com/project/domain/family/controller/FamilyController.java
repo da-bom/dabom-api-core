@@ -86,7 +86,8 @@ public class FamilyController {
                     int month) {
         FamilyCustomersUsage familyCustomersUsage =
                 usageRecordService.getCustomersUsageReport(customerId, year, month);
-        FamilyCustomersUsageResponse response = FamilyCustomersUsageResponse.from(familyCustomersUsage);
+        FamilyCustomersUsageResponse response =
+                FamilyCustomersUsageResponse.from(familyCustomersUsage);
         return ApiResponse.success(response);
     }
 }
