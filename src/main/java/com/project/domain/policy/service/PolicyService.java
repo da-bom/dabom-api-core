@@ -1,5 +1,6 @@
 package com.project.domain.policy.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -12,7 +13,7 @@ public interface PolicyService {
     Policy createPolicy(PolicyRequest.Create createPolicyRequest);
 
     // 정책 수정 (어드민)
-    Policy updatePolicy(Long policyId, PolicyRequest.Update updatePolicyRequest);
+    Policy updatePolicy(Long policyId, PolicyRequest.Update updatePolicyRequest) throws JsonProcessingException;
 
     // 정책 상세 조회 (어드민)
     Policy getPolicyDetail(Long policyId);

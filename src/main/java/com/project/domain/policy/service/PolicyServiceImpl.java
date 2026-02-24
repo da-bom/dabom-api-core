@@ -3,6 +3,9 @@ package com.project.domain.policy.service;
 import java.util.Collections;
 import java.util.Map;
 
+import com.project.domain.policy.infra.messaging.PolicyUpdateEventPublish;
+import com.project.domain.policy.service.helper.RulesUtil;
+import com.project.global.event.dto.policy.PolicyUpdatedPayload;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -28,6 +31,9 @@ public class PolicyServiceImpl implements PolicyService {
     private final PolicyAssignmentRepository policyAssignmentRepository;
     private final ObjectMapper objectMapper;
 
+    private final PolicyUpdateEventPublish policyUpdateEventPublish;
+    private final RulesUtil rulesUtil;
+
     // 정책 상세 정보 조회
     @Override
     public Policy getPolicyDetail(Long policyId) {
@@ -42,7 +48,7 @@ public class PolicyServiceImpl implements PolicyService {
 
     @Override
     @Transactional
-    public Policy updatePolicy(Long policyId, PolicyRequest.Update updatePolicyRequest) {
+    public Policy updatePolicy (Long policyId, PolicyRequest.Update updatePolicyRequest) throws JsonProcessingException {
         Policy policy = findPolicyOrThrow(policyId);
         validateModifiable(policy);
 
@@ -56,7 +62,15 @@ public class PolicyServiceImpl implements PolicyService {
 
         // 2) 덮어쓰기가 True일 경우 가족 구성원에게 부여된 정책들 즉시 수정
         if (updatePolicyRequest.overWrite()) {
+            String policyKey = rulesUtil.toPolicyKey(policy.getPolicyType());
+            String rule =
+                    (policy.getDefaultRules() != null)
+                            ? objectMapper.writeValueAsString(policy.getDefaultRules())
+                            : null;
             applyToExistingAssignments(policy);
+            policyUpdateEventPublish.publish(
+                    new PolicyUpdatedPayload(
+                            null, null, policyKey, rule, policy.isActive()));
         }
 
         return policy;
