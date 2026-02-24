@@ -6,12 +6,7 @@ import com.project.domain.policy.enums.PolicyType;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.PolicyErrorCode;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
 @Component
-@RequiredArgsConstructor
 public class RulesUtil {
     // policy 변환
     public String toPolicyKey(PolicyType type) {
