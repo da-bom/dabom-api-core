@@ -21,6 +21,7 @@ import com.project.domain.family.model.FamilySearchResult;
 import com.project.domain.family.service.FamilyService;
 import com.project.domain.usagerecord.dto.response.FamilyCustomersUsageResponse;
 import com.project.domain.usagerecord.dto.response.FamilyUsageResponse;
+import com.project.domain.usagerecord.model.FamilyUsage;
 import com.project.domain.usagerecord.service.UsageRecordService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.AdminOnly;
@@ -66,7 +67,8 @@ public class FamilyController {
             description = "홈화면 상단부분에 속하는 가족 구성원의 총 데이터 사용량/제한량을 조회합니다.")
     public ApiResponse<FamilyUsageResponse> getCurrentFamilyUsage(
             @Parameter(hidden = true) @CustomerId Long customerId) {
-        FamilyUsageResponse response = usageRecordService.getCurrentFamilyUsage(customerId);
+        FamilyUsage familyUsage = usageRecordService.getCurrentFamilyUsage(customerId);
+        FamilyUsageResponse response = FamilyUsageResponse.from(familyUsage);
         return ApiResponse.success(response);
     }
 

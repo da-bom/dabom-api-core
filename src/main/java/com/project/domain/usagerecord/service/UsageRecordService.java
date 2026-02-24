@@ -11,7 +11,7 @@ import com.project.domain.family.repository.FamilyQueryRepository;
 import com.project.domain.family.repository.FamilyRepository;
 import com.project.domain.usagerecord.dto.response.CustomerUsage;
 import com.project.domain.usagerecord.dto.response.FamilyCustomersUsageResponse;
-import com.project.domain.usagerecord.dto.response.FamilyUsageResponse;
+import com.project.domain.usagerecord.model.FamilyUsage;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.FamilyErrorCode;
 
@@ -28,7 +28,7 @@ public class UsageRecordService {
     private final FamilyRepository familyRepository;
 
     // 현재 가족 데이터 사용량/제한량 조회
-    public FamilyUsageResponse getCurrentFamilyUsage(Long customerId) {
+    public FamilyUsage getCurrentFamilyUsage(Long customerId) {
         Long familyId = resolveFamilyId(customerId);
 
         Family familyEntity =
@@ -43,7 +43,7 @@ public class UsageRecordService {
                 familyEntity.getUsedBytes() != null ? familyEntity.getUsedBytes() : 0L;
         long remainingBytes = Math.max(totalQuotaBytes - totalUsedBytes, 0L);
 
-        return new FamilyUsageResponse(
+        return new FamilyUsage(
                 familyEntity.getId(), familyEntity.getName(), totalQuotaBytes, remainingBytes);
     }
 
