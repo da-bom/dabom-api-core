@@ -40,12 +40,12 @@ public class PolicyResponse {
     }
 
     public record Detail(
-            Long id,
+            Long policyId,
             String name,
             String description,
-            PolicyType policyType,
+            PolicyType type,
             Map<String, Object> defaultRules,
-            RoleType requiredRole,
+            RoleType requireRole,
             boolean isSystem,
             boolean isActive,
             LocalDateTime createdAt,
@@ -66,9 +66,9 @@ public class PolicyResponse {
     }
 
     public record Create(
-            Long id,
+            Long policyId,
             String name,
-            PolicyType policyType,
+            PolicyType type,
             boolean isSystem,
             LocalDateTime createdAt) {
         public static Create from(Policy policy) {
@@ -81,7 +81,7 @@ public class PolicyResponse {
         }
     }
 
-    public record Updated(Long id, LocalDateTime updatedAt) {
+    public record Updated(Long policyId, LocalDateTime updatedAt) {
         public static Updated from(Policy policy) {
             return new Updated(policy.getId(), policy.getUpdatedAt());
         }

@@ -108,11 +108,11 @@ class PolicyControllerIntegrationTest {
         JsonNode data =
                 objectMapper.readTree(mvcResult.getResponse().getContentAsString()).path("data");
 
-        assertThat(data.path("id").asLong()).isEqualTo(policy.getId());
+        assertThat(data.path("policyId").asLong()).isEqualTo(policy.getId());
         assertThat(data.path("name").asText()).isEqualTo("detail-policy");
         assertThat(data.path("description").asText()).isEqualTo("detail description");
-        assertThat(data.path("requiredRole").asText()).isEqualTo("OWNER");
-        assertThat(data.path("policyType").asText()).isEqualTo("MONTHLY_LIMIT");
+        assertThat(data.path("requireRole").asText()).isEqualTo("OWNER");
+        assertThat(data.path("type").asText()).isEqualTo("MONTHLY_LIMIT");
         assertThat(data.path("defaultRules").path("limitBytes").asInt()).isEqualTo(4096);
         assertThat(data.path("isSystem").asBoolean()).isTrue();
         assertThat(data.path("isActive").asBoolean()).isTrue();
@@ -200,7 +200,7 @@ class PolicyControllerIntegrationTest {
     private record UpdatePolicyRequest(
             String description,
             RoleType requiredRole,
-            String policyType,
+            String type,
             Map<String, Object> defaultRules,
             boolean isActive,
             boolean overWrite) {}

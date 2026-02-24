@@ -55,8 +55,8 @@ public class PolicyServiceImpl implements PolicyService {
         // 1) 정책 템플릿 정보 업데이트
         policy.update(
                 updatePolicyRequest.description(),
-                updatePolicyRequest.requiredRole(),
-                updatePolicyRequest.policyType(),
+                updatePolicyRequest.requireRole(),
+                updatePolicyRequest.type(),
                 updatePolicyRequest.defaultRules(),
                 updatePolicyRequest.isActive());
 
@@ -86,7 +86,7 @@ public class PolicyServiceImpl implements PolicyService {
         Policy policy =
                 Policy.builder()
                         .name(createPolicyRequest.name())
-                        .policyType(createPolicyRequest.policyType())
+                        .policyType(createPolicyRequest.type())
                         .isSystem(false)
                         .isActive(true)
                         .build();
