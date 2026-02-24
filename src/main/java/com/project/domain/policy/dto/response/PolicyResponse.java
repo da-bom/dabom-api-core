@@ -29,16 +29,6 @@ public class PolicyResponse {
         }
     }
 
-    public record Summary(Long id, String name, String policyType, LocalDateTime createdAt) {
-        public static Summary from(Policy policy) {
-            return new Summary(
-                    policy.getId(),
-                    policy.getName(),
-                    policy.getPolicyType().name(),
-                    policy.getCreatedAt());
-        }
-    }
-
     public record Detail(
             Long policyId,
             String name,
