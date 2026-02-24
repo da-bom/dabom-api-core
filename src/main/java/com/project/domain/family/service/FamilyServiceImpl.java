@@ -1,5 +1,6 @@
 package com.project.domain.family.service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -7,11 +8,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.project.domain.family.dto.request.FamilySearchRequest;
+import com.project.domain.family.entity.Family;
 import com.project.domain.family.infra.cache.FamilyCacheRepository;
 import com.project.domain.family.model.FamilyDetail;
 import com.project.domain.family.model.FamilyMemberDetail;
 import com.project.domain.family.model.FamilySearchResult;
+import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.family.repository.FamilyQueryRepository;
+import com.project.domain.family.repository.FamilyRepository;
+import com.project.domain.family.repository.projection.FamilyUsageCustomerRow;
 import com.project.domain.family.util.FamilyUsageCalculator;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.FamilyErrorCode;
@@ -27,6 +32,8 @@ public class FamilyServiceImpl implements FamilyService {
 
     private final FamilyQueryRepository familyQueryRepository;
     private final FamilyCacheRepository familyCacheRepository;
+    private final FamilyMemberRepository familyMemberRepository;
+    private final FamilyRepository familyRepository;
 
     @Override
     public Page<FamilySearchResult> searchFamilies(FamilySearchRequest familySearchRequest) {
@@ -94,6 +101,25 @@ public class FamilyServiceImpl implements FamilyService {
                 familyDetail.currentMonth(),
                 familyDetail.createdAt(),
                 familyDetail.updatedAt());
+    }
+
+    @Override
+    public Long getFamilyIdByCustomerId(Long customerId) {
+        return familyMemberRepository
+                .findFamilyIdByCustomerId(customerId)
+                .orElseThrow(() -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
+    }
+
+    @Override
+    public Family getFamilyById(Long familyId) {
+        return familyRepository
+                .findById(familyId)
+                .orElseThrow(() -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
+    }
+
+    @Override
+    public List<FamilyUsageCustomerRow> getUsageReportCustomers(Long familyId, LocalDate targetMonth) {
+        return familyQueryRepository.findUsageReportCustomers(familyId, targetMonth);
     }
 
     @Override
