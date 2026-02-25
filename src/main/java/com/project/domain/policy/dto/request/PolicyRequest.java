@@ -9,12 +9,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 public class PolicyRequest {
 
-    public record Create(String name, PolicyType policyType) {}
+    public record Create(String name, PolicyType type) {}
 
     public record Update(
             String description,
-            RoleType requiredRole,
-            PolicyType policyType,
+            RoleType requireRole,
+            PolicyType type,
             @Schema(
                             description = "정책별 세부 규칙 (JSON)",
                             example =
