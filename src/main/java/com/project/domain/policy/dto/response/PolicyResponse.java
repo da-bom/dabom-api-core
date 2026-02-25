@@ -22,7 +22,7 @@ public class PolicyResponse {
         public static ListResult from(Page<Detail> page) {
             return new ListResult(
                     page.getContent(), // policies
-                    page.getNumber() + 1, // page ( 1-base page)
+                    page.getNumber(), // page ( 0-base page)
                     page.getSize(), // size
                     page.getTotalElements(), // totalElements
                     page.getTotalPages()); // totalPages
