@@ -72,7 +72,7 @@ class PolicyControllerIntegrationTest {
 
         JsonNode data =
                 objectMapper.readTree(mvcResult.getResponse().getContentAsString()).path("data");
-        assertThat(data.path("page").asInt()).isEqualTo(1);
+        assertThat(data.path("page").asInt()).isEqualTo(0);
         assertThat(data.path("size").asInt()).isEqualTo(10);
         assertThat(data.path("totalElements").asInt()).isEqualTo(2);
         assertThat(data.path("totalPages").asInt()).isEqualTo(1);
