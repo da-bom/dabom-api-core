@@ -72,7 +72,7 @@ public class PolicyQueryRepository {
                                                                 policyAssignment.targetCustomerId
                                                                         .isNull())))
                         .leftJoin(policy)
-                        .on(policyAssignment.policyId.eq(policy.id))
+                        .on(policyAssignment.policyId.eq(policy.id).and(policy.deletedAt.isNull()))
                         .where(
                                 familyMember
                                         .familyId

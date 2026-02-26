@@ -43,7 +43,7 @@ public class PolicyServiceImpl implements PolicyService {
     // 정책 리스트 조회
     @Override
     public Page<Policy> getPolicyList(Pageable pageable) {
-        return policyRepository.findAll(pageable);
+        return policyRepository.findAllByDeletedAtIsNull(pageable);
     }
 
     @Override
@@ -96,16 +96,32 @@ public class PolicyServiceImpl implements PolicyService {
         return policy;
     }
 
+    @Override
+    @Transactional
+    public Policy deletePolicy(Long policyId) {
+        Policy policy = findPolicyOrThrow(policyId);
+        validateDeletable(policy);
+        policy.delete();
+        return policy;
+    }
+
     // 공통 로직 : 정책 ID에 해당하는 정책 조회
     private Policy findPolicyOrThrow(Long policyId) {
         return policyRepository
-                .findById(policyId)
+                .findByIdAndDeletedAtIsNull(policyId)
                 .orElseThrow(() -> new ApplicationException(PolicyErrorCode.POLICY_NOT_FOUND));
     }
 
-    // 공통 로직 : 기본 시스템인지 여부에 따라 수정 가능/불가능 검증
+    // 공통 로직 : 삭제 여부에 따라 수정 가능/불가능 검증
     private void validateModifiable(Policy policy) {
-        if (!policy.isModifiable()) {
+        if (!policy.isNotDeleted()) {
+            throw new ApplicationException(PolicyErrorCode.POLICY_NOT_MODIFIABLE);
+        }
+    }
+
+    // 공통 로직 : 기본 시스템 여부에 따라 삭제 가능/불가능 검증
+    private void validateDeletable(Policy policy) {
+        if (!policy.isDeletable()) {
             throw new ApplicationException(PolicyErrorCode.POLICY_NOT_MODIFIABLE);
         }
     }

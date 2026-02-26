@@ -3,6 +3,7 @@ package com.project.domain.policy.controller;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -64,5 +65,13 @@ public class PolicyController {
             throws JsonProcessingException {
         Policy policy = policyService.updatePolicy(policyId, policyRequest);
         return ApiResponse.success(PolicyResponse.Updated.from(policy));
+    }
+
+    @DeleteMapping("/{policyId}")
+    @AdminOnly
+    @Parameter(name = "policyId", description = "Policy ID", required = true)
+    public ApiResponse<PolicyResponse.Deleted> deletePolicy(@PathVariable Long policyId) {
+        Policy policy = policyService.deletePolicy(policyId);
+        return ApiResponse.success(PolicyResponse.Deleted.from(policy));
     }
 }
