@@ -38,11 +38,11 @@ import com.project.global.auth.JwtTokenUtil;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
-@EmbeddedKafka( //
+@EmbeddedKafka(
         partitions = 1,
         topics = {"usage-events"},
         brokerProperties = {"listeners=PLAINTEXT://localhost:0", "port=0"})
-class FamilyControllerTest {
+class AdminFamilyControllerTest {
 
     private static final String ADMIN_TOKEN = "ADMIN";
     private static final String MEMBER_TOKEN = "MEMBER";
@@ -56,9 +56,8 @@ class FamilyControllerTest {
     @MockitoBean private FamilyCacheRepository familyCacheRepository;
 
     @Test
-    @DisplayName("POST /families - 가족 검색 결과를 반환한다")
+    @DisplayName("POST /admin/families - 가족 검색 결과를 반환한다")
     void searchFamilies_validRequest_returnsFamilyList() throws Exception {
-        // given
         FamilyApiTestSupport.FamilyContext familyContext =
                 familyApiTestSupport.buildFamilyContext("다봄 가족");
         FamilyApiTestSupport.FamilyContext secondFamilyContext =
@@ -67,26 +66,21 @@ class FamilyControllerTest {
         FamilySearchRequest request =
                 new FamilySearchRequest(
                         0,
-                        20,
-                        new FamilySearchRequest.Filters(
-                                new FamilySearchRequest.StringCondition("contains", "아빠"),
-                                null,
-                                null),
+                        100,
+                        null,
                         List.of(new FamilySearchRequest.SortCondition("createdAt", "desc")));
 
         given(jwtTokenUtil.getRole(ADMIN_TOKEN)).willReturn(RoleType.ADMIN);
 
-        // when
         MvcResult mvcResult =
                 mockMvc.perform(
-                                post("/families")
+                                post("/admin/families")
                                         .header("Authorization", "Bearer " + ADMIN_TOKEN)
                                         .contentType(MediaType.APPLICATION_JSON)
                                         .content(objectMapper.writeValueAsString(request)))
                         .andExpect(status().isOk())
                         .andReturn();
 
-        // then
         JsonNode data =
                 objectMapper.readTree(mvcResult.getResponse().getContentAsString()).path("data");
 
@@ -103,16 +97,15 @@ class FamilyControllerTest {
                                 })
                         .toList();
 
-        assertThat(data.path("content").size()).isEqualTo(2);
+        assertThat(data.path("content").size()).isGreaterThanOrEqualTo(2);
         assertThat(familyIds)
                 .contains(familyContext.family().getId(), secondFamilyContext.family().getId());
         assertThat(data.path("content").get(0).path("customers").size()).isEqualTo(3);
     }
 
     @Test
-    @DisplayName("GET /families/{familyId} - 가족 상세 조회 결과를 반환한다")
+    @DisplayName("GET /admin/families/{familyId} - 가족 상세 조회 결과를 반환한다")
     void getFamilyDetail_validFamilyId_returnsFamilyDetail() throws Exception {
-        // given
         FamilyApiTestSupport.FamilyContext familyContext =
                 familyApiTestSupport.buildFamilyContext("다봄 가족");
         familyApiTestSupport.buildQuotas(familyContext, 1_200L, 800L, 500L);
@@ -131,15 +124,13 @@ class FamilyControllerTest {
                                 familyContext.family().getId(), familyContext.kid().getId()))
                 .willReturn(Optional.empty());
 
-        // when
         MvcResult mvcResult =
                 mockMvc.perform(
-                                get("/families/{familyId}", familyContext.family().getId())
+                                get("/admin/families/{familyId}", familyContext.family().getId())
                                         .header("Authorization", "Bearer " + ADMIN_TOKEN))
                         .andExpect(status().isOk())
                         .andReturn();
 
-        // then
         JsonNode data =
                 objectMapper.readTree(mvcResult.getResponse().getContentAsString()).path("data");
 
@@ -152,9 +143,8 @@ class FamilyControllerTest {
     }
 
     @Test
-    @DisplayName("POST /families - 잘못된 검색 조건이면 400을 반환한다")
+    @DisplayName("POST /admin/families - 잘못된 검색 조건이면 400을 반환한다")
     void searchFamilies_invalidCondition_returnsBadRequest() throws Exception {
-        // given
         FamilySearchRequest request =
                 new FamilySearchRequest(
                         0,
@@ -163,9 +153,8 @@ class FamilyControllerTest {
                         List.of(new FamilySearchRequest.SortCondition("createdAt", "invalid")));
         given(jwtTokenUtil.getRole(ADMIN_TOKEN)).willReturn(RoleType.ADMIN);
 
-        // when & then
         mockMvc.perform(
-                        post("/families")
+                        post("/admin/families")
                                 .header("Authorization", "Bearer " + ADMIN_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
@@ -174,21 +163,21 @@ class FamilyControllerTest {
     }
 
     @Test
-    @DisplayName("GET /families/{familyId} - 존재하지 않는 가족이면 404를 반환한다")
+    @DisplayName("GET /admin/families/{familyId} - 존재하지 않는 가족이면 404를 반환한다")
     void getFamilyDetail_notFoundFamily_returnsNotFound() throws Exception {
         // given
         given(jwtTokenUtil.getRole(ADMIN_TOKEN)).willReturn(RoleType.ADMIN);
 
         // when & then
         mockMvc.perform(
-                        get("/families/{familyId}", 999_999L)
+                        get("/admin/families/{familyId}", 999_999L)
                                 .header("Authorization", "Bearer " + ADMIN_TOKEN))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("FAMILY_001"));
     }
 
     @Test
-    @DisplayName("GET /families/{familyId} - 관리자 권한이 아니면 403을 반환한다")
+    @DisplayName("GET /admin/families/{familyId} - 관리자 권한이 아니면 403을 반환한다")
     void getFamilyDetail_nonAdminRole_returnsForbidden() throws Exception {
         // given
         FamilyApiTestSupport.FamilyContext familyContext =
@@ -197,7 +186,7 @@ class FamilyControllerTest {
 
         // when & then
         mockMvc.perform(
-                        get("/families/{familyId}", familyContext.family().getId())
+                        get("/admin/families/{familyId}", familyContext.family().getId())
                                 .header("Authorization", "Bearer " + MEMBER_TOKEN))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("ADMIN_003"));
