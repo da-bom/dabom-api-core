@@ -52,7 +52,7 @@ class FamilyControllerTest {
                 .andExpect(jsonPath("$.data.familyId").value(1L))
                 .andExpect(jsonPath("$.data.familyName").value("테스트 가족"))
                 .andExpect(jsonPath("$.data.totalQuotaBytes").value(100000))
-                .andExpect(jsonPath("$.data.remainingBytes").value(40000));
+                .andExpect(jsonPath("$.data.totalUsedBytes").value(40000));
     }
 
     @Test
