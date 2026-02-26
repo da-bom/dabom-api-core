@@ -50,7 +50,6 @@ public class PolicyServiceImpl implements PolicyService {
     @Transactional
     public Policy updatePolicy(Long policyId, PolicyRequest.Update updatePolicyRequest) {
         Policy policy = findPolicyOrThrow(policyId);
-        validateModifiable(policy);
 
         // 1) 정책 템플릿 정보 업데이트
         policy.update(
@@ -105,23 +104,16 @@ public class PolicyServiceImpl implements PolicyService {
         return policy;
     }
 
-    // 공통 로직 : 정책 ID에 해당하는 정책 조회
+    // 공통 로직 : 정책 ID에 해당하는 정책(삭제가 안된) 조회
     private Policy findPolicyOrThrow(Long policyId) {
         return policyRepository
                 .findByIdAndDeletedAtIsNull(policyId)
                 .orElseThrow(() -> new ApplicationException(PolicyErrorCode.POLICY_NOT_FOUND));
     }
 
-    // 공통 로직 : 삭제 여부에 따라 수정 가능/불가능 검증
-    private void validateModifiable(Policy policy) {
-        if (!policy.isNotDeleted()) {
-            throw new ApplicationException(PolicyErrorCode.POLICY_NOT_MODIFIABLE);
-        }
-    }
-
     // 공통 로직 : 기본 시스템 여부에 따라 삭제 가능/불가능 검증
     private void validateDeletable(Policy policy) {
-        if (!policy.isDeletable()) {
+        if (policy.isSystem()) {
             throw new ApplicationException(PolicyErrorCode.POLICY_NOT_DELETABLE);
         }
     }

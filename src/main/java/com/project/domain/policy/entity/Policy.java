@@ -58,14 +58,6 @@ public class Policy extends BaseEntity {
     @Column(name = "is_active")
     private boolean isActive;
 
-    public boolean isNotDeleted() {
-        return !isDeleted();
-    }
-
-    public boolean isDeletable() {
-        return !isSystem() && !isDeleted();
-    }
-
     public void delete() {
         softDelete();
     }
