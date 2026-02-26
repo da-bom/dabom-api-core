@@ -33,7 +33,7 @@ public class UsageRecordService {
         long remainingBytes = Math.max(totalQuotaBytes - totalUsedBytes, 0L);
 
         return new FamilyUsage(
-                familyEntity.getId(), familyEntity.getName(), totalQuotaBytes, remainingBytes);
+                familyEntity.getId(), familyEntity.getName(), totalQuotaBytes, totalUsedBytes);
     }
 
     // 해당 년,월에 해당하는 가족 별 데이터 사용량/제한량 조회
