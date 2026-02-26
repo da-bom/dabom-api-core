@@ -23,6 +23,7 @@ public interface PolicyAssignmentRepository extends JpaRepository<PolicyAssignme
                     + "WHERE pa.familyId = :familyId "
                     + "AND pa.targetCustomerId = :targetCustomerId "
                     + "AND p.policyType = :type "
+                    + "AND p.deletedAt IS NULL "
                     + "AND pa.deletedAt IS NULL")
     Optional<PolicyAssignment> findByTargetAndType(
             @Param("familyId") Long familyId,

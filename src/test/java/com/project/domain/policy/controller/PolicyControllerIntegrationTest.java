@@ -2,6 +2,7 @@ package com.project.domain.policy.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -187,6 +188,47 @@ class PolicyControllerIntegrationTest {
             assertThat(rulesNode.path("limitBytes").asInt()).isEqualTo(1000);
             assertThat(assignment.isActive()).isTrue();
         }
+    }
+
+    @Test
+    @DisplayName("DELETE /policies/{policyId} - 정책을 소프트 삭제하고 목록/상세에서 제외한다")
+    void deletePolicySoftDeletesAndExcludesFromReads() throws Exception {
+        var policy =
+                policyApiTestSupport.buildDetailPolicy(
+                        "delete-target-policy",
+                        "delete description",
+                        RoleType.OWNER,
+                        PolicyType.MONTHLY_LIMIT,
+                        Map.of("limitBytes", 1024),
+                        false,
+                        true);
+        given(jwtTokenUtil.getRole(ADMIN_TOKEN)).willReturn(RoleType.ADMIN);
+
+        MvcResult deleteResult =
+                mockMvc.perform(
+                                delete("/policies/{policyId}", policy.getId())
+                                        .header("Authorization", "Bearer " + ADMIN_TOKEN))
+                        .andExpect(status().isOk())
+                        .andReturn();
+
+        JsonNode deletedData =
+                objectMapper.readTree(deleteResult.getResponse().getContentAsString()).path("data");
+        assertThat(deletedData.path("policyId").asLong()).isEqualTo(policy.getId());
+        assertThat(deletedData.path("deletedAt").isNull()).isFalse();
+
+        MvcResult listResult =
+                mockMvc.perform(get("/policies").header("Authorization", "Bearer " + ADMIN_TOKEN))
+                        .andExpect(status().isOk())
+                        .andReturn();
+        JsonNode listData =
+                objectMapper.readTree(listResult.getResponse().getContentAsString()).path("data");
+        assertThat(listData.path("totalElements").asInt()).isZero();
+        assertThat(listData.path("policies").size()).isZero();
+
+        mockMvc.perform(
+                        get("/policies/{policyId}", policy.getId())
+                                .header("Authorization", "Bearer " + ADMIN_TOKEN))
+                .andExpect(status().isNotFound());
     }
 
     private JsonNode parseRulesNode(String rawRules) throws Exception {

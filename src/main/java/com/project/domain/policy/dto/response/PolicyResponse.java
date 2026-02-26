@@ -76,4 +76,10 @@ public class PolicyResponse {
             return new Updated(policy.getId(), policy.getUpdatedAt());
         }
     }
+
+    public record Deleted(Long policyId, LocalDateTime deletedAt) {
+        public static Deleted from(Policy policy) {
+            return new Deleted(policy.getId(), policy.getDeletedAt());
+        }
+    }
 }

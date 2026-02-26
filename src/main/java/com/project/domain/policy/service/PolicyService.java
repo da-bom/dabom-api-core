@@ -21,4 +21,7 @@ public interface PolicyService {
 
     // 정책 리스트 조회 (어드민)
     Page<Policy> getPolicyList(Pageable pageable);
+
+    // 정책 삭제 (어드민)
+    Policy deletePolicy(Long policyId);
 }
