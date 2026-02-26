@@ -2,6 +2,8 @@ package com.project.domain.policy.dto.request;
 
 import java.util.Map;
 
+import jakarta.validation.constraints.NotNull;
+
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.policy.enums.PolicyType;
 
@@ -9,12 +11,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 public class PolicyRequest {
 
-    public record Create(String name, PolicyType type) {}
+    public record Create(@NotNull String name, @NotNull PolicyType type) {}
 
     public record Update(
-            String description,
-            RoleType requireRole,
-            PolicyType type,
+            @NotNull String description,
+            @NotNull RoleType requireRole,
+            @NotNull PolicyType type,
             @Schema(
                             description = "정책별 세부 규칙 (JSON)",
                             example =
@@ -25,7 +27,7 @@ public class PolicyRequest {
                                       "timezone": "Asia/Seoul"
                                     }
                                     """)
-                    Map<String, Object> defaultRules,
-            boolean isActive,
-            boolean overWrite) {}
+                    @NotNull Map<String, Object> defaultRules,
+            @NotNull Boolean isActive,
+            @NotNull Boolean overWrite) {}
 }
