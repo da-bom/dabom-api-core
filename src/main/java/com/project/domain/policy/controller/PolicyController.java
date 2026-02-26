@@ -1,6 +1,5 @@
 package com.project.domain.policy.controller;
 
-import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -21,6 +20,7 @@ import com.project.domain.policy.service.PolicyService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.AdminOnly;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 
 import lombok.RequiredArgsConstructor;
@@ -74,7 +74,9 @@ public class PolicyController {
 
     @DeleteMapping("/{policyId}")
     @AdminOnly
-    @Operation(summary = "정책 삭제", description = "PolicyId에 맞는 정책템플릿을 삭제합니다. isSystem=true인 경우에는 삭제가 불가능합니다.")
+    @Operation(
+            summary = "정책 삭제",
+            description = "PolicyId에 맞는 정책템플릿을 삭제합니다. isSystem=true인 경우에는 삭제가 불가능합니다.")
     @Parameter(name = "policyId", description = "Policy ID", required = true)
     public ApiResponse<PolicyResponse.Deleted> deletePolicy(@PathVariable Long policyId) {
         Policy policy = policyService.deletePolicy(policyId);
