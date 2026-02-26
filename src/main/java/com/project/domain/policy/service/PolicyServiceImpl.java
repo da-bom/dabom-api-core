@@ -122,7 +122,7 @@ public class PolicyServiceImpl implements PolicyService {
     // 공통 로직 : 기본 시스템 여부에 따라 삭제 가능/불가능 검증
     private void validateDeletable(Policy policy) {
         if (!policy.isDeletable()) {
-            throw new ApplicationException(PolicyErrorCode.POLICY_NOT_MODIFIABLE);
+            throw new ApplicationException(PolicyErrorCode.POLICY_NOT_DELETABLE);
         }
     }
 
