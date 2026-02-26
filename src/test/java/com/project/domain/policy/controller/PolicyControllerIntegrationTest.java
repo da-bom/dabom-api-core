@@ -222,9 +222,8 @@ class PolicyControllerIntegrationTest {
                         .andReturn();
         JsonNode listData =
                 objectMapper.readTree(listResult.getResponse().getContentAsString()).path("data");
-
-        List<String> policyNames = listData.path("policies").findValuesAsText("name");
-        assertThat(policyNames).doesNotContain("delete-target-policy");
+        assertThat(listData.path("totalElements").asInt()).isZero();
+        assertThat(listData.path("policies").size()).isZero();
 
         mockMvc.perform(
                         get("/policies/{policyId}", policy.getId())
