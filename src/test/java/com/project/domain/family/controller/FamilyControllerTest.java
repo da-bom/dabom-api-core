@@ -119,10 +119,7 @@ class FamilyControllerTest {
 
         FamilySearchRequest request =
                 new FamilySearchRequest(
-                        0,
-                        20,
-                        null,
-                        List.of(new FamilySearchRequest.SortCondition("name", "asc")));
+                        0, 20, null, List.of(new FamilySearchRequest.SortCondition("name", "asc")));
 
         given(jwtTokenUtil.getRole(ADMIN_TOKEN)).willReturn(RoleType.ADMIN);
 
