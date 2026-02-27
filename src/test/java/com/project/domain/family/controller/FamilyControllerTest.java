@@ -110,6 +110,38 @@ class FamilyControllerTest {
     }
 
     @Test
+    @DisplayName("POST /families - name 오름차순 정렬 결과를 반환한다")
+    void searchFamilies_sortByNameAsc_returnsOrderedByName() throws Exception {
+        // given
+        familyApiTestSupport.buildFamilyContext("나봄 가족");
+        familyApiTestSupport.buildFamilyContext("가봄 가족");
+        familyApiTestSupport.buildFamilyContext("다봄 가족");
+
+        FamilySearchRequest request =
+                new FamilySearchRequest(
+                        0, 20, null, List.of(new FamilySearchRequest.SortCondition("name", "asc")));
+
+        given(jwtTokenUtil.getRole(ADMIN_TOKEN)).willReturn(RoleType.ADMIN);
+
+        // when
+        MvcResult mvcResult =
+                mockMvc.perform(
+                                post("/families")
+                                        .header("Authorization", "Bearer " + ADMIN_TOKEN)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(request)))
+                        .andExpect(status().isOk())
+                        .andReturn();
+
+        // then
+        JsonNode data =
+                objectMapper.readTree(mvcResult.getResponse().getContentAsString()).path("data");
+
+        List<String> familyNames = data.path("content").findValuesAsText("familyName");
+        assertThat(familyNames).startsWith("가봄 가족", "나봄 가족", "다봄 가족");
+    }
+
+    @Test
     @DisplayName("GET /families/{familyId} - 가족 상세 조회 결과를 반환한다")
     void getFamilyDetail_validFamilyId_returnsFamilyDetail() throws Exception {
         // given
