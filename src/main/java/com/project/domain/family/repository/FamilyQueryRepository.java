@@ -277,6 +277,7 @@ public class FamilyQueryRepository {
         return switch (sort.field()) {
             case "usageRate" -> new OrderSpecifier<>(order, usageRateExpression());
             case "createdAt" -> new OrderSpecifier<>(order, family.createdAt);
+            case "name" -> new OrderSpecifier<>(order, family.name);
             default -> throw invalidInput();
         };
     }
