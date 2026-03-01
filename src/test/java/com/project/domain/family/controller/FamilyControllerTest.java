@@ -1,237 +1,88 @@
 package com.project.domain.family.controller;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.within;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
-import java.util.Optional;
-
-import jakarta.transaction.Transactional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.test.context.EmbeddedKafka;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.project.domain.customer.enums.RoleType;
-import com.project.domain.family.dto.request.FamilySearchRequest;
-import com.project.domain.family.infra.cache.FamilyCacheRepository;
-import com.project.domain.family.support.FamilyApiTestSupport;
+import com.project.domain.usagerecord.model.CustomerUsage;
+import com.project.domain.usagerecord.model.FamilyCustomersUsage;
+import com.project.domain.usagerecord.model.FamilyUsage;
+import com.project.domain.usagerecord.service.UsageRecordService;
 import com.project.global.auth.JwtTokenUtil;
+import com.project.global.config.WebConfig;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-@Transactional
-@EmbeddedKafka( //
-        partitions = 1,
-        topics = {"usage-events"},
-        brokerProperties = {"listeners=PLAINTEXT://localhost:0", "port=0"})
+@WebMvcTest(FamilyController.class)
+@Import(WebConfig.class)
 class FamilyControllerTest {
 
-    private static final String ADMIN_TOKEN = "ADMIN";
-    private static final String MEMBER_TOKEN = "MEMBER";
+    private static final String MEMBER_TOKEN = "MEMBER_TOKEN";
+    private static final Long MEMBER_ID = 101L;
 
     @Autowired private MockMvc mockMvc;
-    @Autowired private ObjectMapper objectMapper;
-    @Autowired private FamilyApiTestSupport familyApiTestSupport;
 
-    @MockitoBean private KafkaTemplate<String, Object> kafkaTemplate;
+    @MockitoBean private UsageRecordService usageRecordService;
     @MockitoBean private JwtTokenUtil jwtTokenUtil;
-    @MockitoBean private FamilyCacheRepository familyCacheRepository;
 
     @Test
-    @DisplayName("POST /families - 가족 검색 결과를 반환한다")
-    void searchFamilies_validRequest_returnsFamilyList() throws Exception {
-        // given
-        FamilyApiTestSupport.FamilyContext familyContext =
-                familyApiTestSupport.buildFamilyContext("다봄 가족");
-        FamilyApiTestSupport.FamilyContext secondFamilyContext =
-                familyApiTestSupport.buildFamilyContext("다봄 가족2");
+    @DisplayName("GET /families/usage/current - 가족 현재 사용량을 반환한다")
+    void getCurrentFamilyUsageReturnsOk() throws Exception {
+        FamilyUsage familyUsage = new FamilyUsage(1L, "테스트 가족", 100_000L, 40_000L);
 
-        FamilySearchRequest request =
-                new FamilySearchRequest(
-                        0,
-                        20,
-                        new FamilySearchRequest.Filters(
-                                new FamilySearchRequest.StringCondition("contains", "아빠"),
-                                null,
-                                null),
-                        List.of(new FamilySearchRequest.SortCondition("createdAt", "desc")));
+        given(jwtTokenUtil.verify(anyString())).willReturn(null);
+        given(jwtTokenUtil.getMemberId(MEMBER_TOKEN)).willReturn(MEMBER_ID);
+        given(usageRecordService.getCurrentFamilyUsage(MEMBER_ID)).willReturn(familyUsage);
 
-        given(jwtTokenUtil.getRole(ADMIN_TOKEN)).willReturn(RoleType.ADMIN);
-
-        // when
-        MvcResult mvcResult =
-                mockMvc.perform(
-                                post("/families")
-                                        .header("Authorization", "Bearer " + ADMIN_TOKEN)
-                                        .contentType(MediaType.APPLICATION_JSON)
-                                        .content(objectMapper.writeValueAsString(request)))
-                        .andExpect(status().isOk())
-                        .andReturn();
-
-        // then
-        JsonNode data =
-                objectMapper.readTree(mvcResult.getResponse().getContentAsString()).path("data");
-
-        List<Long> familyIds =
-                data.path("content").findValuesAsText("familyId").stream()
-                        .map(
-                                text -> {
-                                    try {
-                                        return Long.valueOf(text);
-                                    } catch (NumberFormatException e) {
-                                        throw new AssertionError(
-                                                "Invalid familyId value: \"" + text + "\"", e);
-                                    }
-                                })
-                        .toList();
-
-        assertThat(data.path("content").size()).isEqualTo(2);
-        assertThat(familyIds)
-                .contains(familyContext.family().getId(), secondFamilyContext.family().getId());
-        assertThat(data.path("content").get(0).path("customers").size()).isEqualTo(3);
-    }
-
-    @Test
-    @DisplayName("POST /families - name 오름차순 정렬 결과를 반환한다")
-    void searchFamilies_sortByNameAsc_returnsOrderedByName() throws Exception {
-        // given
-        familyApiTestSupport.buildFamilyContext("나봄 가족");
-        familyApiTestSupport.buildFamilyContext("가봄 가족");
-        familyApiTestSupport.buildFamilyContext("다봄 가족");
-
-        FamilySearchRequest request =
-                new FamilySearchRequest(
-                        0, 20, null, List.of(new FamilySearchRequest.SortCondition("name", "asc")));
-
-        given(jwtTokenUtil.getRole(ADMIN_TOKEN)).willReturn(RoleType.ADMIN);
-
-        // when
-        MvcResult mvcResult =
-                mockMvc.perform(
-                                post("/families")
-                                        .header("Authorization", "Bearer " + ADMIN_TOKEN)
-                                        .contentType(MediaType.APPLICATION_JSON)
-                                        .content(objectMapper.writeValueAsString(request)))
-                        .andExpect(status().isOk())
-                        .andReturn();
-
-        // then
-        JsonNode data =
-                objectMapper.readTree(mvcResult.getResponse().getContentAsString()).path("data");
-
-        List<String> familyNames = data.path("content").findValuesAsText("familyName");
-        assertThat(familyNames).startsWith("가봄 가족", "나봄 가족", "다봄 가족");
-    }
-
-    @Test
-    @DisplayName("GET /families/{familyId} - 가족 상세 조회 결과를 반환한다")
-    void getFamilyDetail_validFamilyId_returnsFamilyDetail() throws Exception {
-        // given
-        FamilyApiTestSupport.FamilyContext familyContext =
-                familyApiTestSupport.buildFamilyContext("다봄 가족");
-        familyApiTestSupport.buildQuotas(familyContext, 1_200L, 800L, 500L);
-
-        given(jwtTokenUtil.getRole(ADMIN_TOKEN)).willReturn(RoleType.ADMIN);
-        given(
-                        familyCacheRepository.findCustomerMonthlyUsageBytes(
-                                familyContext.family().getId(), familyContext.dad().getId()))
-                .willReturn(Optional.empty());
-        given(
-                        familyCacheRepository.findCustomerMonthlyUsageBytes(
-                                familyContext.family().getId(), familyContext.mom().getId()))
-                .willReturn(Optional.empty());
-        given(
-                        familyCacheRepository.findCustomerMonthlyUsageBytes(
-                                familyContext.family().getId(), familyContext.kid().getId()))
-                .willReturn(Optional.empty());
-
-        // when
-        MvcResult mvcResult =
-                mockMvc.perform(
-                                get("/families/{familyId}", familyContext.family().getId())
-                                        .header("Authorization", "Bearer " + ADMIN_TOKEN))
-                        .andExpect(status().isOk())
-                        .andReturn();
-
-        // then
-        JsonNode data =
-                objectMapper.readTree(mvcResult.getResponse().getContentAsString()).path("data");
-
-        assertThat(data.path("familyId").asLong()).isEqualTo(familyContext.family().getId());
-        assertThat(data.path("familyName").asText()).isEqualTo("다봄 가족");
-        assertThat(data.path("customers").size()).isEqualTo(3);
-        assertThat(data.path("totalQuotaBytes").asLong()).isEqualTo(10_000L);
-        assertThat(data.path("usedBytes").asLong()).isEqualTo(2_500L);
-        assertThat(data.path("usedPercent").asDouble()).isCloseTo(25.0, within(0.01));
-    }
-
-    @Test
-    @DisplayName("POST /families - 잘못된 검색 조건이면 400을 반환한다")
-    void searchFamilies_invalidCondition_returnsBadRequest() throws Exception {
-        // given
-        FamilySearchRequest request =
-                new FamilySearchRequest(
-                        0,
-                        20,
-                        null,
-                        List.of(new FamilySearchRequest.SortCondition("createdAt", "invalid")));
-        given(jwtTokenUtil.getRole(ADMIN_TOKEN)).willReturn(RoleType.ADMIN);
-
-        // when & then
         mockMvc.perform(
-                        post("/families")
-                                .header("Authorization", "Bearer " + ADMIN_TOKEN)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("FAMILY_002"));
-    }
-
-    @Test
-    @DisplayName("GET /families/{familyId} - 존재하지 않는 가족이면 404를 반환한다")
-    void getFamilyDetail_notFoundFamily_returnsNotFound() throws Exception {
-        // given
-        given(jwtTokenUtil.getRole(ADMIN_TOKEN)).willReturn(RoleType.ADMIN);
-
-        // when & then
-        mockMvc.perform(
-                        get("/families/{familyId}", 999_999L)
-                                .header("Authorization", "Bearer " + ADMIN_TOKEN))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("FAMILY_001"));
-    }
-
-    @Test
-    @DisplayName("GET /families/{familyId} - 관리자 권한이 아니면 403을 반환한다")
-    void getFamilyDetail_nonAdminRole_returnsForbidden() throws Exception {
-        // given
-        FamilyApiTestSupport.FamilyContext familyContext =
-                familyApiTestSupport.buildFamilyContext("다봄 가족");
-        given(jwtTokenUtil.getRole(MEMBER_TOKEN)).willReturn(RoleType.MEMBER);
-
-        // when & then
-        mockMvc.perform(
-                        get("/families/{familyId}", familyContext.family().getId())
+                        get("/families/usage/current")
                                 .header("Authorization", "Bearer " + MEMBER_TOKEN))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("ADMIN_003"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.familyId").value(1L))
+                .andExpect(jsonPath("$.data.familyName").value("테스트 가족"))
+                .andExpect(jsonPath("$.data.totalQuotaBytes").value(100000))
+                .andExpect(jsonPath("$.data.totalUsedBytes").value(40000));
+    }
+
+    @Test
+    @DisplayName("GET /families/usage/customers - 월별 구성원 사용량 목록을 반환한다")
+    void getCustomersUsageReturnsOk() throws Exception {
+        CustomerUsage me = new CustomerUsage(101L, "나", 12_000L, 50_000L, false, null, true);
+        CustomerUsage other =
+                new CustomerUsage(102L, "가족", 30_000L, 50_000L, true, "TIME_POLICY", false);
+        FamilyCustomersUsage usageReport =
+                new FamilyCustomersUsage(1L, 2026, 2, List.of(me, other));
+
+        given(jwtTokenUtil.verify(anyString())).willReturn(null);
+        given(jwtTokenUtil.getMemberId(MEMBER_TOKEN)).willReturn(MEMBER_ID);
+        given(usageRecordService.getCustomersUsageReport(MEMBER_ID, 2026, 2))
+                .willReturn(usageReport);
+
+        mockMvc.perform(
+                        get("/families/usage/customers")
+                                .param("year", "2026")
+                                .param("month", "2")
+                                .header("Authorization", "Bearer " + MEMBER_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.familyId").value(1L))
+                .andExpect(jsonPath("$.data.year").value(2026))
+                .andExpect(jsonPath("$.data.month").value(2))
+                .andExpect(jsonPath("$.data.customers[0].customerId").value(101L))
+                .andExpect(jsonPath("$.data.customers[0].isMe").value(true))
+                .andExpect(jsonPath("$.data.customers[1].customerId").value(102L))
+                .andExpect(jsonPath("$.data.customers[1].isBlocked").value(true))
+                .andExpect(jsonPath("$.data.customers[1].blockReason").value("TIME_POLICY"));
     }
 }

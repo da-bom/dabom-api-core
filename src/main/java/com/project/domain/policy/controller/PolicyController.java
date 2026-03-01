@@ -1,5 +1,7 @@
 package com.project.domain.policy.controller;
 
+import jakarta.validation.Valid;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -56,7 +58,7 @@ public class PolicyController {
     @AdminOnly
     @Operation(summary = "정책 생성", description = "새로운 정책 템플릿을 생성합니다.")
     public ApiResponse<PolicyResponse.Create> createPolicy(
-            @RequestBody PolicyRequest.Create policyRequest) {
+            @Valid @RequestBody PolicyRequest.Create policyRequest) {
         Policy policy = policyService.createPolicy(policyRequest);
         return ApiResponse.success(PolicyResponse.Create.from(policy));
     }
@@ -66,7 +68,7 @@ public class PolicyController {
     @Operation(summary = "정책 수정", description = "정책 템플릿을 수정합니다. overWrite에 따라 적용시점을 관리합니다.")
     @Parameter(name = "policyId", description = "Policy ID", required = true)
     public ApiResponse<PolicyResponse.Updated> updatePolicy(
-            @PathVariable Long policyId, @RequestBody PolicyRequest.Update policyRequest)
+            @PathVariable Long policyId, @Valid @RequestBody PolicyRequest.Update policyRequest)
             throws JsonProcessingException {
         Policy policy = policyService.updatePolicy(policyId, policyRequest);
         return ApiResponse.success(PolicyResponse.Updated.from(policy));

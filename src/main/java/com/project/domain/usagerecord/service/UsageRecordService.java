@@ -30,7 +30,6 @@ public class UsageRecordService {
                 familyEntity.getTotalQuotaBytes() != null ? familyEntity.getTotalQuotaBytes() : 0L;
         long totalUsedBytes =
                 familyEntity.getUsedBytes() != null ? familyEntity.getUsedBytes() : 0L;
-        long remainingBytes = Math.max(totalQuotaBytes - totalUsedBytes, 0L);
 
         return new FamilyUsage(
                 familyEntity.getId(), familyEntity.getName(), totalQuotaBytes, totalUsedBytes);
