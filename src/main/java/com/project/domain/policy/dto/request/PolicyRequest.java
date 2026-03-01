@@ -27,7 +27,8 @@ public class PolicyRequest {
                                       "timezone": "Asia/Seoul"
                                     }
                                     """)
-                    @NotNull Map<String, Object> defaultRules,
+                    @NotNull
+                    Map<String, Object> defaultRules,
             @NotNull Boolean isActive,
             @NotNull Boolean overWrite) {}
 }
