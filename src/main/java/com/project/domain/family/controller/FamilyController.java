@@ -31,7 +31,6 @@ public class FamilyController {
 
     private final UsageRecordService usageRecordService;
 
-
     @GetMapping(value = "/usage/current")
     @Operation(
             summary = "가족 구성원 현재 총 데이터 조회",
