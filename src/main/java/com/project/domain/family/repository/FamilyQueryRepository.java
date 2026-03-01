@@ -6,6 +6,7 @@ import static com.project.domain.family.entity.QFamily.family;
 import static com.project.domain.family.entity.QFamilyMember.familyMember;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -274,11 +275,36 @@ public class FamilyQueryRepository {
                     default -> throw invalidInput();
                 };
 
-        return switch (sort.field()) {
-            case "usageRate" -> new OrderSpecifier<>(order, usageRateExpression());
-            case "createdAt" -> new OrderSpecifier<>(order, family.createdAt);
-            default -> throw invalidInput();
+        FamilySortField sortField = FamilySortField.fromValue(sort.field());
+
+        return switch (sortField) {
+            case USAGE_RATE -> new OrderSpecifier<>(order, usageRateExpression());
+            case CREATED_AT -> new OrderSpecifier<>(order, family.createdAt);
+            case NAME -> new OrderSpecifier<>(order, family.name);
         };
+    }
+
+    private enum FamilySortField {
+        USAGE_RATE("usageRate"),
+        CREATED_AT("createdAt"),
+        NAME("name");
+
+        private final String value;
+
+        FamilySortField(String value) {
+            this.value = value;
+        }
+
+        // 잘못된 값이면 예외 발생
+        static FamilySortField fromValue(String value) {
+            return Arrays.stream(values())
+                    .filter(sortField -> sortField.value.equals(value))
+                    .findFirst()
+                    .orElseThrow(
+                            () ->
+                                    new ApplicationException(
+                                            FamilyErrorCode.FAMILY_INVALID_SEARCH_CONDITION));
+        }
     }
 
     private Map<Long, List<FamilyMemberSummary>> fetchMembersMap(List<Long> familyIds) {
