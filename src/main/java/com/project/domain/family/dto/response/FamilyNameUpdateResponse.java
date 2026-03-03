@@ -13,6 +13,7 @@ public record FamilyNameUpdateResponse(
         @Schema(description = "수정 일시") LocalDateTime updatedAt) {
 
     public static FamilyNameUpdateResponse from(Family family) {
-        return new FamilyNameUpdateResponse(family.getId(), family.getName(), family.getUpdatedAt());
+        return new FamilyNameUpdateResponse(
+                family.getId(), family.getName(), family.getUpdatedAt());
     }
 }

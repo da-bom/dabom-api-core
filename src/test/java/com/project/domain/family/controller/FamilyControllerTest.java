@@ -69,9 +69,10 @@ class FamilyControllerTest {
                         put("/families")
                                 .header("Authorization", "Bearer " + OWNER_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(
-                                        new com.project.domain.family.dto.request
-                                                .FamilyNameUpdateRequest("김씨 가족"))))
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                new com.project.domain.family.dto.request
+                                                        .FamilyNameUpdateRequest("김씨 가족"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.name").value("김씨 가족"));
@@ -87,9 +88,10 @@ class FamilyControllerTest {
                         put("/families")
                                 .header("Authorization", "Bearer " + MEMBER_TOKEN)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(
-                                        new com.project.domain.family.dto.request
-                                                .FamilyNameUpdateRequest("김씨 가족"))))
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                new com.project.domain.family.dto.request
+                                                        .FamilyNameUpdateRequest("김씨 가족"))))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("CUSTOMER_005"));
     }

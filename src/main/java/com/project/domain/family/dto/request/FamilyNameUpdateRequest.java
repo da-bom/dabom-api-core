@@ -14,4 +14,3 @@ public record FamilyNameUpdateRequest(
                 @NotBlank
                 @Size(max = 100)
                 String name) {}
-
