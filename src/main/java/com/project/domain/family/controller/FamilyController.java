@@ -10,8 +10,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.project.domain.usagerecord.dto.response.FamilyCustomersUsageResponse;
+import com.project.domain.usagerecord.dto.response.FamilyCustomersUsageSummaryResponse;
 import com.project.domain.usagerecord.dto.response.FamilyUsageResponse;
 import com.project.domain.usagerecord.model.FamilyCustomersUsage;
+import com.project.domain.usagerecord.model.FamilyCustomersUsageSummary;
 import com.project.domain.usagerecord.model.FamilyUsage;
 import com.project.domain.usagerecord.service.UsageRecordService;
 import com.project.global.api.response.ApiResponse;
@@ -47,7 +49,23 @@ public class FamilyController {
     @Operation(
             summary = "가족 데이터 상세 조회",
             description = "홈화면 하단부분에 속하는 Year, Month에 맞는 가족별 데이터 사용량/제한량을 조회합니다.")
-    public ApiResponse<FamilyCustomersUsageResponse> getCustomersUsage(
+    public ApiResponse<FamilyCustomersUsageSummaryResponse> getCustomersUsage(
+            @Parameter(hidden = true) @CustomerId Long customerId,
+            @Parameter(description = "Year (yyyy)", required = true) @RequestParam @Min(2000)
+                    int year,
+            @Parameter(description = "Month (1-12)", required = true) @RequestParam @Min(1) @Max(12)
+                    int month) {
+        FamilyCustomersUsageSummary familyCustomersUsageSummary =
+                usageRecordService.getCustomersUsageSummaryReport(customerId, year, month);
+        FamilyCustomersUsageSummaryResponse response =
+                FamilyCustomersUsageSummaryResponse.from(familyCustomersUsageSummary);
+        return ApiResponse.success(response);
+    }
+
+    @Validated
+    @GetMapping("/usage/dashboard")
+    @Operation(summary = "가족 대시보드 조회", description = "파이차트에 해당하는 가족별 데이터 분포를 조회합니다.")
+    public ApiResponse<FamilyCustomersUsageResponse> getCustomersUsageDashboard(
             @Parameter(hidden = true) @CustomerId Long customerId,
             @Parameter(description = "Year (yyyy)", required = true) @RequestParam @Min(2000)
                     int year,
