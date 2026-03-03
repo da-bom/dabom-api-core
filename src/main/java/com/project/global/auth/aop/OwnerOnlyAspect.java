@@ -12,6 +12,8 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import com.project.domain.customer.enums.RoleType;
 import com.project.global.auth.AuthorizationExtractor;
 import com.project.global.auth.JwtTokenUtil;
+import com.project.global.exception.ApplicationException;
+import com.project.global.exception.code.CustomerErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
@@ -34,7 +36,7 @@ public class OwnerOnlyAspect {
         RoleType role = jwtTokenUtil.getRole(token);
 
         if (role == RoleType.MEMBER) {
-            throw new IllegalArgumentException("OWNER부터 권한만 접근 가능합니다");
+            throw new ApplicationException(CustomerErrorCode.CUSTOMER_FORBIDDEN);
         }
 
         return joinPoint.proceed();
