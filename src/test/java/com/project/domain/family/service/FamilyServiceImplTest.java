@@ -20,6 +20,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 
+import com.project.domain.family.entity.Family;
+
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.family.dto.request.FamilySearchRequest;
 import com.project.domain.family.infra.cache.FamilyCacheRepository;
@@ -116,6 +118,72 @@ class FamilyServiceImplTest {
         assertThat(actual.customers().get(0).monthlyUsedBytes()).isEqualTo(1_500L);
         assertThat(actual.customers().get(1).monthlyUsedBytes()).isEqualTo(800L);
         assertThat(actual.customers().get(2).monthlyUsedBytes()).isEqualTo(100L);
+    }
+
+    @Test
+    @DisplayName("updateFamilyName - 가족 이름이 정상적으로 변경된다")
+    void updateFamilyName_validCustomer_changesName() {
+        // given
+        Long customerId = 1L;
+        Long familyId = 100L;
+        String newName = "김씨 가족";
+
+        Family family =
+                Family.builder()
+                        .name("다봄 가족")
+                        .createdById(customerId)
+                        .totalQuotaBytes(10_000L)
+                        .usedBytes(3_000L)
+                        .currentMonth(LocalDate.now().withDayOfMonth(1))
+                        .build();
+
+        given(familyMemberRepository.findFamilyIdByCustomerId(customerId))
+                .willReturn(Optional.of(familyId));
+        given(familyRepository.findById(familyId)).willReturn(Optional.of(family));
+
+        // when
+        Family result = familyService.updateFamilyName(customerId, newName);
+
+        // then
+        assertThat(result.getName()).isEqualTo(newName);
+        verify(familyMemberRepository).findFamilyIdByCustomerId(customerId);
+        verify(familyRepository).findById(familyId);
+    }
+
+    @Test
+    @DisplayName("updateFamilyName - 고객이 가족에 속하지 않으면 예외를 던진다")
+    void updateFamilyName_customerNotInFamily_throwsException() {
+        // given
+        Long customerId = 9_999L;
+        given(familyMemberRepository.findFamilyIdByCustomerId(customerId))
+                .willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> familyService.updateFamilyName(customerId, "새 이름"))
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(
+                        e ->
+                                assertThat(((ApplicationException) e).getCode())
+                                        .isEqualTo(FamilyErrorCode.FAMILY_NOT_FOUND));
+    }
+
+    @Test
+    @DisplayName("updateFamilyName - 가족 엔티티가 존재하지 않으면 예외를 던진다")
+    void updateFamilyName_familyNotFound_throwsException() {
+        // given
+        Long customerId = 1L;
+        Long familyId = 9_999L;
+        given(familyMemberRepository.findFamilyIdByCustomerId(customerId))
+                .willReturn(Optional.of(familyId));
+        given(familyRepository.findById(familyId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> familyService.updateFamilyName(customerId, "새 이름"))
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(
+                        e ->
+                                assertThat(((ApplicationException) e).getCode())
+                                        .isEqualTo(FamilyErrorCode.FAMILY_NOT_FOUND));
     }
 
     @Test
