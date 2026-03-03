@@ -127,4 +127,13 @@ public class FamilyServiceImpl implements FamilyService {
     public void handleFamilyEvent(Long familyId, Long customerId) {
         log.info("Handling family event: familyId={}, customerId={}", familyId, customerId);
     }
+
+    @Override
+    @Transactional
+    public Family updateFamilyName(Long customerId, String name) {
+        Long familyId = getFamilyIdByCustomerId(customerId);
+        Family family = getFamilyById(familyId);
+        family.changeName(name);
+        return family;
+    }
 }

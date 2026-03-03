@@ -42,3 +42,7 @@ node_modules/
 ### Env ###
 .env
 *.env
+
+### private_docs ###
+privatedocs
+/CLAUDE.md

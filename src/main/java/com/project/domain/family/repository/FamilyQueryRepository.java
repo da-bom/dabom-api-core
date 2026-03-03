@@ -14,6 +14,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.jspecify.annotations.NonNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -307,7 +308,7 @@ public class FamilyQueryRepository {
         }
     }
 
-    private Map<Long, List<FamilyMemberSummary>> fetchMembersMap(List<Long> familyIds) {
+    private Map<Long, List<FamilyMemberSummary>> fetchMembersMap(@NonNull List<Long> familyIds) {
         if (familyIds.isEmpty()) {
             return Collections.emptyMap();
         }

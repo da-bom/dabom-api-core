@@ -23,4 +23,6 @@ public interface FamilyService {
     List<FamilyUsageCustomerRow> getUsageReportCustomers(Long familyId, LocalDate targetMonth);
 
     void handleFamilyEvent(Long familyId, Long customerId);
+
+    Family updateFamilyName(Long customerId, String name);
 }
