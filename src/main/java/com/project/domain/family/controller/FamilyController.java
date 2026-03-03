@@ -1,14 +1,21 @@
 package com.project.domain.family.controller;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.project.domain.family.dto.request.FamilyNameUpdateRequest;
+import com.project.domain.family.dto.response.FamilyNameUpdateResponse;
+import com.project.domain.family.entity.Family;
+import com.project.domain.family.service.FamilyService;
 import com.project.domain.usagerecord.dto.response.FamilyCustomersUsageResponse;
 import com.project.domain.usagerecord.dto.response.FamilyCustomersUsageSummaryResponse;
 import com.project.domain.usagerecord.dto.response.FamilyUsageResponse;
@@ -18,6 +25,7 @@ import com.project.domain.usagerecord.model.FamilyUsage;
 import com.project.domain.usagerecord.service.UsageRecordService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.CustomerId;
+import com.project.global.auth.aop.OwnerOnly;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -31,7 +39,18 @@ import lombok.RequiredArgsConstructor;
 @Tag(name = "Family", description = "Customer 전용 가족 API")
 public class FamilyController {
 
+    private final FamilyService familyService;
     private final UsageRecordService usageRecordService;
+
+    @OwnerOnly
+    @PutMapping
+    @Operation(summary = "가족 이름 수정", description = "가족 이름을 수정합니다. OWNER 권한이 필요합니다.")
+    public ApiResponse<FamilyNameUpdateResponse> updateFamilyName(
+            @Parameter(hidden = true) @CustomerId Long customerId,
+            @RequestBody @Valid FamilyNameUpdateRequest request) {
+        Family family = familyService.updateFamilyName(customerId, request.name());
+        return ApiResponse.success(FamilyNameUpdateResponse.from(family));
+    }
 
     @GetMapping(value = "/usage/current")
     @Operation(
