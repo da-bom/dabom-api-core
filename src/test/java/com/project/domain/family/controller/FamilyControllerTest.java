@@ -14,10 +14,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.customer.enums.RoleType;
@@ -33,8 +35,14 @@ import com.project.global.auth.aop.OwnerOnlyAspect;
 import com.project.global.config.WebConfig;
 
 @WebMvcTest(FamilyController.class)
-@Import({WebConfig.class, OwnerOnlyAspect.class})
+@Import({WebConfig.class, OwnerOnlyAspect.class, FamilyControllerTest.AopTestConfig.class})
 class FamilyControllerTest {
+
+    @TestConfiguration
+    // @WebMvcTest 슬라이스에서는 AOP 프록시가 보장되지 않아 @OwnerOnly 검증이 누락될 수 있다.
+    // 테스트에서 권한 어노테이션이 실제 동작하도록 AspectJ 자동 프록시를 명시적으로 활성화한다.
+    @EnableAspectJAutoProxy
+    static class AopTestConfig {}
 
     private static final String OWNER_TOKEN = "OWNER_TOKEN";
     private static final Long OWNER_ID = 100L;
