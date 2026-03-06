@@ -85,7 +85,7 @@ class MissionServiceImplTest {
 
         var result = missionService.listMissions(auth, null, null, 20);
 
-        assertThat(result.content()).hasSize(1);
+        assertThat(result.missions()).hasSize(1);
         verify(missionItemRepository).findByFamilyScope(10L, null, null, PageRequest.of(0, 21));
     }
 

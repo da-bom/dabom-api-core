@@ -6,7 +6,7 @@ import java.util.List;
 import com.project.domain.mission.enums.RewardCategory;
 
 /** 미션 목록 조회 서비스 결과 모델이다. */
-public record MissionListResult(List<MissionCard> content, String nextCursor, boolean hasNext) {
+public record MissionListResult(List<MissionCard> missions, String nextCursor, boolean hasNext) {
 
     /** 목록 카드 단위 모델이다. */
     public record MissionCard(
