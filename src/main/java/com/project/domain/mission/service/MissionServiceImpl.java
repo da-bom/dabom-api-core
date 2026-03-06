@@ -24,7 +24,7 @@ import com.project.domain.mission.enums.MissionLogActionType;
 import com.project.domain.mission.enums.MissionRequestStatus;
 import com.project.domain.mission.enums.MissionStatus;
 import com.project.domain.mission.enums.RewardCategory;
-import com.project.domain.mission.exception.MissionException;
+import com.project.global.exception.ApplicationException;
 import com.project.domain.mission.model.AuthContext;
 import com.project.domain.mission.model.CreateMissionResult;
 import com.project.domain.mission.model.MissionListResult;
@@ -115,9 +115,9 @@ public class MissionServiceImpl implements MissionService {
         FamilyMember targetMember =
                 familyMemberRepository
                         .findByCustomerId(req.targetCustomerId())
-                        .orElseThrow(() -> new MissionException(MissionErrorCode.MISSION_TARGET_INVALID));
+                        .orElseThrow(() -> new ApplicationException(MissionErrorCode.MISSION_TARGET_INVALID));
         if (!auth.familyId().equals(targetMember.getFamilyId()) || !RoleType.MEMBER.equals(targetMember.getRole())) {
-            throw new MissionException(MissionErrorCode.MISSION_TARGET_INVALID);
+            throw new ApplicationException(MissionErrorCode.MISSION_TARGET_INVALID);
         }
 
         RewardTemplate rewardTemplate =
@@ -125,11 +125,11 @@ public class MissionServiceImpl implements MissionService {
                         .findById(req.rewardTemplateId())
                         .orElseThrow(
                                 () ->
-                                        new MissionException(
+                                        new ApplicationException(
                                                 MissionErrorCode.MISSION_REWARD_TEMPLATE_NOT_FOUND));
         RewardCategory requestCategory = parseRewardCategory(req.rewardCategory());
         if (!rewardTemplate.getCategory().equals(requestCategory)) {
-            throw new MissionException(MissionErrorCode.MISSION_REWARD_CATEGORY_MISMATCH);
+            throw new ApplicationException(MissionErrorCode.MISSION_REWARD_CATEGORY_MISMATCH);
         }
 
         MissionItem mission =
@@ -155,7 +155,7 @@ public class MissionServiceImpl implements MissionService {
         assertOwner(auth);
         MissionItem mission = findMissionByFamilyScope(auth, missionId);
         if (!mission.canCancel()) {
-            throw new MissionException(MissionErrorCode.MISSION_INVALID_STATUS_TRANSITION);
+            throw new ApplicationException(MissionErrorCode.MISSION_INVALID_STATUS_TRANSITION);
         }
         mission.cancel();
         appendLog(mission.getId(), auth.customerId(), MissionLogActionType.CANCELLED, "Mission cancelled");
@@ -167,14 +167,14 @@ public class MissionServiceImpl implements MissionService {
     public MissionRequestResult requestMissionApproval(AuthContext auth, Long missionId) {
         MissionItem mission = findMissionByFamilyScope(auth, missionId);
         if (!mission.isAssignedTo(auth.customerId())) {
-            throw new MissionException(MissionErrorCode.MISSION_NOT_ASSIGNED);
+            throw new ApplicationException(MissionErrorCode.MISSION_NOT_ASSIGNED);
         }
         if (!mission.canRequestReward()) {
-            throw new MissionException(MissionErrorCode.MISSION_INVALID_STATUS_TRANSITION);
+            throw new ApplicationException(MissionErrorCode.MISSION_INVALID_STATUS_TRANSITION);
         }
         if (missionRequestRepository.existsByMissionItemIdAndRequesterIdAndStatus(
                 mission.getId(), auth.customerId(), MissionRequestStatus.PENDING)) {
-            throw new MissionException(MissionErrorCode.MISSION_REQUEST_DUPLICATED);
+            throw new ApplicationException(MissionErrorCode.MISSION_REQUEST_DUPLICATED);
         }
 
         MissionRequest request =
@@ -192,7 +192,7 @@ public class MissionServiceImpl implements MissionService {
                         .findById(mission.getRewardTemplateId())
                         .orElseThrow(
                                 () ->
-                                        new MissionException(
+                                        new ApplicationException(
                                                 MissionErrorCode.MISSION_REWARD_TEMPLATE_NOT_FOUND));
         String requesterName =
                 customerRepository.findById(auth.customerId()).map(Customer::getName).orElse("unknown");
@@ -226,7 +226,7 @@ public class MissionServiceImpl implements MissionService {
             MissionItem mission, Map<Long, String> customerNameMap, Map<Long, RewardTemplate> rewardTemplateMap) {
         RewardTemplate template = rewardTemplateMap.get(mission.getRewardTemplateId());
         if (template == null) {
-            throw new MissionException(MissionErrorCode.MISSION_REWARD_TEMPLATE_NOT_FOUND);
+            throw new ApplicationException(MissionErrorCode.MISSION_REWARD_TEMPLATE_NOT_FOUND);
         }
         return new MissionListResult.MissionCard(
                 mission.getId(),
@@ -251,11 +251,11 @@ public class MissionServiceImpl implements MissionService {
             Map<Long, RewardTemplate> rewardTemplateMap) {
         MissionItem mission = missionMap.get(request.getMissionItemId());
         if (mission == null) {
-            throw new MissionException(MissionErrorCode.MISSION_NOT_FOUND);
+            throw new ApplicationException(MissionErrorCode.MISSION_NOT_FOUND);
         }
         RewardTemplate rewardTemplate = rewardTemplateMap.get(mission.getRewardTemplateId());
         if (rewardTemplate == null) {
-            throw new MissionException(MissionErrorCode.MISSION_REWARD_TEMPLATE_NOT_FOUND);
+            throw new ApplicationException(MissionErrorCode.MISSION_REWARD_TEMPLATE_NOT_FOUND);
         }
         Long respondedBy = request.getResolvedById();
         return new MissionLogListResult.MissionLogItem(
@@ -321,7 +321,7 @@ public class MissionServiceImpl implements MissionService {
     private MissionItem findMissionByFamilyScope(AuthContext auth, Long missionId) {
         return missionItemRepository
                 .findByIdAndFamilyId(missionId, auth.familyId())
-                .orElseThrow(() -> new MissionException(MissionErrorCode.MISSION_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(MissionErrorCode.MISSION_NOT_FOUND));
     }
 
     private void appendLog(
@@ -337,7 +337,7 @@ public class MissionServiceImpl implements MissionService {
 
     private void assertOwner(AuthContext auth) {
         if (!auth.isOwner()) {
-            throw new MissionException(MissionErrorCode.MISSION_OWNER_ONLY);
+            throw new ApplicationException(MissionErrorCode.MISSION_OWNER_ONLY);
         }
     }
 
@@ -348,7 +348,7 @@ public class MissionServiceImpl implements MissionService {
         try {
             return MissionStatus.valueOf(status.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new MissionException(MissionErrorCode.MISSION_INVALID_STATUS_TRANSITION);
+            throw new ApplicationException(MissionErrorCode.MISSION_INVALID_STATUS_TRANSITION);
         }
     }
 
@@ -356,7 +356,7 @@ public class MissionServiceImpl implements MissionService {
         try {
             return RewardCategory.valueOf(rewardCategory.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new MissionException(MissionErrorCode.MISSION_REWARD_CATEGORY_MISMATCH);
+            throw new ApplicationException(MissionErrorCode.MISSION_REWARD_CATEGORY_MISMATCH);
         }
     }
 
@@ -374,7 +374,7 @@ public class MissionServiceImpl implements MissionService {
         try {
             return Long.valueOf(cursor);
         } catch (NumberFormatException e) {
-            throw new MissionException(MissionErrorCode.MISSION_INVALID_CURSOR);
+            throw new ApplicationException(MissionErrorCode.MISSION_INVALID_CURSOR);
         }
     }
 }

@@ -28,7 +28,7 @@ import com.project.domain.mission.entity.RewardTemplate;
 import com.project.domain.mission.enums.MissionRequestStatus;
 import com.project.domain.mission.enums.MissionStatus;
 import com.project.domain.mission.enums.RewardCategory;
-import com.project.domain.mission.exception.MissionException;
+import com.project.global.exception.ApplicationException;
 import com.project.domain.mission.model.AuthContext;
 import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
@@ -107,10 +107,10 @@ class MissionServiceImplTest {
         given(missionItemRepository.findByIdAndFamilyId(100L, 10L)).willReturn(Optional.of(mission));
 
         assertThatThrownBy(() -> missionService.requestMissionApproval(auth, 100L))
-                .isInstanceOf(MissionException.class)
+                .isInstanceOf(ApplicationException.class)
                 .satisfies(
                         e ->
-                                assertThat(((MissionException) e).getCode())
+                                assertThat(((ApplicationException) e).getCode())
                                         .isEqualTo(MissionErrorCode.MISSION_NOT_ASSIGNED));
     }
 
@@ -135,10 +135,10 @@ class MissionServiceImplTest {
                 .willReturn(true);
 
         assertThatThrownBy(() -> missionService.requestMissionApproval(auth, 100L))
-                .isInstanceOf(MissionException.class)
+                .isInstanceOf(ApplicationException.class)
                 .satisfies(
                         e ->
-                                assertThat(((MissionException) e).getCode())
+                                assertThat(((ApplicationException) e).getCode())
                                         .isEqualTo(MissionErrorCode.MISSION_REQUEST_DUPLICATED));
     }
 
@@ -150,10 +150,10 @@ class MissionServiceImplTest {
                 new CreateMissionRequest("clean room", 2L, 500L, "DATA", 100L);
 
         assertThatThrownBy(() -> missionService.createMission(auth, request))
-                .isInstanceOf(MissionException.class)
+                .isInstanceOf(ApplicationException.class)
                 .satisfies(
                         e ->
-                                assertThat(((MissionException) e).getCode())
+                                assertThat(((ApplicationException) e).getCode())
                                         .isEqualTo(MissionErrorCode.MISSION_OWNER_ONLY));
     }
 }

@@ -4,7 +4,7 @@ import org.springframework.stereotype.Component;
 
 import com.project.domain.family.entity.FamilyMember;
 import com.project.domain.family.repository.FamilyMemberRepository;
-import com.project.domain.mission.exception.MissionException;
+import com.project.global.exception.ApplicationException;
 import com.project.domain.mission.model.AuthContext;
 import com.project.global.exception.code.FamilyErrorCode;
 
@@ -22,7 +22,7 @@ public class MissionAuthService {
         FamilyMember member =
                 familyMemberRepository
                         .findByCustomerId(customerId)
-                        .orElseThrow(() -> new MissionException(FamilyErrorCode.FAMILY_NOT_FOUND));
+                        .orElseThrow(() -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
         return new AuthContext(customerId, member.getFamilyId(), member.getRole());
     }
 }

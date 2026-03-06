@@ -23,7 +23,7 @@ import com.project.domain.mission.entity.RewardTemplate;
 import com.project.domain.mission.enums.MissionRequestStatus;
 import com.project.domain.mission.enums.MissionStatus;
 import com.project.domain.mission.enums.RewardCategory;
-import com.project.domain.mission.exception.MissionException;
+import com.project.global.exception.ApplicationException;
 import com.project.domain.mission.model.AuthContext;
 import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
@@ -143,10 +143,10 @@ class RewardServiceImplTest {
                         () ->
                                 rewardService.respondRewardRequest(
                                         auth, 100L, new RespondRewardRequest("APPROVED", null)))
-                .isInstanceOf(MissionException.class)
+                .isInstanceOf(ApplicationException.class)
                 .satisfies(
                         e ->
-                                assertThat(((MissionException) e).getCode())
+                                assertThat(((ApplicationException) e).getCode())
                                         .isEqualTo(MissionErrorCode.MISSION_OWNER_ONLY));
     }
 }

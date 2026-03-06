@@ -20,7 +20,7 @@ import com.project.domain.mission.entity.MissionRequest;
 import com.project.domain.mission.entity.RewardTemplate;
 import com.project.domain.mission.enums.MissionLogActionType;
 import com.project.domain.mission.enums.MissionRequestStatus;
-import com.project.domain.mission.exception.MissionException;
+import com.project.global.exception.ApplicationException;
 import com.project.domain.mission.model.AuthContext;
 import com.project.domain.mission.model.MissionListResult;
 import com.project.domain.mission.model.MissionLogListResult;
@@ -58,9 +58,9 @@ public class RewardServiceImpl implements RewardService {
         MissionRequest missionRequest =
                 missionRequestRepository
                         .findById(requestId)
-                        .orElseThrow(() -> new MissionException(MissionErrorCode.MISSION_REQUEST_NOT_FOUND));
+                        .orElseThrow(() -> new ApplicationException(MissionErrorCode.MISSION_REQUEST_NOT_FOUND));
         if (!missionRequest.isPending()) {
-            throw new MissionException(MissionErrorCode.MISSION_REQUEST_INVALID_STATUS);
+            throw new ApplicationException(MissionErrorCode.MISSION_REQUEST_INVALID_STATUS);
         }
 
         MissionRequestStatus requestedStatus = parseRequestedStatus(req.status());
@@ -68,14 +68,14 @@ public class RewardServiceImpl implements RewardService {
 
         if (MissionRequestStatus.APPROVED.equals(requestedStatus)) {
             if (!mission.canComplete()) {
-                throw new MissionException(MissionErrorCode.MISSION_INVALID_STATUS_TRANSITION);
+                throw new ApplicationException(MissionErrorCode.MISSION_INVALID_STATUS_TRANSITION);
             }
             missionRequest.approve(auth.customerId(), LocalDateTime.now());
             mission.complete(LocalDateTime.now());
             appendLog(mission.getId(), auth.customerId(), MissionLogActionType.APPROVED, "Reward approved");
         } else {
             if (req.rejectReason() == null || req.rejectReason().isBlank()) {
-                throw new MissionException(MissionErrorCode.MISSION_REJECT_REASON_REQUIRED);
+                throw new ApplicationException(MissionErrorCode.MISSION_REJECT_REASON_REQUIRED);
             }
             missionRequest.reject(auth.customerId(), req.rejectReason(), LocalDateTime.now());
             appendLog(mission.getId(), auth.customerId(), MissionLogActionType.REJECTED, "Reward rejected");
@@ -86,7 +86,7 @@ public class RewardServiceImpl implements RewardService {
                         .findById(mission.getRewardTemplateId())
                         .orElseThrow(
                                 () ->
-                                        new MissionException(
+                                        new ApplicationException(
                                                 MissionErrorCode.MISSION_REWARD_TEMPLATE_NOT_FOUND));
         String responderName =
                 customerRepository.findById(auth.customerId()).map(Customer::getName).orElse("unknown");
@@ -152,11 +152,11 @@ public class RewardServiceImpl implements RewardService {
             Map<Long, String> approverNameMap) {
         MissionItem mission = missionMap.get(request.getMissionItemId());
         if (mission == null) {
-            throw new MissionException(MissionErrorCode.MISSION_NOT_FOUND);
+            throw new ApplicationException(MissionErrorCode.MISSION_NOT_FOUND);
         }
         RewardTemplate rewardTemplate = rewardTemplateMap.get(mission.getRewardTemplateId());
         if (rewardTemplate == null) {
-            throw new MissionException(MissionErrorCode.MISSION_REWARD_TEMPLATE_NOT_FOUND);
+            throw new ApplicationException(MissionErrorCode.MISSION_REWARD_TEMPLATE_NOT_FOUND);
         }
         Long approverId = request.getResolvedById();
         return new ReceivedRewardListResult.ReceivedRewardItem(
@@ -180,7 +180,7 @@ public class RewardServiceImpl implements RewardService {
     private MissionItem findMissionByFamilyScope(AuthContext auth, Long missionId) {
         return missionItemRepository
                 .findByIdAndFamilyId(missionId, auth.familyId())
-                .orElseThrow(() -> new MissionException(MissionErrorCode.MISSION_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(MissionErrorCode.MISSION_NOT_FOUND));
     }
 
     private void appendLog(
@@ -196,22 +196,22 @@ public class RewardServiceImpl implements RewardService {
 
     private MissionRequestStatus parseRequestedStatus(String status) {
         if (status == null || status.isBlank()) {
-            throw new MissionException(MissionErrorCode.MISSION_INVALID_REQUEST_STATUS);
+            throw new ApplicationException(MissionErrorCode.MISSION_INVALID_REQUEST_STATUS);
         }
         try {
             MissionRequestStatus parsed = MissionRequestStatus.valueOf(status.toUpperCase());
             if (MissionRequestStatus.PENDING.equals(parsed)) {
-                throw new MissionException(MissionErrorCode.MISSION_INVALID_REQUEST_STATUS);
+                throw new ApplicationException(MissionErrorCode.MISSION_INVALID_REQUEST_STATUS);
             }
             return parsed;
         } catch (IllegalArgumentException e) {
-            throw new MissionException(MissionErrorCode.MISSION_INVALID_REQUEST_STATUS);
+            throw new ApplicationException(MissionErrorCode.MISSION_INVALID_REQUEST_STATUS);
         }
     }
 
     private void assertOwner(AuthContext auth) {
         if (!auth.isOwner()) {
-            throw new MissionException(MissionErrorCode.MISSION_OWNER_ONLY);
+            throw new ApplicationException(MissionErrorCode.MISSION_OWNER_ONLY);
         }
     }
 
@@ -229,7 +229,7 @@ public class RewardServiceImpl implements RewardService {
         try {
             return Long.valueOf(cursor);
         } catch (NumberFormatException e) {
-            throw new MissionException(MissionErrorCode.MISSION_INVALID_CURSOR);
+            throw new ApplicationException(MissionErrorCode.MISSION_INVALID_CURSOR);
         }
     }
 }
