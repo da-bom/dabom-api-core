@@ -3,19 +3,25 @@ package com.project.domain.mission.model;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import com.project.domain.mission.enums.MissionStatus;
 import com.project.domain.mission.enums.RewardCategory;
 
-public record MissionListResult(List<MissionDetail> missions) {
+/** 미션 목록 조회 서비스 결과 모델이다. */
+public record MissionListResult(List<MissionCard> content, String nextCursor, boolean hasNext) {
 
-    public record MissionDetail(
+    /** 목록 카드 단위 모델이다. */
+    public record MissionCard(
             Long missionItemId,
             String missionText,
-            MissionStatus status,
-            RewardTemplateDetail rewardTemplate,
+            String status,
+            CustomerSummary target,
+            CustomerSummary createdBy,
+            RewardTemplate rewardTemplate,
             Long rewardValue,
             LocalDateTime createdAt) {}
 
-    public record RewardTemplateDetail(
-            Long id, String name, RewardCategory category, String unit) {}
+    /** 사용자 요약 모델이다. */
+    public record CustomerSummary(Long customerId, String name) {}
+
+    /** 보상 템플릿 요약 모델이다. */
+    public record RewardTemplate(Long id, String name, RewardCategory category, String unit) {}
 }
