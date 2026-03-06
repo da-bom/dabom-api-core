@@ -10,7 +10,8 @@ public record ReceivedRewardItemResponse(
         MissionItemSimpleResponse missionItem,
         CustomerSimpleResponse approvedBy,
         LocalDateTime approvedAt) {
-    public static ReceivedRewardItemResponse from(ReceivedRewardListResult.ReceivedRewardItem item) {
+    public static ReceivedRewardItemResponse from(
+            ReceivedRewardListResult.ReceivedRewardItem item) {
         return new ReceivedRewardItemResponse(
                 item.requestId(),
                 MissionItemSimpleResponse.from(item.missionItem()),

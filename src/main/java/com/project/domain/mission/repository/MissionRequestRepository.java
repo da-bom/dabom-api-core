@@ -36,7 +36,8 @@ public interface MissionRequestRepository extends JpaRepository<MissionRequest, 
               and (:cursorId is null or mr.id < :cursorId)
             order by mr.id desc
             """)
-    List<MissionRequest> findLogsByTargetScope(Long targetCustomerId, Long cursorId, Pageable pageable);
+    List<MissionRequest> findLogsByTargetScope(
+            Long targetCustomerId, Long cursorId, Pageable pageable);
 
     @Query(
             """

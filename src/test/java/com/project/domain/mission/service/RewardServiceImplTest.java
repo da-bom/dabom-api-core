@@ -23,12 +23,12 @@ import com.project.domain.mission.entity.RewardTemplate;
 import com.project.domain.mission.enums.MissionRequestStatus;
 import com.project.domain.mission.enums.MissionStatus;
 import com.project.domain.mission.enums.RewardCategory;
-import com.project.global.exception.ApplicationException;
 import com.project.domain.mission.model.AuthContext;
 import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
 import com.project.domain.mission.repository.MissionRequestRepository;
 import com.project.domain.mission.repository.RewardTemplateRepository;
+import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.MissionErrorCode;
 
 @ExtendWith(MockitoExtension.class)
@@ -76,7 +76,8 @@ class RewardServiceImplTest {
         var responder = mock(com.project.domain.customer.entity.Customer.class);
         given(responder.getName()).willReturn("owner");
         given(missionRequestRepository.findById(100L)).willReturn(Optional.of(request));
-        given(missionItemRepository.findByIdAndFamilyId(200L, 10L)).willReturn(Optional.of(mission));
+        given(missionItemRepository.findByIdAndFamilyId(200L, 10L))
+                .willReturn(Optional.of(mission));
         given(rewardTemplateRepository.findById(500L)).willReturn(Optional.of(template));
         given(customerRepository.findById(1L)).willReturn(Optional.of(responder));
 
@@ -122,7 +123,8 @@ class RewardServiceImplTest {
         var responder = mock(com.project.domain.customer.entity.Customer.class);
         given(responder.getName()).willReturn("owner");
         given(missionRequestRepository.findById(100L)).willReturn(Optional.of(request));
-        given(missionItemRepository.findByIdAndFamilyId(200L, 10L)).willReturn(Optional.of(mission));
+        given(missionItemRepository.findByIdAndFamilyId(200L, 10L))
+                .willReturn(Optional.of(mission));
         given(rewardTemplateRepository.findById(500L)).willReturn(Optional.of(template));
         given(customerRepository.findById(1L)).willReturn(Optional.of(responder));
 

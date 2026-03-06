@@ -16,7 +16,8 @@ public interface MissionItemRepository extends JpaRepository<MissionItem, Long> 
 
     List<MissionItem> findByFamilyIdOrderByCreatedAtDesc(Long familyId);
 
-    List<MissionItem> findByFamilyIdAndStatusOrderByCreatedAtDesc(Long familyId, MissionStatus status);
+    List<MissionItem> findByFamilyIdAndStatusOrderByCreatedAtDesc(
+            Long familyId, MissionStatus status);
 
     List<MissionItem> findByTargetCustomerIdOrderByCreatedAtDesc(Long targetCustomerId);
 

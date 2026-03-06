@@ -4,7 +4,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /** 보상 수령 내역 목록 모델이다. */
-public record ReceivedRewardListResult(List<ReceivedRewardItem> content, String nextCursor, boolean hasNext) {
+public record ReceivedRewardListResult(
+        List<ReceivedRewardItem> content, String nextCursor, boolean hasNext) {
 
     /** 수령 내역 단건 모델이다. */
     public record ReceivedRewardItem(

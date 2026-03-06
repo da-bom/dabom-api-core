@@ -9,7 +9,8 @@ public record MissionItemWithStatusResponse(
         String status,
         Long rewardValue,
         RewardTemplateSimpleResponse rewardTemplate) {
-    public static MissionItemWithStatusResponse from(RewardRespondResult.MissionItemWithStatus item) {
+    public static MissionItemWithStatusResponse from(
+            RewardRespondResult.MissionItemWithStatus item) {
         return new MissionItemWithStatusResponse(
                 item.missionItemId(),
                 item.missionText(),

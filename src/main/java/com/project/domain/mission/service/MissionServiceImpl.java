@@ -24,7 +24,6 @@ import com.project.domain.mission.enums.MissionLogActionType;
 import com.project.domain.mission.enums.MissionRequestStatus;
 import com.project.domain.mission.enums.MissionStatus;
 import com.project.domain.mission.enums.RewardCategory;
-import com.project.global.exception.ApplicationException;
 import com.project.domain.mission.model.AuthContext;
 import com.project.domain.mission.model.CreateMissionResult;
 import com.project.domain.mission.model.MissionListResult;
@@ -34,6 +33,7 @@ import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
 import com.project.domain.mission.repository.MissionRequestRepository;
 import com.project.domain.mission.repository.RewardTemplateRepository;
+import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.MissionErrorCode;
 
 import lombok.RequiredArgsConstructor;
@@ -56,11 +56,13 @@ public class MissionServiceImpl implements MissionService {
 
     /** 역할에 따라 OWNER는 가족 전체, MEMBER는 본인 대상 미션만 조회한다. */
     @Override
-    public MissionListResult listMissions(AuthContext auth, String status, String cursor, int size) {
+    public MissionListResult listMissions(
+            AuthContext auth, String status, String cursor, int size) {
         MissionStatus missionStatus = parseMissionStatus(status);
         int pageSize = normalizeSize(size);
         Long cursorId = parseCursor(cursor);
-        List<MissionItem> missions = findMissionItemsByRole(auth, missionStatus, cursorId, pageSize);
+        List<MissionItem> missions =
+                findMissionItemsByRole(auth, missionStatus, cursorId, pageSize);
         boolean hasNext = missions.size() > pageSize;
         List<MissionItem> page = hasNext ? missions.subList(0, pageSize) : missions;
         String nextCursor = hasNext ? String.valueOf(page.get(page.size() - 1).getId()) : null;
@@ -92,16 +94,26 @@ public class MissionServiceImpl implements MissionService {
         String nextCursor = hasNext ? String.valueOf(page.get(page.size() - 1).getId()) : null;
 
         Map<Long, MissionItem> missionMap =
-                missionItemRepository.findAllById(
-                                page.stream().map(MissionRequest::getMissionItemId).collect(Collectors.toSet()))
+                missionItemRepository
+                        .findAllById(
+                                page.stream()
+                                        .map(MissionRequest::getMissionItemId)
+                                        .collect(Collectors.toSet()))
                         .stream()
                         .collect(Collectors.toMap(MissionItem::getId, Function.identity()));
         Map<Long, String> customerNameMap = loadCustomerNameMapFromRequests(page, missionMap);
-        Map<Long, RewardTemplate> rewardTemplateMap = loadRewardTemplateMap(missionMap.values().stream().toList());
+        Map<Long, RewardTemplate> rewardTemplateMap =
+                loadRewardTemplateMap(missionMap.values().stream().toList());
 
         List<MissionLogListResult.MissionLogItem> content =
                 page.stream()
-                        .map(request -> toMissionLogItem(request, missionMap, customerNameMap, rewardTemplateMap))
+                        .map(
+                                request ->
+                                        toMissionLogItem(
+                                                request,
+                                                missionMap,
+                                                customerNameMap,
+                                                rewardTemplateMap))
                         .toList();
 
         return new MissionLogListResult(content, nextCursor, hasNext);
@@ -115,8 +127,12 @@ public class MissionServiceImpl implements MissionService {
         FamilyMember targetMember =
                 familyMemberRepository
                         .findByCustomerId(req.targetCustomerId())
-                        .orElseThrow(() -> new ApplicationException(MissionErrorCode.MISSION_TARGET_INVALID));
-        if (!auth.familyId().equals(targetMember.getFamilyId()) || !RoleType.MEMBER.equals(targetMember.getRole())) {
+                        .orElseThrow(
+                                () ->
+                                        new ApplicationException(
+                                                MissionErrorCode.MISSION_TARGET_INVALID));
+        if (!auth.familyId().equals(targetMember.getFamilyId())
+                || !RoleType.MEMBER.equals(targetMember.getRole())) {
             throw new ApplicationException(MissionErrorCode.MISSION_TARGET_INVALID);
         }
 
@@ -126,7 +142,8 @@ public class MissionServiceImpl implements MissionService {
                         .orElseThrow(
                                 () ->
                                         new ApplicationException(
-                                                MissionErrorCode.MISSION_REWARD_TEMPLATE_NOT_FOUND));
+                                                MissionErrorCode
+                                                        .MISSION_REWARD_TEMPLATE_NOT_FOUND));
         RewardCategory requestCategory = parseRewardCategory(req.rewardCategory());
         if (!rewardTemplate.getCategory().equals(requestCategory)) {
             throw new ApplicationException(MissionErrorCode.MISSION_REWARD_CATEGORY_MISMATCH);
@@ -144,7 +161,11 @@ public class MissionServiceImpl implements MissionService {
                                 .status(MissionStatus.ACTIVE)
                                 .build());
 
-        appendLog(mission.getId(), auth.customerId(), MissionLogActionType.CREATED, "Mission created");
+        appendLog(
+                mission.getId(),
+                auth.customerId(),
+                MissionLogActionType.CREATED,
+                "Mission created");
         return new CreateMissionResult(mission.getId(), mission.getCreatedAt());
     }
 
@@ -158,7 +179,11 @@ public class MissionServiceImpl implements MissionService {
             throw new ApplicationException(MissionErrorCode.MISSION_INVALID_STATUS_TRANSITION);
         }
         mission.cancel();
-        appendLog(mission.getId(), auth.customerId(), MissionLogActionType.CANCELLED, "Mission cancelled");
+        appendLog(
+                mission.getId(),
+                auth.customerId(),
+                MissionLogActionType.CANCELLED,
+                "Mission cancelled");
     }
 
     /** MEMBER가 본인 미션 완료 요청을 생성한다. */
@@ -185,7 +210,11 @@ public class MissionServiceImpl implements MissionService {
                                 .status(MissionRequestStatus.PENDING)
                                 .build());
 
-        appendLog(mission.getId(), auth.customerId(), MissionLogActionType.REQUESTED, "Mission requested");
+        appendLog(
+                mission.getId(),
+                auth.customerId(),
+                MissionLogActionType.REQUESTED,
+                "Mission requested");
 
         RewardTemplate rewardTemplate =
                 rewardTemplateRepository
@@ -193,9 +222,13 @@ public class MissionServiceImpl implements MissionService {
                         .orElseThrow(
                                 () ->
                                         new ApplicationException(
-                                                MissionErrorCode.MISSION_REWARD_TEMPLATE_NOT_FOUND));
+                                                MissionErrorCode
+                                                        .MISSION_REWARD_TEMPLATE_NOT_FOUND));
         String requesterName =
-                customerRepository.findById(auth.customerId()).map(Customer::getName).orElse("unknown");
+                customerRepository
+                        .findById(auth.customerId())
+                        .map(Customer::getName)
+                        .orElse("unknown");
         return new MissionRequestResult(
                 request.getId(),
                 new MissionLogListResult.MissionItemSimple(
@@ -223,7 +256,9 @@ public class MissionServiceImpl implements MissionService {
     }
 
     private MissionListResult.MissionCard toMissionCard(
-            MissionItem mission, Map<Long, String> customerNameMap, Map<Long, RewardTemplate> rewardTemplateMap) {
+            MissionItem mission,
+            Map<Long, String> customerNameMap,
+            Map<Long, RewardTemplate> rewardTemplateMap) {
         RewardTemplate template = rewardTemplateMap.get(mission.getRewardTemplateId());
         if (template == null) {
             throw new ApplicationException(MissionErrorCode.MISSION_REWARD_TEMPLATE_NOT_FOUND);
@@ -239,7 +274,10 @@ public class MissionServiceImpl implements MissionService {
                         mission.getCreatedById(),
                         customerNameMap.getOrDefault(mission.getCreatedById(), "unknown")),
                 new MissionListResult.RewardTemplate(
-                        template.getId(), template.getName(), template.getCategory(), template.getUnit()),
+                        template.getId(),
+                        template.getName(),
+                        template.getCategory(),
+                        template.getUnit()),
                 mission.getRewardValue(),
                 mission.getCreatedAt());
     }
@@ -288,7 +326,10 @@ public class MissionServiceImpl implements MissionService {
     private Map<Long, String> loadCustomerNameMap(List<MissionItem> missions) {
         Set<Long> customerIds =
                 missions.stream()
-                        .flatMap(m -> java.util.stream.Stream.of(m.getTargetCustomerId(), m.getCreatedById()))
+                        .flatMap(
+                                m ->
+                                        java.util.stream.Stream.of(
+                                                m.getTargetCustomerId(), m.getCreatedById()))
                         .collect(Collectors.toSet());
         return customerRepository.findAllById(customerIds).stream()
                 .collect(Collectors.toMap(Customer::getId, Customer::getName));
@@ -304,7 +345,9 @@ public class MissionServiceImpl implements MissionService {
                                                 req.getRequesterId(),
                                                 req.getResolvedById(),
                                                 missionMap.containsKey(req.getMissionItemId())
-                                                        ? missionMap.get(req.getMissionItemId()).getTargetCustomerId()
+                                                        ? missionMap
+                                                                .get(req.getMissionItemId())
+                                                                .getTargetCustomerId()
                                                         : null))
                         .filter(java.util.Objects::nonNull)
                         .collect(Collectors.toSet());
@@ -313,7 +356,8 @@ public class MissionServiceImpl implements MissionService {
     }
 
     private Map<Long, RewardTemplate> loadRewardTemplateMap(List<MissionItem> missions) {
-        Set<Long> templateIds = missions.stream().map(MissionItem::getRewardTemplateId).collect(Collectors.toSet());
+        Set<Long> templateIds =
+                missions.stream().map(MissionItem::getRewardTemplateId).collect(Collectors.toSet());
         return rewardTemplateRepository.findAllById(templateIds).stream()
                 .collect(Collectors.toMap(RewardTemplate::getId, Function.identity()));
     }
@@ -325,7 +369,10 @@ public class MissionServiceImpl implements MissionService {
     }
 
     private void appendLog(
-            Long missionItemId, Long actorCustomerId, MissionLogActionType actionType, String message) {
+            Long missionItemId,
+            Long actorCustomerId,
+            MissionLogActionType actionType,
+            String message) {
         missionLogRepository.save(
                 MissionLog.builder()
                         .missionItemId(missionItemId)

@@ -1,7 +1,6 @@
 package com.project.domain.mission.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.lenient;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -133,7 +132,9 @@ class MissionRewardControllerIntegrationTest {
                                 .status(MissionStatus.ACTIVE)
                                 .build());
 
-        lenient().when(jwtTokenUtil.verify(org.mockito.ArgumentMatchers.anyString())).thenReturn(null);
+        lenient()
+                .when(jwtTokenUtil.verify(org.mockito.ArgumentMatchers.anyString()))
+                .thenReturn(null);
         lenient().when(jwtTokenUtil.getMemberId(OWNER_TOKEN)).thenReturn(owner.getId());
         lenient().when(jwtTokenUtil.getMemberId(MEMBER_TOKEN)).thenReturn(member.getId());
         lenient().when(jwtTokenUtil.getRole(OWNER_TOKEN)).thenReturn(RoleType.OWNER);
@@ -146,11 +147,16 @@ class MissionRewardControllerIntegrationTest {
         String createBody =
                 objectMapper.writeValueAsString(
                         Map.of(
-                                "targetCustomerId", member.getId(),
-                                "rewardTemplateId", rewardTemplate.getId(),
-                                "missionText", "wash dishes",
-                                "rewardCategory", "DATA",
-                                "rewardValue", 300));
+                                "targetCustomerId",
+                                member.getId(),
+                                "rewardTemplateId",
+                                rewardTemplate.getId(),
+                                "missionText",
+                                "wash dishes",
+                                "rewardCategory",
+                                "DATA",
+                                "rewardValue",
+                                300));
 
         MvcResult createResult =
                 mockMvc.perform(
@@ -172,7 +178,9 @@ class MissionRewardControllerIntegrationTest {
                         .andExpect(status().isOk())
                         .andReturn();
         JsonNode requestData =
-                objectMapper.readTree(requestResult.getResponse().getContentAsString()).path("data");
+                objectMapper
+                        .readTree(requestResult.getResponse().getContentAsString())
+                        .path("data");
         Long requestId = requestData.path("requestId").asLong();
         assertThat(requestId).isPositive();
 
@@ -192,7 +200,9 @@ class MissionRewardControllerIntegrationTest {
                         .andExpect(status().isOk())
                         .andReturn();
         JsonNode receivedData =
-                objectMapper.readTree(receivedResult.getResponse().getContentAsString()).path("data");
+                objectMapper
+                        .readTree(receivedResult.getResponse().getContentAsString())
+                        .path("data");
         assertThat(receivedData.path("content").isArray()).isTrue();
         assertThat(receivedData.path("content").size()).isGreaterThanOrEqualTo(1);
     }
@@ -203,11 +213,16 @@ class MissionRewardControllerIntegrationTest {
         String createBody =
                 objectMapper.writeValueAsString(
                         Map.of(
-                                "targetCustomerId", member.getId(),
-                                "rewardTemplateId", rewardTemplate.getId(),
-                                "missionText", "wash dishes",
-                                "rewardCategory", "DATA",
-                                "rewardValue", 300));
+                                "targetCustomerId",
+                                member.getId(),
+                                "rewardTemplateId",
+                                rewardTemplate.getId(),
+                                "missionText",
+                                "wash dishes",
+                                "rewardCategory",
+                                "DATA",
+                                "rewardValue",
+                                300));
 
         mockMvc.perform(
                         post("/missions")
@@ -218,7 +233,7 @@ class MissionRewardControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("로그/수령내역은 커서 페이지네이션 필드(content,nextCursor,hasNext)를 반환한다")
+    @DisplayName("로그/수령내역은 커서 페이지네이션 필드(missions,nextCursor,hasNext)를 반환한다")
     void cursorPaginationFieldsAreReturned() throws Exception {
         missionItemRepository.save(
                 MissionItem.builder()
@@ -242,7 +257,7 @@ class MissionRewardControllerIntegrationTest {
                 objectMapper
                         .readTree(missionListResult.getResponse().getContentAsString())
                         .path("data");
-        assertThat(missionData.path("content").size()).isEqualTo(1);
+        assertThat(missionData.path("missions").size()).isEqualTo(1);
         assertThat(missionData.path("hasNext").asBoolean()).isTrue();
 
         MissionLog log1 =
@@ -297,7 +312,7 @@ class MissionRewardControllerIntegrationTest {
                         .andReturn();
         JsonNode logsData =
                 objectMapper.readTree(logsResult.getResponse().getContentAsString()).path("data");
-        assertThat(logsData.path("content").size()).isEqualTo(2);
+        assertThat(logsData.path("missions").size()).isEqualTo(2);
         assertThat(logsData.path("hasNext").asBoolean()).isFalse();
 
         MvcResult receivedResult =
@@ -309,7 +324,9 @@ class MissionRewardControllerIntegrationTest {
                         .andExpect(status().isOk())
                         .andReturn();
         JsonNode receivedData =
-                objectMapper.readTree(receivedResult.getResponse().getContentAsString()).path("data");
+                objectMapper
+                        .readTree(receivedResult.getResponse().getContentAsString())
+                        .path("data");
         assertThat(receivedData.path("content").size()).isEqualTo(1);
         assertThat(receivedData.has("hasNext")).isTrue();
         assertThat(receivedData.has("nextCursor")).isTrue();

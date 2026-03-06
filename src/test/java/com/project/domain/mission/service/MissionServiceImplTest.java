@@ -10,14 +10,13 @@ import static org.mockito.Mockito.verify;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.data.domain.PageRequest;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
 
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.customer.repository.CustomerRepository;
@@ -28,12 +27,12 @@ import com.project.domain.mission.entity.RewardTemplate;
 import com.project.domain.mission.enums.MissionRequestStatus;
 import com.project.domain.mission.enums.MissionStatus;
 import com.project.domain.mission.enums.RewardCategory;
-import com.project.global.exception.ApplicationException;
 import com.project.domain.mission.model.AuthContext;
 import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
 import com.project.domain.mission.repository.MissionRequestRepository;
 import com.project.domain.mission.repository.RewardTemplateRepository;
+import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.MissionErrorCode;
 
 @ExtendWith(MockitoExtension.class)
@@ -104,7 +103,8 @@ class MissionServiceImplTest {
                         .rewardValue(100L)
                         .status(MissionStatus.ACTIVE)
                         .build();
-        given(missionItemRepository.findByIdAndFamilyId(100L, 10L)).willReturn(Optional.of(mission));
+        given(missionItemRepository.findByIdAndFamilyId(100L, 10L))
+                .willReturn(Optional.of(mission));
 
         assertThatThrownBy(() -> missionService.requestMissionApproval(auth, 100L))
                 .isInstanceOf(ApplicationException.class)
@@ -129,9 +129,11 @@ class MissionServiceImplTest {
                         .rewardValue(100L)
                         .status(MissionStatus.ACTIVE)
                         .build();
-        given(missionItemRepository.findByIdAndFamilyId(100L, 10L)).willReturn(Optional.of(mission));
-        given(missionRequestRepository.existsByMissionItemIdAndRequesterIdAndStatus(
-                        100L, 2L, MissionRequestStatus.PENDING))
+        given(missionItemRepository.findByIdAndFamilyId(100L, 10L))
+                .willReturn(Optional.of(mission));
+        given(
+                        missionRequestRepository.existsByMissionItemIdAndRequesterIdAndStatus(
+                                100L, 2L, MissionRequestStatus.PENDING))
                 .willReturn(true);
 
         assertThatThrownBy(() -> missionService.requestMissionApproval(auth, 100L))

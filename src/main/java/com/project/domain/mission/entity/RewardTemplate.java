@@ -66,7 +66,12 @@ public class RewardTemplate {
         this.isSystem = isSystem;
     }
 
-    public void update(String name, RewardCategory category, Long defaultValue, String unit, boolean isSystem) {
+    public void update(
+            String name,
+            RewardCategory category,
+            Long defaultValue,
+            String unit,
+            boolean isSystem) {
         this.name = name;
         this.category = category;
         this.defaultValue = defaultValue;

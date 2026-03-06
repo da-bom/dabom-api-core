@@ -20,7 +20,6 @@ import com.project.domain.mission.entity.MissionRequest;
 import com.project.domain.mission.entity.RewardTemplate;
 import com.project.domain.mission.enums.MissionLogActionType;
 import com.project.domain.mission.enums.MissionRequestStatus;
-import com.project.global.exception.ApplicationException;
 import com.project.domain.mission.model.AuthContext;
 import com.project.domain.mission.model.MissionListResult;
 import com.project.domain.mission.model.MissionLogListResult;
@@ -30,6 +29,7 @@ import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
 import com.project.domain.mission.repository.MissionRequestRepository;
 import com.project.domain.mission.repository.RewardTemplateRepository;
+import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.MissionErrorCode;
 
 import lombok.RequiredArgsConstructor;
@@ -52,13 +52,17 @@ public class RewardServiceImpl implements RewardService {
     /** OWNER가 보상 요청을 승인/거절 처리한다. */
     @Override
     @Transactional
-    public RewardRespondResult respondRewardRequest(AuthContext auth, Long requestId, RespondRewardRequest req) {
+    public RewardRespondResult respondRewardRequest(
+            AuthContext auth, Long requestId, RespondRewardRequest req) {
         assertOwner(auth);
 
         MissionRequest missionRequest =
                 missionRequestRepository
                         .findById(requestId)
-                        .orElseThrow(() -> new ApplicationException(MissionErrorCode.MISSION_REQUEST_NOT_FOUND));
+                        .orElseThrow(
+                                () ->
+                                        new ApplicationException(
+                                                MissionErrorCode.MISSION_REQUEST_NOT_FOUND));
         if (!missionRequest.isPending()) {
             throw new ApplicationException(MissionErrorCode.MISSION_REQUEST_INVALID_STATUS);
         }
@@ -72,13 +76,21 @@ public class RewardServiceImpl implements RewardService {
             }
             missionRequest.approve(auth.customerId(), LocalDateTime.now());
             mission.complete(LocalDateTime.now());
-            appendLog(mission.getId(), auth.customerId(), MissionLogActionType.APPROVED, "Reward approved");
+            appendLog(
+                    mission.getId(),
+                    auth.customerId(),
+                    MissionLogActionType.APPROVED,
+                    "Reward approved");
         } else {
             if (req.rejectReason() == null || req.rejectReason().isBlank()) {
                 throw new ApplicationException(MissionErrorCode.MISSION_REJECT_REASON_REQUIRED);
             }
             missionRequest.reject(auth.customerId(), req.rejectReason(), LocalDateTime.now());
-            appendLog(mission.getId(), auth.customerId(), MissionLogActionType.REJECTED, "Reward rejected");
+            appendLog(
+                    mission.getId(),
+                    auth.customerId(),
+                    MissionLogActionType.REJECTED,
+                    "Reward rejected");
         }
 
         RewardTemplate rewardTemplate =
@@ -87,9 +99,13 @@ public class RewardServiceImpl implements RewardService {
                         .orElseThrow(
                                 () ->
                                         new ApplicationException(
-                                                MissionErrorCode.MISSION_REWARD_TEMPLATE_NOT_FOUND));
+                                                MissionErrorCode
+                                                        .MISSION_REWARD_TEMPLATE_NOT_FOUND));
         String responderName =
-                customerRepository.findById(auth.customerId()).map(Customer::getName).orElse("unknown");
+                customerRepository
+                        .findById(auth.customerId())
+                        .map(Customer::getName)
+                        .orElse("unknown");
 
         return new RewardRespondResult(
                 missionRequest.getId(),
@@ -122,24 +138,34 @@ public class RewardServiceImpl implements RewardService {
         List<MissionRequest> page = hasNext ? requests.subList(0, pageSize) : requests;
         String nextCursor = hasNext ? String.valueOf(page.get(page.size() - 1).getId()) : null;
 
-        Set<Long> missionIds = page.stream().map(MissionRequest::getMissionItemId).collect(Collectors.toSet());
+        Set<Long> missionIds =
+                page.stream().map(MissionRequest::getMissionItemId).collect(Collectors.toSet());
         Map<Long, MissionItem> missionMap =
                 missionItemRepository.findAllById(missionIds).stream()
                         .collect(Collectors.toMap(MissionItem::getId, Function.identity()));
         Set<Long> rewardTemplateIds =
-                missionMap.values().stream().map(MissionItem::getRewardTemplateId).collect(Collectors.toSet());
+                missionMap.values().stream()
+                        .map(MissionItem::getRewardTemplateId)
+                        .collect(Collectors.toSet());
         Map<Long, RewardTemplate> rewardTemplateMap =
                 rewardTemplateRepository.findAllById(rewardTemplateIds).stream()
                         .collect(Collectors.toMap(RewardTemplate::getId, Function.identity()));
 
-        Set<Long> approverIds = page.stream().map(MissionRequest::getResolvedById).collect(Collectors.toSet());
+        Set<Long> approverIds =
+                page.stream().map(MissionRequest::getResolvedById).collect(Collectors.toSet());
         Map<Long, String> approverNameMap =
                 customerRepository.findAllById(approverIds).stream()
                         .collect(Collectors.toMap(Customer::getId, Customer::getName));
 
         List<ReceivedRewardListResult.ReceivedRewardItem> content =
                 page.stream()
-                        .map(req -> toReceivedRewardItem(req, missionMap, rewardTemplateMap, approverNameMap))
+                        .map(
+                                req ->
+                                        toReceivedRewardItem(
+                                                req,
+                                                missionMap,
+                                                rewardTemplateMap,
+                                                approverNameMap))
                         .toList();
 
         return new ReceivedRewardListResult(content, nextCursor, hasNext);
@@ -184,7 +210,10 @@ public class RewardServiceImpl implements RewardService {
     }
 
     private void appendLog(
-            Long missionItemId, Long actorCustomerId, MissionLogActionType actionType, String message) {
+            Long missionItemId,
+            Long actorCustomerId,
+            MissionLogActionType actionType,
+            String message) {
         missionLogRepository.save(
                 MissionLog.builder()
                         .missionItemId(missionItemId)
