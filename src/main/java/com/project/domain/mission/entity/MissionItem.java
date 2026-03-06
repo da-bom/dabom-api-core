@@ -1,6 +1,7 @@
 package com.project.domain.mission.entity;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -41,7 +42,7 @@ public class MissionItem {
     private Long familyId;
 
     @Column(name = "target_customer_id", nullable = false)
-    private Long targetId;
+    private Long targetCustomerId;
 
     @Column(name = "created_by_id", nullable = false)
     private Long createdById;
@@ -74,6 +75,7 @@ public class MissionItem {
     public MissionItem(
             Long id,
             Long familyId,
+            Long targetCustomerId,
             Long createdById,
             Long rewardTemplateId,
             String missionText,
@@ -82,6 +84,7 @@ public class MissionItem {
             LocalDateTime completedAt) {
         this.id = id;
         this.familyId = familyId;
+        this.targetCustomerId = targetCustomerId;
         this.createdById = createdById;
         this.rewardTemplateId = rewardTemplateId;
         this.missionText = missionText;
@@ -94,9 +97,36 @@ public class MissionItem {
         return MissionStatus.ACTIVE.equals(this.status);
     }
 
+    /** ACTIVE 상태가 아니면 상태 전이 불가로 판단한다. */
+    public void validateActive() {
+        if (!MissionStatus.ACTIVE.equals(this.status)) {
+            throw new IllegalStateException("Mission is not active");
+        }
+    }
+
+    /** Mission 상태가 COMPLETED로 전이 가능한지 확인한다. */
+    public boolean canComplete() {
+        return MissionStatus.ACTIVE.equals(this.status);
+    }
+
+    /** Mission 상태가 CANCELLED로 전이 가능한지 확인한다. */
+    public boolean canCancel() {
+        return MissionStatus.ACTIVE.equals(this.status);
+    }
+
+    /** 요청자와 미션 대상자가 일치하는지 확인한다. */
+    public boolean isAssignedTo(Long customerId) {
+        return Objects.equals(this.targetCustomerId, customerId);
+    }
+
     public void complete(LocalDateTime completedAt) {
         this.status = MissionStatus.COMPLETED;
         this.completedAt = completedAt == null ? LocalDateTime.now() : completedAt;
+    }
+
+    /** ACTIVE 미션을 COMPLETED로 완료 처리한다. */
+    public void complete() {
+        complete(LocalDateTime.now());
     }
 
     public void cancel() {

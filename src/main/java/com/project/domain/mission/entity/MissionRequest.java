@@ -13,6 +13,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import com.project.domain.mission.enums.MissionRequestStatus;
 
@@ -46,11 +47,18 @@ public class MissionRequest {
     @Column(name = "status", nullable = false, length = 20)
     private MissionRequestStatus status;
 
+    @Column(name = "reject_reason", columnDefinition = "TEXT", nullable = true)
+    private String rejectReason;
+
     @Column(name = "resolved_by_id")
     private Long resolvedById;
 
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -62,24 +70,40 @@ public class MissionRequest {
             Long missionItemId,
             Long requesterId,
             MissionRequestStatus status,
+            String rejectReason,
             Long resolvedById,
             LocalDateTime resolvedAt) {
         this.id = id;
         this.missionItemId = missionItemId;
         this.requesterId = requesterId;
         this.status = status == null ? MissionRequestStatus.PENDING : status;
+        this.rejectReason = rejectReason;
         this.resolvedById = resolvedById;
         this.resolvedAt = resolvedAt;
     }
 
+    /** 현재 요청이 응답 가능한(PENDING) 상태인지 확인한다. */
+    public boolean isPending() {
+        return MissionRequestStatus.PENDING.equals(this.status);
+    }
+
+    /** PENDING 상태가 아니면 응답 처리할 수 없다. */
+    public void validatePending() {
+        if (!MissionRequestStatus.PENDING.equals(this.status)) {
+            throw new IllegalStateException("Mission request is not pending");
+        }
+    }
+
     public void approve(Long resolverId, LocalDateTime resolvedAt) {
         this.status = MissionRequestStatus.APPROVED;
+        this.rejectReason = null;
         this.resolvedById = resolverId;
         this.resolvedAt = resolvedAt == null ? LocalDateTime.now() : resolvedAt;
     }
 
-    public void reject(Long resolverId, LocalDateTime resolvedAt) {
+    public void reject(Long resolverId, String rejectReason, LocalDateTime resolvedAt) {
         this.status = MissionRequestStatus.REJECTED;
+        this.rejectReason = rejectReason;
         this.resolvedById = resolverId;
         this.resolvedAt = resolvedAt == null ? LocalDateTime.now() : resolvedAt;
     }
