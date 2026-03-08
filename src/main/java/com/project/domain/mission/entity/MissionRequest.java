@@ -14,6 +14,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 
 import com.project.domain.mission.enums.MissionRequestStatus;
@@ -26,6 +27,11 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(
         name = "mission_request",
+        uniqueConstraints = {
+            @UniqueConstraint(
+                    name = "uk_mreq_pending_mission",
+                    columnNames = "pending_mission_item_id")
+        },
         indexes = {
             @Index(name = "idx_mreq_mission", columnList = "mission_item_id,created_at"),
             @Index(name = "idx_mreq_requester", columnList = "requester_id,created_at")
@@ -57,6 +63,8 @@ public class MissionRequest extends BaseEntity {
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
 
+    @Column(name = "pending_mission_item_id", unique = true)
+    private Long pendingMissionItemId;
 
     @Builder
     public MissionRequest(
@@ -66,7 +74,8 @@ public class MissionRequest extends BaseEntity {
             MissionRequestStatus status,
             String rejectReason,
             Long resolvedById,
-            LocalDateTime resolvedAt) {
+            LocalDateTime resolvedAt,
+            Long pendingMissionItemId) {
         this.id = id;
         this.missionItemId = missionItemId;
         this.requesterId = requesterId;
@@ -74,6 +83,10 @@ public class MissionRequest extends BaseEntity {
         this.rejectReason = rejectReason;
         this.resolvedById = resolvedById;
         this.resolvedAt = resolvedAt;
+        this.pendingMissionItemId =
+                pendingMissionItemId != null
+                        ? pendingMissionItemId
+                        : MissionRequestStatus.PENDING.equals(this.status) ? missionItemId : null;
     }
 
     /** 현재 요청이 응답 가능한(PENDING) 상태인지 확인한다. */
@@ -93,6 +106,7 @@ public class MissionRequest extends BaseEntity {
         this.rejectReason = null;
         this.resolvedById = resolverId;
         this.resolvedAt = resolvedAt == null ? LocalDateTime.now() : resolvedAt;
+        this.pendingMissionItemId = null;
     }
 
     public void reject(Long resolverId, String rejectReason, LocalDateTime resolvedAt) {
@@ -100,5 +114,6 @@ public class MissionRequest extends BaseEntity {
         this.rejectReason = rejectReason;
         this.resolvedById = resolverId;
         this.resolvedAt = resolvedAt == null ? LocalDateTime.now() : resolvedAt;
+        this.pendingMissionItemId = null;
     }
 }
