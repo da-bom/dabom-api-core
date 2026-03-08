@@ -3,9 +3,6 @@ package com.project.domain.mission.entity;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.MissionErrorCode;
-import com.project.global.util.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -16,8 +13,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 
-
 import com.project.domain.mission.enums.MissionStatus;
+import com.project.global.exception.ApplicationException;
+import com.project.global.exception.code.MissionErrorCode;
+import com.project.global.util.BaseEntity;
 
 import lombok.AccessLevel;
 import lombok.Builder;

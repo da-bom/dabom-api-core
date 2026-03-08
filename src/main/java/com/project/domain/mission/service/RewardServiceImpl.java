@@ -71,7 +71,8 @@ public class RewardServiceImpl implements RewardService {
 
         // 2. 요청 상태를 파싱하고 대상 미션을 조회한다.
         MissionRequestStatus requestedStatus = parseRequestedStatus(req.status());
-        MissionItem mission = findMissionByFamilyScopeForUpdate(auth, missionRequest.getMissionItemId());
+        MissionItem mission =
+                findMissionByFamilyScopeForUpdate(auth, missionRequest.getMissionItemId());
 
         // 3. 승인 또는 거절 처리 후 로그를 남긴다.
         if (MissionRequestStatus.APPROVED.equals(requestedStatus)) {
@@ -210,8 +211,7 @@ public class RewardServiceImpl implements RewardService {
                 approverId == null
                         ? null
                         : new MissionListResult.CustomerSummary(
-                                approverId,
-                                approverNameMap.getOrDefault(approverId, UNKNOWN_NAME)),
+                                approverId, approverNameMap.getOrDefault(approverId, UNKNOWN_NAME)),
                 request.getResolvedAt());
     }
 

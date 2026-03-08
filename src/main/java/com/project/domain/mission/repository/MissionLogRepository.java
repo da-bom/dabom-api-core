@@ -32,6 +32,5 @@ public interface MissionLogRepository extends JpaRepository<MissionLog, Long> {
               and (:cursorId is null or ml.id < :cursorId)
             order by ml.id desc
             """)
-    List<MissionLog> findByTargetScope(
-            Long targetCustomerId, Long cursorId, Pageable pageable);
+    List<MissionLog> findByTargetScope(Long targetCustomerId, Long cursorId, Pageable pageable);
 }

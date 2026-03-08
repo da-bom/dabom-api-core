@@ -200,8 +200,11 @@ class MissionRewardControllerIntegrationTest {
                                         missionListData.path("missions").spliterator(), false)
                                 .anyMatch(
                                         missionNode ->
-                                                "PENDING".equals(
-                                                        missionNode.path("requestStatus").asText())))
+                                                "PENDING"
+                                                        .equals(
+                                                                missionNode
+                                                                        .path("requestStatus")
+                                                                        .asText())))
                 .isTrue();
 
         String respondBody = objectMapper.writeValueAsString(Map.of("status", "APPROVED"));

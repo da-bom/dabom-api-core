@@ -1,7 +1,5 @@
 package com.project.domain.mission.entity;
 
-
-import com.project.global.util.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -11,8 +9,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-
 import com.project.domain.mission.enums.RewardCategory;
+import com.project.global.util.BaseEntity;
 
 import lombok.AccessLevel;
 import lombok.Builder;

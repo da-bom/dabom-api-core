@@ -8,8 +8,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.springframework.data.domain.PageRequest;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -283,13 +283,13 @@ public class MissionServiceImpl implements MissionService {
             AuthContext auth, Long cursorId, int pageSize) {
         if (auth.isOwner()) {
             return missionItemRepository.findByFamilyScope(
-                    auth.familyId(), MissionStatus.ACTIVE, cursorId, PageRequest.of(0, pageSize + 1));
+                    auth.familyId(),
+                    MissionStatus.ACTIVE,
+                    cursorId,
+                    PageRequest.of(0, pageSize + 1));
         }
         return missionItemRepository.findByTargetScope(
-                auth.customerId(),
-                MissionStatus.ACTIVE,
-                cursorId,
-                PageRequest.of(0, pageSize + 1));
+                auth.customerId(), MissionStatus.ACTIVE, cursorId, PageRequest.of(0, pageSize + 1));
     }
 
     /** 미션 카드 변환. */
@@ -323,8 +323,11 @@ public class MissionServiceImpl implements MissionService {
 
     /** 미션 요청 상태 맵 조회. */
     private Map<Long, String> loadMissionRequestStatusMap(List<MissionItem> missions) {
-        Set<Long> missionIds = missions.stream().map(MissionItem::getId).collect(Collectors.toSet());
-        return missionRequestRepository.findByMissionItemIdInOrderByCreatedAtDescIdDesc(missionIds).stream()
+        Set<Long> missionIds =
+                missions.stream().map(MissionItem::getId).collect(Collectors.toSet());
+        return missionRequestRepository
+                .findByMissionItemIdInOrderByCreatedAtDescIdDesc(missionIds)
+                .stream()
                 .collect(
                         Collectors.toMap(
                                 MissionRequest::getMissionItemId,
@@ -374,7 +377,11 @@ public class MissionServiceImpl implements MissionService {
     private Map<Long, String> loadCustomerNameMap(List<MissionItem> missions) {
         Set<Long> customerIds =
                 missions.stream()
-                        .flatMap(mission -> Stream.of(mission.getTargetCustomerId(), mission.getCreatedById()))
+                        .flatMap(
+                                mission ->
+                                        Stream.of(
+                                                mission.getTargetCustomerId(),
+                                                mission.getCreatedById()))
                         .collect(Collectors.toSet());
         return customerRepository.findAllById(customerIds).stream()
                 .collect(Collectors.toMap(Customer::getId, Customer::getName));
