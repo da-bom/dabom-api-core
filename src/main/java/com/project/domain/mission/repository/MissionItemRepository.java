@@ -15,8 +15,6 @@ import com.project.domain.mission.enums.MissionStatus;
 
 /** MissionItem DB 접근 전용 Repository다. */
 public interface MissionItemRepository extends JpaRepository<MissionItem, Long> {
-    Optional<MissionItem> findByIdAndFamilyId(Long missionId, Long familyId);
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select mi from MissionItem mi where mi.id = :missionId and mi.familyId = :familyId")
     Optional<MissionItem> findByIdAndFamilyIdForUpdate(Long missionId, Long familyId);
