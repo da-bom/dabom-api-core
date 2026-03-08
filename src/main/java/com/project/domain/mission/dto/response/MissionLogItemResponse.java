@@ -4,27 +4,23 @@ import java.time.LocalDateTime;
 
 import com.project.domain.mission.model.MissionLogListResult;
 
-/** 미션 요청 로그 단건 응답 DTO다. */
+/** Mission 로그 단건 응답 DTO다. */
 public record MissionLogItemResponse(
-        Long requestId,
-        String status,
+        Long logId,
+        String actionType,
+        String message,
         MissionItemSimpleResponse missionItem,
         CustomerSimpleResponse assignedTo,
-        CustomerSimpleResponse requestedBy,
-        CustomerSimpleResponse respondedBy,
-        String rejectReason,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt) {
+        CustomerSimpleResponse actor,
+        LocalDateTime createdAt) {
     public static MissionLogItemResponse from(MissionLogListResult.MissionLogItem item) {
         return new MissionLogItemResponse(
-                item.requestId(),
-                item.status(),
+                item.logId(),
+                item.actionType(),
+                item.message(),
                 MissionItemSimpleResponse.from(item.missionItem()),
                 CustomerSimpleResponse.from(item.assignedTo()),
-                CustomerSimpleResponse.from(item.requestedBy()),
-                CustomerSimpleResponse.from(item.respondedBy()),
-                item.rejectReason(),
-                item.createdAt(),
-                item.updatedAt());
+                CustomerSimpleResponse.from(item.actor()),
+                item.createdAt());
     }
 }
