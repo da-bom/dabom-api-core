@@ -203,8 +203,8 @@ class MissionRewardControllerIntegrationTest {
                 objectMapper
                         .readTree(receivedResult.getResponse().getContentAsString())
                         .path("data");
-        assertThat(receivedData.path("content").isArray()).isTrue();
-        assertThat(receivedData.path("content").size()).isGreaterThanOrEqualTo(1);
+        assertThat(receivedData.path("rewards").isArray()).isTrue();
+        assertThat(receivedData.path("rewards").size()).isGreaterThanOrEqualTo(1);
     }
 
     @Test
@@ -313,7 +313,10 @@ class MissionRewardControllerIntegrationTest {
         JsonNode logsData =
                 objectMapper.readTree(logsResult.getResponse().getContentAsString()).path("data");
         assertThat(logsData.path("missions").size()).isEqualTo(2);
-        assertThat(logsData.path("hasNext").asBoolean()).isFalse();
+        assertThat(logsData.path("hasNext").asBoolean()).isTrue();
+        assertThat(logsData.path("missions").get(0).has("logId")).isTrue();
+        assertThat(logsData.path("missions").get(0).has("actionType")).isTrue();
+        assertThat(logsData.path("missions").get(0).has("actor")).isTrue();
 
         MvcResult receivedResult =
                 mockMvc.perform(
@@ -327,7 +330,7 @@ class MissionRewardControllerIntegrationTest {
                 objectMapper
                         .readTree(receivedResult.getResponse().getContentAsString())
                         .path("data");
-        assertThat(receivedData.path("content").size()).isEqualTo(1);
+        assertThat(receivedData.path("rewards").size()).isEqualTo(1);
         assertThat(receivedData.has("hasNext")).isTrue();
         assertThat(receivedData.has("nextCursor")).isTrue();
 
