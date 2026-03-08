@@ -36,7 +36,6 @@ class RewardServiceImplTest {
 
     @Mock private MissionRequestRepository missionRequestRepository;
     @Mock private MissionItemRepository missionItemRepository;
-    @Mock private MissionLogRepository missionLogRepository;
     @Mock private RewardTemplateRepository rewardTemplateRepository;
     @Mock private CustomerRepository customerRepository;
 

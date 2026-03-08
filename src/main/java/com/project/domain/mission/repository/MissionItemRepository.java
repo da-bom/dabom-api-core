@@ -21,16 +21,6 @@ public interface MissionItemRepository extends JpaRepository<MissionItem, Long> 
     @Query("select mi from MissionItem mi where mi.id = :missionId and mi.familyId = :familyId")
     Optional<MissionItem> findByIdAndFamilyIdForUpdate(Long missionId, Long familyId);
 
-    List<MissionItem> findByFamilyIdOrderByCreatedAtDesc(Long familyId);
-
-    List<MissionItem> findByFamilyIdAndStatusOrderByCreatedAtDesc(
-            Long familyId, MissionStatus status);
-
-    List<MissionItem> findByTargetCustomerIdOrderByCreatedAtDesc(Long targetCustomerId);
-
-    List<MissionItem> findByTargetCustomerIdAndStatusOrderByCreatedAtDesc(
-            Long targetCustomerId, MissionStatus status);
-
     @Query(
             """
             select mi

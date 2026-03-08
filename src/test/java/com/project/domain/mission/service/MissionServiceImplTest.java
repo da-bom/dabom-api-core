@@ -20,7 +20,6 @@ import org.springframework.data.domain.PageRequest;
 
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.customer.repository.CustomerRepository;
-import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.mission.dto.request.CreateMissionRequest;
 import com.project.domain.mission.entity.MissionItem;
 import com.project.domain.mission.entity.MissionLog;
@@ -46,7 +45,6 @@ class MissionServiceImplTest {
     @Mock private MissionLogRepository missionLogRepository;
     @Mock private RewardTemplateRepository rewardTemplateRepository;
     @Mock private CustomerRepository customerRepository;
-    @Mock private FamilyMemberRepository familyMemberRepository;
 
     @InjectMocks private MissionServiceImpl missionService;
 
@@ -101,7 +99,7 @@ class MissionServiceImplTest {
         var result = missionService.listMissions(auth, null, 20);
 
         assertThat(result.missions()).hasSize(1);
-        assertThat(result.missions().get(0).requestStatus()).isEqualTo("PENDING");
+        assertThat(result.missions().getFirst().requestStatus()).isEqualTo("PENDING");
         verify(missionItemRepository)
                 .findByFamilyScope(10L, MissionStatus.ACTIVE, null, PageRequest.of(0, 21));
     }
@@ -154,9 +152,9 @@ class MissionServiceImplTest {
         var result = missionService.listMissionLogs(auth, null, 20);
 
         assertThat(result.missions()).hasSize(1);
-        assertThat(result.missions().get(0).logId()).isEqualTo(300L);
-        assertThat(result.missions().get(0).actionType()).isEqualTo("CREATED");
-        assertThat(result.missions().get(0).actor().name()).isEqualTo("owner");
+        assertThat(result.missions().getFirst().logId()).isEqualTo(300L);
+        assertThat(result.missions().getFirst().actionType()).isEqualTo("CREATED");
+        assertThat(result.missions().getFirst().actor().name()).isEqualTo("owner");
         verify(missionLogRepository).findByFamilyScope(10L, null, PageRequest.of(0, 21));
     }
 

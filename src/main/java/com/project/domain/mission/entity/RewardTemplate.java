@@ -59,16 +59,4 @@ public class RewardTemplate extends BaseEntity {
         this.isSystem = isSystem;
     }
 
-    public void updateDetails(
-            String name,
-            RewardCategory category,
-            Long defaultValue,
-            String unit,
-            boolean isSystem) {
-        this.name = name;
-        this.category = category;
-        this.defaultValue = defaultValue;
-        this.unit = unit;
-        this.isSystem = isSystem;
-    }
 }

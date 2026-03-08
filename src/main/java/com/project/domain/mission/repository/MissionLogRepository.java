@@ -10,7 +10,6 @@ import com.project.domain.mission.entity.MissionLog;
 
 /** Mission 로그 조회/저장을 담당하는 Repository다. */
 public interface MissionLogRepository extends JpaRepository<MissionLog, Long> {
-    List<MissionLog> findByMissionItemIdOrderByCreatedAtAsc(Long missionItemId);
 
     @Query(
             """

@@ -89,13 +89,6 @@ public class MissionItem extends BaseEntity {
         return MissionStatus.ACTIVE.equals(this.status);
     }
 
-    /** ACTIVE 상태가 아니면 상태 전이 불가로 판단한다. */
-    public void validateActive() {
-        if (!MissionStatus.ACTIVE.equals(this.status)) {
-            throw new ApplicationException(MissionErrorCode.MISSION_INVALID_STATUS_TRANSITION);
-        }
-    }
-
     /** Mission 상태가 COMPLETED로 전이 가능한지 확인한다. */
     public boolean canComplete() {
         return MissionStatus.ACTIVE.equals(this.status);
@@ -114,11 +107,6 @@ public class MissionItem extends BaseEntity {
     public void complete(LocalDateTime completedAt) {
         this.status = MissionStatus.COMPLETED;
         this.completedAt = completedAt == null ? LocalDateTime.now() : completedAt;
-    }
-
-    /** ACTIVE 미션을 COMPLETED로 완료 처리한다. */
-    public void complete() {
-        complete(LocalDateTime.now());
     }
 
     public void cancel() {

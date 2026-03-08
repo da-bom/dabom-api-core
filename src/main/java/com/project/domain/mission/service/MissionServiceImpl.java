@@ -415,12 +415,6 @@ public class MissionServiceImpl implements MissionService {
                 .collect(Collectors.toMap(RewardTemplate::getId, Function.identity()));
     }
 
-    /** 가족 범위 미션 조회. */
-    private MissionItem findMissionByFamilyScope(AuthContext auth, Long missionId) {
-        return missionItemRepository
-                .findByIdAndFamilyId(missionId, auth.familyId())
-                .orElseThrow(() -> new ApplicationException(MissionErrorCode.MISSION_NOT_FOUND));
-    }
 
     /** 가족 범위 미션 조회 락 획득. */
     private MissionItem findMissionByFamilyScopeForUpdate(AuthContext auth, Long missionId) {
