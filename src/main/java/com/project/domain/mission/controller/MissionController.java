@@ -52,11 +52,10 @@ public class MissionController {
     @Operation(summary = "미션 목록 조회")
     public ApiResponse<MissionListResponse> getMissions(
             @Parameter(hidden = true) @CustomerId Long customerId,
-            @RequestParam(required = false) String status,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
         AuthContext auth = missionAuthService.resolve(customerId);
-        MissionListResult result = missionService.listMissions(auth, status, cursor, size);
+        MissionListResult result = missionService.listMissions(auth, cursor, size);
         return ApiResponse.success(MissionListResponse.from(result));
     }
 

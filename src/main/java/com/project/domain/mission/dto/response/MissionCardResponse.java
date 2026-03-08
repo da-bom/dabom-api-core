@@ -8,7 +8,7 @@ import com.project.domain.mission.model.MissionListResult;
 public record MissionCardResponse(
         Long missionItemId,
         String missionText,
-        String status,
+        String requestStatus,
         CustomerSimpleResponse target,
         CustomerSimpleResponse createdBy,
         RewardTemplateSimpleResponse rewardTemplate,
@@ -18,7 +18,7 @@ public record MissionCardResponse(
         return new MissionCardResponse(
                 card.missionItemId(),
                 card.missionText(),
-                card.status(),
+                card.requestStatus(),
                 CustomerSimpleResponse.from(card.target()),
                 CustomerSimpleResponse.from(card.createdBy()),
                 RewardTemplateSimpleResponse.from(card.rewardTemplate()),

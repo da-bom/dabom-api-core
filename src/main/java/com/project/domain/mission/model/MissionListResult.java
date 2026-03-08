@@ -12,7 +12,7 @@ public record MissionListResult(List<MissionCard> missions, String nextCursor, b
     public record MissionCard(
             Long missionItemId,
             String missionText,
-            String status,
+            String requestStatus,
             CustomerSummary target,
             CustomerSummary createdBy,
             RewardTemplate rewardTemplate,
