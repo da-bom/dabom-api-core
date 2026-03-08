@@ -8,9 +8,9 @@ import static org.mockito.Mockito.mock;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -25,6 +25,7 @@ import com.project.domain.mission.enums.MissionStatus;
 import com.project.domain.mission.enums.RewardCategory;
 import com.project.domain.mission.model.AuthContext;
 import com.project.domain.mission.repository.MissionItemRepository;
+import com.project.domain.mission.repository.MissionLogRepository;
 import com.project.domain.mission.repository.MissionRequestRepository;
 import com.project.domain.mission.repository.RewardTemplateRepository;
 import com.project.global.exception.ApplicationException;
@@ -35,10 +36,22 @@ class RewardServiceImplTest {
 
     @Mock private MissionRequestRepository missionRequestRepository;
     @Mock private MissionItemRepository missionItemRepository;
+    @Mock private MissionLogRepository missionLogRepository;
     @Mock private RewardTemplateRepository rewardTemplateRepository;
     @Mock private CustomerRepository customerRepository;
 
-    @InjectMocks private RewardServiceImpl rewardService;
+    private RewardServiceImpl rewardService;
+
+    @BeforeEach
+    void setUp() {
+        rewardService =
+                new RewardServiceImpl(
+                        missionRequestRepository,
+                        missionItemRepository,
+                        missionLogRepository,
+                        rewardTemplateRepository,
+                        customerRepository);
+    }
 
     @Test
     @DisplayName("OWNER 승인 시 요청은 APPROVED, 미션은 COMPLETED로 전이된다")
