@@ -1,7 +1,7 @@
 package com.project.domain.mission.entity;
 
-import java.time.LocalDateTime;
 
+import com.project.global.util.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -11,7 +11,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import org.hibernate.annotations.CreationTimestamp;
 
 import com.project.domain.mission.enums.RewardCategory;
 
@@ -24,7 +23,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "reward_template")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class RewardTemplate {
+public class RewardTemplate extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -46,10 +45,6 @@ public class RewardTemplate {
     @Column(name = "is_system", nullable = false)
     private boolean isSystem;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
     @Builder
     public RewardTemplate(
             Long id,
@@ -66,7 +61,7 @@ public class RewardTemplate {
         this.isSystem = isSystem;
     }
 
-    public void update(
+    public void updateDetails(
             String name,
             RewardCategory category,
             Long defaultValue,

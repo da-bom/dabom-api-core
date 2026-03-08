@@ -2,6 +2,9 @@ package com.project.domain.mission.entity;
 
 import java.time.LocalDateTime;
 
+import com.project.global.exception.ApplicationException;
+import com.project.global.exception.code.MissionErrorCode;
+import com.project.global.util.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,8 +15,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import com.project.domain.mission.enums.MissionRequestStatus;
 
@@ -31,7 +32,7 @@ import lombok.NoArgsConstructor;
         })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class MissionRequest {
+public class MissionRequest extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -56,13 +57,6 @@ public class MissionRequest {
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
 
     @Builder
     public MissionRequest(
@@ -90,7 +84,7 @@ public class MissionRequest {
     /** PENDING 상태가 아니면 응답 처리할 수 없다. */
     public void validatePending() {
         if (!MissionRequestStatus.PENDING.equals(this.status)) {
-            throw new IllegalStateException("Mission request is not pending");
+            throw new ApplicationException(MissionErrorCode.MISSION_REQUEST_INVALID_STATUS);
         }
     }
 

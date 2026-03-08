@@ -3,6 +3,9 @@ package com.project.domain.mission.entity;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
+import com.project.global.exception.ApplicationException;
+import com.project.global.exception.code.MissionErrorCode;
+import com.project.global.util.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -13,8 +16,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import com.project.domain.mission.enums.MissionStatus;
 
@@ -32,7 +33,7 @@ import lombok.NoArgsConstructor;
         })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class MissionItem {
+public class MissionItem extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -63,14 +64,6 @@ public class MissionItem {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
-
     @Builder
     public MissionItem(
             Long id,
@@ -100,7 +93,7 @@ public class MissionItem {
     /** ACTIVE 상태가 아니면 상태 전이 불가로 판단한다. */
     public void validateActive() {
         if (!MissionStatus.ACTIVE.equals(this.status)) {
-            throw new IllegalStateException("Mission is not active");
+            throw new ApplicationException(MissionErrorCode.MISSION_INVALID_STATUS_TRANSITION);
         }
     }
 

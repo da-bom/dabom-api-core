@@ -1,7 +1,7 @@
 package com.project.domain.mission.entity;
 
-import java.time.LocalDateTime;
 
+import com.project.global.util.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,7 +12,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 
-import org.hibernate.annotations.CreationTimestamp;
 
 import com.project.domain.mission.enums.MissionLogActionType;
 
@@ -31,7 +30,7 @@ import lombok.NoArgsConstructor;
         })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class MissionLog {
+public class MissionLog extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -49,10 +48,6 @@ public class MissionLog {
 
     @Column(name = "message", nullable = false, length = 500)
     private String message;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
 
     @Builder
     public MissionLog(
