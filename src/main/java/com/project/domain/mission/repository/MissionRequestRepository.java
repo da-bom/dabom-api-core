@@ -3,8 +3,11 @@ package com.project.domain.mission.repository;
 import java.util.List;
 import java.util.Set;
 
+import jakarta.persistence.LockModeType;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
 import com.project.domain.mission.entity.MissionRequest;
@@ -16,14 +19,18 @@ public interface MissionRequestRepository extends JpaRepository<MissionRequest, 
     boolean existsByMissionItemIdAndRequesterIdAndStatus(
             Long missionItemId, Long requesterId, MissionRequestStatus status);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select mr from MissionRequest mr where mr.id = :requestId")
+    java.util.Optional<MissionRequest> findByIdForUpdate(Long requestId);
+
     @Query(
             """
             select mr
             from MissionRequest mr
             where mr.missionItemId in :missionItemIds
-            order by mr.id desc
+            order by mr.createdAt desc, mr.id desc
             """)
-    List<MissionRequest> findByMissionItemIdInOrderByIdDesc(Set<Long> missionItemIds);
+    List<MissionRequest> findByMissionItemIdInOrderByCreatedAtDescIdDesc(Set<Long> missionItemIds);
 
     @Query(
             """
