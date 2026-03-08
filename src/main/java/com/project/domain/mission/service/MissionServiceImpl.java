@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.springframework.data.domain.PageRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -196,7 +197,7 @@ public class MissionServiceImpl implements MissionService {
     public void cancelMission(AuthContext auth, Long missionId) {
         // 1. 요청자 권한과 현재 미션 상태를 검증한다.
         assertOwner(auth);
-        MissionItem mission = findMissionByFamilyScope(auth, missionId);
+        MissionItem mission = findMissionByFamilyScopeForUpdate(auth, missionId);
         if (!mission.canCancel()) {
             throw new ApplicationException(MissionErrorCode.MISSION_INVALID_STATUS_TRANSITION);
         }
@@ -215,7 +216,7 @@ public class MissionServiceImpl implements MissionService {
     @Transactional
     public MissionRequestResult requestMissionApproval(AuthContext auth, Long missionId) {
         // 1. 미션 담당자, 미션 상태, 중복 대기 요청 여부를 검증한다.
-        MissionItem mission = findMissionByFamilyScope(auth, missionId);
+        MissionItem mission = findMissionByFamilyScopeForUpdate(auth, missionId);
         if (!mission.isAssignedTo(auth.customerId())) {
             throw new ApplicationException(MissionErrorCode.MISSION_NOT_ASSIGNED);
         }
@@ -228,13 +229,18 @@ public class MissionServiceImpl implements MissionService {
         }
 
         // 2. 승인 요청을 생성하고 요청 로그를 남긴다.
-        MissionRequest request =
-                missionRequestRepository.save(
-                        MissionRequest.builder()
-                                .missionItemId(mission.getId())
-                                .requesterId(auth.customerId())
-                                .status(MissionRequestStatus.PENDING)
-                                .build());
+        MissionRequest request;
+        try {
+            request =
+                    missionRequestRepository.save(
+                            MissionRequest.builder()
+                                    .missionItemId(mission.getId())
+                                    .requesterId(auth.customerId())
+                                    .status(MissionRequestStatus.PENDING)
+                                    .build());
+        } catch (DataIntegrityViolationException e) {
+            throw new ApplicationException(MissionErrorCode.MISSION_REQUEST_DUPLICATED);
+        }
 
         appendLog(
                 mission.getId(),
@@ -318,7 +324,7 @@ public class MissionServiceImpl implements MissionService {
     /** 미션 요청 상태 맵 조회. */
     private Map<Long, String> loadMissionRequestStatusMap(List<MissionItem> missions) {
         Set<Long> missionIds = missions.stream().map(MissionItem::getId).collect(Collectors.toSet());
-        return missionRequestRepository.findByMissionItemIdInOrderByIdDesc(missionIds).stream()
+        return missionRequestRepository.findByMissionItemIdInOrderByCreatedAtDescIdDesc(missionIds).stream()
                 .collect(
                         Collectors.toMap(
                                 MissionRequest::getMissionItemId,
@@ -406,6 +412,13 @@ public class MissionServiceImpl implements MissionService {
     private MissionItem findMissionByFamilyScope(AuthContext auth, Long missionId) {
         return missionItemRepository
                 .findByIdAndFamilyId(missionId, auth.familyId())
+                .orElseThrow(() -> new ApplicationException(MissionErrorCode.MISSION_NOT_FOUND));
+    }
+
+    /** 가족 범위 미션 조회 락 획득. */
+    private MissionItem findMissionByFamilyScopeForUpdate(AuthContext auth, Long missionId) {
+        return missionItemRepository
+                .findByIdAndFamilyIdForUpdate(missionId, auth.familyId())
                 .orElseThrow(() -> new ApplicationException(MissionErrorCode.MISSION_NOT_FOUND));
     }
 
