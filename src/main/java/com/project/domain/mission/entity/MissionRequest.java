@@ -80,10 +80,11 @@ public class MissionRequest extends BaseEntity {
         this.rejectReason = rejectReason;
         this.resolvedById = resolvedById;
         this.resolvedAt = resolvedAt;
-        this.activeRequestMissionId =
-                activeRequestMissionId != null
-                        ? activeRequestMissionId
-                        : MissionRequestStatus.PENDING.equals(this.status) ? missionItemId : null;
+        this.activeRequestMissionId = activeRequestMissionId;
+        if (this.activeRequestMissionId == null
+                && MissionRequestStatus.PENDING.equals(this.status)) {
+            this.activeRequestMissionId = missionItemId;
+        }
     }
 
     /** 현재 요청이 응답 가능한(PENDING) 상태인지 확인한다. */
