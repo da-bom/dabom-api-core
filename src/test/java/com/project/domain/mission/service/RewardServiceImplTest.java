@@ -140,11 +140,9 @@ class RewardServiceImplTest {
     @DisplayName("OWNER가 아니면 보상 응답은 MISSION_OWNER_ONLY를 반환한다")
     void respondRewardRequest_whenMember_thenThrows() {
         AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
+        RespondRewardRequest request = new RespondRewardRequest("APPROVED", null);
 
-        assertThatThrownBy(
-                        () ->
-                                rewardService.respondRewardRequest(
-                                        auth, 100L, new RespondRewardRequest("APPROVED", null)))
+        assertThatThrownBy(() -> rewardService.respondRewardRequest(auth, 100L, request))
                 .isInstanceOf(ApplicationException.class)
                 .satisfies(
                         e ->

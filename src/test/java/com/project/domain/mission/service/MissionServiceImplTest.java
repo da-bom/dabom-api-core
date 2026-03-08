@@ -23,7 +23,9 @@ import com.project.domain.customer.repository.CustomerRepository;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.mission.dto.request.CreateMissionRequest;
 import com.project.domain.mission.entity.MissionItem;
+import com.project.domain.mission.entity.MissionLog;
 import com.project.domain.mission.entity.RewardTemplate;
+import com.project.domain.mission.enums.MissionLogActionType;
 import com.project.domain.mission.enums.MissionRequestStatus;
 import com.project.domain.mission.enums.MissionStatus;
 import com.project.domain.mission.enums.RewardCategory;
@@ -86,6 +88,60 @@ class MissionServiceImplTest {
 
         assertThat(result.missions()).hasSize(1);
         verify(missionItemRepository).findByFamilyScope(10L, null, null, PageRequest.of(0, 21));
+    }
+
+    @Test
+    @DisplayName("미션 로그 조회는 mission_log 기반으로 조회한다")
+    void listMissionLogs_readsFromMissionLogRepository() {
+        AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
+        MissionLog log =
+                MissionLog.builder()
+                        .id(300L)
+                        .missionItemId(100L)
+                        .actorId(1L)
+                        .actionType(MissionLogActionType.CREATED)
+                        .message("Mission created")
+                        .build();
+        MissionItem mission =
+                MissionItem.builder()
+                        .id(100L)
+                        .familyId(10L)
+                        .targetCustomerId(2L)
+                        .createdById(1L)
+                        .rewardTemplateId(500L)
+                        .missionText("clean room")
+                        .rewardValue(100L)
+                        .status(MissionStatus.ACTIVE)
+                        .build();
+        RewardTemplate template =
+                RewardTemplate.builder()
+                        .id(500L)
+                        .name("data")
+                        .category(RewardCategory.DATA)
+                        .defaultValue(100L)
+                        .unit("MB")
+                        .isSystem(true)
+                        .build();
+        var owner = mock(com.project.domain.customer.entity.Customer.class);
+        given(owner.getId()).willReturn(1L);
+        given(owner.getName()).willReturn("owner");
+        var member = mock(com.project.domain.customer.entity.Customer.class);
+        given(member.getId()).willReturn(2L);
+        given(member.getName()).willReturn("member");
+
+        given(missionLogRepository.findByFamilyScope(10L, null, PageRequest.of(0, 21)))
+                .willReturn(List.of(log));
+        given(missionItemRepository.findAllById(anyIterable())).willReturn(List.of(mission));
+        given(customerRepository.findAllById(anyIterable())).willReturn(List.of(owner, member));
+        given(rewardTemplateRepository.findAllById(anyIterable())).willReturn(List.of(template));
+
+        var result = missionService.listMissionLogs(auth, null, 20);
+
+        assertThat(result.missions()).hasSize(1);
+        assertThat(result.missions().get(0).logId()).isEqualTo(300L);
+        assertThat(result.missions().get(0).actionType()).isEqualTo("CREATED");
+        assertThat(result.missions().get(0).actor().name()).isEqualTo("owner");
+        verify(missionLogRepository).findByFamilyScope(10L, null, PageRequest.of(0, 21));
     }
 
     @Test
