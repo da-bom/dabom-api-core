@@ -59,26 +59,32 @@ public class MissionServiceImpl implements MissionService {
 
     /** 미션 목록 조회. */
     @Override
-    public MissionListResult listMissions(
-            AuthContext auth, String status, String cursor, int size) {
+    public MissionListResult listMissions(AuthContext auth, String cursor, int size) {
         // 1. 커서 페이징 입력값을 정규화한다.
-        MissionStatus missionStatus = parseMissionStatus(status);
         int pageSize = normalizeSize(size);
         Long cursorId = parseCursor(cursor);
 
-        // 2. 호출자 역할에 맞는 미션 목록을 조회한다.
-        List<MissionItem> missions =
-                findMissionItemsByRole(auth, missionStatus, cursorId, pageSize);
+        // 2. 호출자 역할에 맞는 ACTIVE 미션 목록만 조회한다.
+        List<MissionItem> missions = findActiveMissionItemsByRole(auth, cursorId, pageSize);
         boolean hasNext = missions.size() > pageSize;
         List<MissionItem> page = hasNext ? missions.subList(0, pageSize) : missions;
         String nextCursor = hasNext ? String.valueOf(page.getLast().getId()) : null;
 
-        // 3. 응답 조합에 필요한 연관 데이터를 조회한다.
+        // 3. 응답 조합에 필요한 연관 데이터와 요청 상태를 조회한다.
         Map<Long, String> customerNameMap = loadCustomerNameMap(page);
         Map<Long, RewardTemplate> rewardTemplateMap = loadRewardTemplateMap(page);
+        Map<Long, String> requestStatusMap = loadMissionRequestStatusMap(page);
+
+        // 4. 조회한 도메인 데이터를 응답 모델로 변환한다.
         return new MissionListResult(
                 page.stream()
-                        .map(mission -> toMissionCard(mission, customerNameMap, rewardTemplateMap))
+                        .map(
+                                mission ->
+                                        toMissionCard(
+                                                mission,
+                                                customerNameMap,
+                                                rewardTemplateMap,
+                                                requestStatusMap))
                         .toList(),
                 nextCursor,
                 hasNext);
@@ -266,22 +272,26 @@ public class MissionServiceImpl implements MissionService {
                 request.getCreatedAt());
     }
 
-    /** 역할별 미션 조회. */
-    private List<MissionItem> findMissionItemsByRole(
-            AuthContext auth, MissionStatus status, Long cursorId, int pageSize) {
+    /** 역할별 활성 미션 조회. */
+    private List<MissionItem> findActiveMissionItemsByRole(
+            AuthContext auth, Long cursorId, int pageSize) {
         if (auth.isOwner()) {
             return missionItemRepository.findByFamilyScope(
-                    auth.familyId(), status, cursorId, PageRequest.of(0, pageSize + 1));
+                    auth.familyId(), MissionStatus.ACTIVE, cursorId, PageRequest.of(0, pageSize + 1));
         }
         return missionItemRepository.findByTargetScope(
-                auth.customerId(), status, cursorId, PageRequest.of(0, pageSize + 1));
+                auth.customerId(),
+                MissionStatus.ACTIVE,
+                cursorId,
+                PageRequest.of(0, pageSize + 1));
     }
 
     /** 미션 카드 변환. */
     private MissionListResult.MissionCard toMissionCard(
             MissionItem mission,
             Map<Long, String> customerNameMap,
-            Map<Long, RewardTemplate> rewardTemplateMap) {
+            Map<Long, RewardTemplate> rewardTemplateMap,
+            Map<Long, String> requestStatusMap) {
         RewardTemplate template = rewardTemplateMap.get(mission.getRewardTemplateId());
         if (template == null) {
             throw new ApplicationException(MissionErrorCode.MISSION_REWARD_TEMPLATE_NOT_FOUND);
@@ -289,7 +299,7 @@ public class MissionServiceImpl implements MissionService {
         return new MissionListResult.MissionCard(
                 mission.getId(),
                 mission.getMissionText(),
-                mission.getStatus().name(),
+                requestStatusMap.get(mission.getId()),
                 new MissionListResult.CustomerSummary(
                         mission.getTargetCustomerId(),
                         customerNameMap.getOrDefault(mission.getTargetCustomerId(), UNKNOWN_NAME)),
@@ -303,6 +313,17 @@ public class MissionServiceImpl implements MissionService {
                         template.getUnit()),
                 mission.getRewardValue(),
                 mission.getCreatedAt());
+    }
+
+    /** 미션 요청 상태 맵 조회. */
+    private Map<Long, String> loadMissionRequestStatusMap(List<MissionItem> missions) {
+        Set<Long> missionIds = missions.stream().map(MissionItem::getId).collect(Collectors.toSet());
+        return missionRequestRepository.findByMissionItemIdInOrderByIdDesc(missionIds).stream()
+                .collect(
+                        Collectors.toMap(
+                                MissionRequest::getMissionItemId,
+                                request -> request.getStatus().name(),
+                                (latest, ignored) -> latest));
     }
 
     /** 미션 로그 응답 변환. */
@@ -407,18 +428,6 @@ public class MissionServiceImpl implements MissionService {
     private void assertOwner(AuthContext auth) {
         if (!auth.isOwner()) {
             throw new ApplicationException(MissionErrorCode.MISSION_OWNER_ONLY);
-        }
-    }
-
-    /** 미션 상태 파싱. */
-    private MissionStatus parseMissionStatus(String status) {
-        if (status == null || status.isBlank()) {
-            return null;
-        }
-        try {
-            return MissionStatus.valueOf(status.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new ApplicationException(MissionErrorCode.MISSION_INVALID_STATUS_TRANSITION);
         }
     }
 
