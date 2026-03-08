@@ -1,6 +1,7 @@
 package com.project.domain.mission.repository;
 
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,6 +15,15 @@ public interface MissionRequestRepository extends JpaRepository<MissionRequest, 
 
     boolean existsByMissionItemIdAndRequesterIdAndStatus(
             Long missionItemId, Long requesterId, MissionRequestStatus status);
+
+    @Query(
+            """
+            select mr
+            from MissionRequest mr
+            where mr.missionItemId in :missionItemIds
+            order by mr.id desc
+            """)
+    List<MissionRequest> findByMissionItemIdInOrderByIdDesc(Set<Long> missionItemIds);
 
     @Query(
             """

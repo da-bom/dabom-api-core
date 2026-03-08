@@ -9,7 +9,7 @@ import com.project.domain.mission.model.MissionRequestResult;
 
 /** 미션 도메인 비즈니스 로직 인터페이스다. */
 public interface MissionService {
-    MissionListResult listMissions(AuthContext auth, String status, String cursor, int size);
+    MissionListResult listMissions(AuthContext auth, String cursor, int size);
 
     MissionLogListResult listMissionLogs(AuthContext auth, String cursor, int size);
 
