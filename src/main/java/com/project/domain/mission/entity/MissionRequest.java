@@ -28,8 +28,8 @@ import lombok.NoArgsConstructor;
         name = "mission_request",
         uniqueConstraints = {
             @UniqueConstraint(
-                    name = "uk_mreq_pending_mission",
-                    columnNames = "pending_mission_item_id")
+                    name = "uk_mission_request_active_request_mission",
+                    columnNames = "active_request_mission_id")
         },
         indexes = {
             @Index(name = "idx_mreq_mission", columnList = "mission_item_id,created_at"),
@@ -53,7 +53,7 @@ public class MissionRequest extends BaseEntity {
     @Column(name = "status", nullable = false, length = 20)
     private MissionRequestStatus status;
 
-    @Column(name = "reject_reason", columnDefinition = "TEXT", nullable = true)
+    @Column(name = "reject_reason", columnDefinition = "TEXT")
     private String rejectReason;
 
     @Column(name = "resolved_by_id")
@@ -62,8 +62,8 @@ public class MissionRequest extends BaseEntity {
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
 
-    @Column(name = "pending_mission_item_id", unique = true)
-    private Long pendingMissionItemId;
+    @Column(name = "active_request_mission_id", unique = true)
+    private Long activeRequestMissionId;
 
     @Builder
     public MissionRequest(
@@ -74,7 +74,7 @@ public class MissionRequest extends BaseEntity {
             String rejectReason,
             Long resolvedById,
             LocalDateTime resolvedAt,
-            Long pendingMissionItemId) {
+            Long activeRequestMissionId) {
         this.id = id;
         this.missionItemId = missionItemId;
         this.requesterId = requesterId;
@@ -82,9 +82,9 @@ public class MissionRequest extends BaseEntity {
         this.rejectReason = rejectReason;
         this.resolvedById = resolvedById;
         this.resolvedAt = resolvedAt;
-        this.pendingMissionItemId =
-                pendingMissionItemId != null
-                        ? pendingMissionItemId
+        this.activeRequestMissionId =
+                activeRequestMissionId != null
+                        ? activeRequestMissionId
                         : MissionRequestStatus.PENDING.equals(this.status) ? missionItemId : null;
     }
 
@@ -93,19 +93,12 @@ public class MissionRequest extends BaseEntity {
         return MissionRequestStatus.PENDING.equals(this.status);
     }
 
-    /** PENDING 상태가 아니면 응답 처리할 수 없다. */
-    public void validatePending() {
-        if (!MissionRequestStatus.PENDING.equals(this.status)) {
-            throw new ApplicationException(MissionErrorCode.MISSION_REQUEST_INVALID_STATUS);
-        }
-    }
-
     public void approve(Long resolverId, LocalDateTime resolvedAt) {
         this.status = MissionRequestStatus.APPROVED;
         this.rejectReason = null;
         this.resolvedById = resolverId;
         this.resolvedAt = resolvedAt == null ? LocalDateTime.now() : resolvedAt;
-        this.pendingMissionItemId = null;
+        this.activeRequestMissionId = null;
     }
 
     public void reject(Long resolverId, String rejectReason, LocalDateTime resolvedAt) {
@@ -113,6 +106,6 @@ public class MissionRequest extends BaseEntity {
         this.rejectReason = rejectReason;
         this.resolvedById = resolverId;
         this.resolvedAt = resolvedAt == null ? LocalDateTime.now() : resolvedAt;
-        this.pendingMissionItemId = null;
+        this.activeRequestMissionId = null;
     }
 }
