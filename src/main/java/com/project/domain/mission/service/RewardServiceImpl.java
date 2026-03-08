@@ -60,7 +60,7 @@ public class RewardServiceImpl implements RewardService {
 
         MissionRequest missionRequest =
                 missionRequestRepository
-                        .findById(requestId)
+                        .findByIdForUpdate(requestId)
                         .orElseThrow(
                                 () ->
                                         new ApplicationException(
@@ -71,7 +71,7 @@ public class RewardServiceImpl implements RewardService {
 
         // 2. 요청 상태를 파싱하고 대상 미션을 조회한다.
         MissionRequestStatus requestedStatus = parseRequestedStatus(req.status());
-        MissionItem mission = findMissionByFamilyScope(auth, missionRequest.getMissionItemId());
+        MissionItem mission = findMissionByFamilyScopeForUpdate(auth, missionRequest.getMissionItemId());
 
         // 3. 승인 또는 거절 처리 후 로그를 남긴다.
         if (MissionRequestStatus.APPROVED.equals(requestedStatus)) {
@@ -219,6 +219,13 @@ public class RewardServiceImpl implements RewardService {
     private MissionItem findMissionByFamilyScope(AuthContext auth, Long missionId) {
         return missionItemRepository
                 .findByIdAndFamilyId(missionId, auth.familyId())
+                .orElseThrow(() -> new ApplicationException(MissionErrorCode.MISSION_NOT_FOUND));
+    }
+
+    /** 가족 범위 미션 조회 락 획득. */
+    private MissionItem findMissionByFamilyScopeForUpdate(AuthContext auth, Long missionId) {
+        return missionItemRepository
+                .findByIdAndFamilyIdForUpdate(missionId, auth.familyId())
                 .orElseThrow(() -> new ApplicationException(MissionErrorCode.MISSION_NOT_FOUND));
     }
 
