@@ -2,9 +2,11 @@ package com.project.domain.mission.service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -38,7 +40,7 @@ import com.project.global.exception.code.MissionErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
-/** 미션 생성/조회/요청/취소 비즈니스 로직 구현체다. */
+/** 미션 애플리케이션 서비스. */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -46,6 +48,7 @@ public class MissionServiceImpl implements MissionService {
 
     private static final int DEFAULT_CURSOR_SIZE = 20;
     private static final int MAX_CURSOR_SIZE = 100;
+    private static final String UNKNOWN_NAME = "unknown";
 
     private final MissionItemRepository missionItemRepository;
     private final MissionRequestRepository missionRequestRepository;
@@ -54,19 +57,23 @@ public class MissionServiceImpl implements MissionService {
     private final CustomerRepository customerRepository;
     private final FamilyMemberRepository familyMemberRepository;
 
-    /** 역할에 따라 OWNER는 가족 전체, MEMBER는 본인 대상 미션만 조회한다. */
+    /** 미션 목록 조회. */
     @Override
     public MissionListResult listMissions(
             AuthContext auth, String status, String cursor, int size) {
+        // 1. 커서 페이징 입력값을 정규화한다.
         MissionStatus missionStatus = parseMissionStatus(status);
         int pageSize = normalizeSize(size);
         Long cursorId = parseCursor(cursor);
+
+        // 2. 호출자 역할에 맞는 미션 목록을 조회한다.
         List<MissionItem> missions =
                 findMissionItemsByRole(auth, missionStatus, cursorId, pageSize);
         boolean hasNext = missions.size() > pageSize;
         List<MissionItem> page = hasNext ? missions.subList(0, pageSize) : missions;
-        String nextCursor = hasNext ? String.valueOf(page.get(page.size() - 1).getId()) : null;
+        String nextCursor = hasNext ? String.valueOf(page.getLast().getId()) : null;
 
+        // 3. 응답 조합에 필요한 연관 데이터를 조회한다.
         Map<Long, String> customerNameMap = loadCustomerNameMap(page);
         Map<Long, RewardTemplate> rewardTemplateMap = loadRewardTemplateMap(page);
         return new MissionListResult(
@@ -77,52 +84,58 @@ public class MissionServiceImpl implements MissionService {
                 hasNext);
     }
 
-    /** 미션 요청 이력을 커서 기반으로 조회한다. */
+    /** 미션 로그 조회. */
     @Override
     public MissionLogListResult listMissionLogs(AuthContext auth, String cursor, int size) {
+        // 1. 커서 페이징 입력값을 정규화한다.
         int pageSize = normalizeSize(size);
         Long cursorId = parseCursor(cursor);
-        List<MissionRequest> requests =
+
+        // 2. 호출자 권한 범위에 맞는 미션 로그를 조회한다.
+        List<MissionLog> logs =
                 auth.isOwner()
-                        ? missionRequestRepository.findLogsByFamilyScope(
+                        ? missionLogRepository.findByFamilyScope(
                                 auth.familyId(), cursorId, PageRequest.of(0, pageSize + 1))
-                        : missionRequestRepository.findLogsByTargetScope(
+                        : missionLogRepository.findByTargetScope(
                                 auth.customerId(), cursorId, PageRequest.of(0, pageSize + 1));
 
-        boolean hasNext = requests.size() > pageSize;
-        List<MissionRequest> page = hasNext ? requests.subList(0, pageSize) : requests;
-        String nextCursor = hasNext ? String.valueOf(page.get(page.size() - 1).getId()) : null;
+        boolean hasNext = logs.size() > pageSize;
+        List<MissionLog> page = hasNext ? logs.subList(0, pageSize) : logs;
+        String nextCursor = hasNext ? String.valueOf(page.getLast().getId()) : null;
 
+        // 3. 응답 조합에 필요한 미션, 사용자, 보상 템플릿 정보를 조회한다.
         Map<Long, MissionItem> missionMap =
                 missionItemRepository
                         .findAllById(
                                 page.stream()
-                                        .map(MissionRequest::getMissionItemId)
+                                        .map(MissionLog::getMissionItemId)
                                         .collect(Collectors.toSet()))
                         .stream()
                         .collect(Collectors.toMap(MissionItem::getId, Function.identity()));
-        Map<Long, String> customerNameMap = loadCustomerNameMapFromRequests(page, missionMap);
+        Map<Long, String> customerNameMap = loadCustomerNameMapFromLogs(page, missionMap);
         Map<Long, RewardTemplate> rewardTemplateMap =
                 loadRewardTemplateMap(missionMap.values().stream().toList());
 
-        List<MissionLogListResult.MissionLogItem> content =
+        // 4. 조회한 도메인 데이터를 응답 모델로 변환한다.
+        List<MissionLogListResult.MissionLogItem> missionLogItems =
                 page.stream()
                         .map(
-                                request ->
+                                log ->
                                         toMissionLogItem(
-                                                request,
+                                                log,
                                                 missionMap,
                                                 customerNameMap,
                                                 rewardTemplateMap))
                         .toList();
 
-        return new MissionLogListResult(content, nextCursor, hasNext);
+        return new MissionLogListResult(missionLogItems, nextCursor, hasNext);
     }
 
-    /** OWNER가 같은 가족 MEMBER에게 미션을 생성한다. */
+    /** 미션 생성. */
     @Override
     @Transactional
     public CreateMissionResult createMission(AuthContext auth, CreateMissionRequest req) {
+        // 1. 요청자 권한과 대상 가족 구성원을 검증한다.
         assertOwner(auth);
         FamilyMember targetMember =
                 familyMemberRepository
@@ -136,6 +149,7 @@ public class MissionServiceImpl implements MissionService {
             throw new ApplicationException(MissionErrorCode.MISSION_TARGET_INVALID);
         }
 
+        // 2. 보상 템플릿과 보상 카테고리 일치 여부를 검증한다.
         RewardTemplate rewardTemplate =
                 rewardTemplateRepository
                         .findById(req.rewardTemplateId())
@@ -149,6 +163,7 @@ public class MissionServiceImpl implements MissionService {
             throw new ApplicationException(MissionErrorCode.MISSION_REWARD_CATEGORY_MISMATCH);
         }
 
+        // 3. 미션을 저장하고 생성 로그를 남긴다.
         MissionItem mission =
                 missionItemRepository.save(
                         MissionItem.builder()
@@ -169,15 +184,18 @@ public class MissionServiceImpl implements MissionService {
         return new CreateMissionResult(mission.getId(), mission.getCreatedAt());
     }
 
-    /** OWNER가 ACTIVE 미션을 취소한다. */
+    /** 미션 취소. */
     @Override
     @Transactional
     public void cancelMission(AuthContext auth, Long missionId) {
+        // 1. 요청자 권한과 현재 미션 상태를 검증한다.
         assertOwner(auth);
         MissionItem mission = findMissionByFamilyScope(auth, missionId);
         if (!mission.canCancel()) {
             throw new ApplicationException(MissionErrorCode.MISSION_INVALID_STATUS_TRANSITION);
         }
+
+        // 2. 미션 상태를 변경하고 취소 로그를 남긴다.
         mission.cancel();
         appendLog(
                 mission.getId(),
@@ -186,10 +204,11 @@ public class MissionServiceImpl implements MissionService {
                 "Mission cancelled");
     }
 
-    /** MEMBER가 본인 미션 완료 요청을 생성한다. */
+    /** 미션 승인 요청 생성. */
     @Override
     @Transactional
     public MissionRequestResult requestMissionApproval(AuthContext auth, Long missionId) {
+        // 1. 미션 담당자, 미션 상태, 중복 대기 요청 여부를 검증한다.
         MissionItem mission = findMissionByFamilyScope(auth, missionId);
         if (!mission.isAssignedTo(auth.customerId())) {
             throw new ApplicationException(MissionErrorCode.MISSION_NOT_ASSIGNED);
@@ -202,6 +221,7 @@ public class MissionServiceImpl implements MissionService {
             throw new ApplicationException(MissionErrorCode.MISSION_REQUEST_DUPLICATED);
         }
 
+        // 2. 승인 요청을 생성하고 요청 로그를 남긴다.
         MissionRequest request =
                 missionRequestRepository.save(
                         MissionRequest.builder()
@@ -216,6 +236,7 @@ public class MissionServiceImpl implements MissionService {
                 MissionLogActionType.REQUESTED,
                 "Mission requested");
 
+        // 3. 응답 조합에 필요한 데이터를 조회한다.
         RewardTemplate rewardTemplate =
                 rewardTemplateRepository
                         .findById(mission.getRewardTemplateId())
@@ -228,7 +249,7 @@ public class MissionServiceImpl implements MissionService {
                 customerRepository
                         .findById(auth.customerId())
                         .map(Customer::getName)
-                        .orElse("unknown");
+                        .orElse(UNKNOWN_NAME);
         return new MissionRequestResult(
                 request.getId(),
                 new MissionLogListResult.MissionItemSimple(
@@ -245,6 +266,7 @@ public class MissionServiceImpl implements MissionService {
                 request.getCreatedAt());
     }
 
+    /** 역할별 미션 조회. */
     private List<MissionItem> findMissionItemsByRole(
             AuthContext auth, MissionStatus status, Long cursorId, int pageSize) {
         if (auth.isOwner()) {
@@ -255,6 +277,7 @@ public class MissionServiceImpl implements MissionService {
                 auth.customerId(), status, cursorId, PageRequest.of(0, pageSize + 1));
     }
 
+    /** 미션 카드 변환. */
     private MissionListResult.MissionCard toMissionCard(
             MissionItem mission,
             Map<Long, String> customerNameMap,
@@ -269,10 +292,10 @@ public class MissionServiceImpl implements MissionService {
                 mission.getStatus().name(),
                 new MissionListResult.CustomerSummary(
                         mission.getTargetCustomerId(),
-                        customerNameMap.getOrDefault(mission.getTargetCustomerId(), "unknown")),
+                        customerNameMap.getOrDefault(mission.getTargetCustomerId(), UNKNOWN_NAME)),
                 new MissionListResult.CustomerSummary(
                         mission.getCreatedById(),
-                        customerNameMap.getOrDefault(mission.getCreatedById(), "unknown")),
+                        customerNameMap.getOrDefault(mission.getCreatedById(), UNKNOWN_NAME)),
                 new MissionListResult.RewardTemplate(
                         template.getId(),
                         template.getName(),
@@ -282,12 +305,13 @@ public class MissionServiceImpl implements MissionService {
                 mission.getCreatedAt());
     }
 
+    /** 미션 로그 응답 변환. */
     private MissionLogListResult.MissionLogItem toMissionLogItem(
-            MissionRequest request,
+            MissionLog log,
             Map<Long, MissionItem> missionMap,
             Map<Long, String> customerNameMap,
             Map<Long, RewardTemplate> rewardTemplateMap) {
-        MissionItem mission = missionMap.get(request.getMissionItemId());
+        MissionItem mission = missionMap.get(log.getMissionItemId());
         if (mission == null) {
             throw new ApplicationException(MissionErrorCode.MISSION_NOT_FOUND);
         }
@@ -295,10 +319,10 @@ public class MissionServiceImpl implements MissionService {
         if (rewardTemplate == null) {
             throw new ApplicationException(MissionErrorCode.MISSION_REWARD_TEMPLATE_NOT_FOUND);
         }
-        Long respondedBy = request.getResolvedById();
         return new MissionLogListResult.MissionLogItem(
-                request.getId(),
-                request.getStatus().name(),
+                log.getId(),
+                log.getActionType().name(),
+                log.getMessage(),
                 new MissionLogListResult.MissionItemSimple(
                         mission.getId(),
                         mission.getMissionText(),
@@ -310,51 +334,46 @@ public class MissionServiceImpl implements MissionService {
                                 rewardTemplate.getUnit())),
                 new MissionListResult.CustomerSummary(
                         mission.getTargetCustomerId(),
-                        customerNameMap.getOrDefault(mission.getTargetCustomerId(), "unknown")),
-                new MissionListResult.CustomerSummary(
-                        request.getRequesterId(),
-                        customerNameMap.getOrDefault(request.getRequesterId(), "unknown")),
-                respondedBy == null
+                        customerNameMap.getOrDefault(mission.getTargetCustomerId(), UNKNOWN_NAME)),
+                log.getActorId() == null
                         ? null
                         : new MissionListResult.CustomerSummary(
-                                respondedBy, customerNameMap.getOrDefault(respondedBy, "unknown")),
-                request.getRejectReason(),
-                request.getCreatedAt(),
-                request.getUpdatedAt());
+                                log.getActorId(),
+                                customerNameMap.getOrDefault(log.getActorId(), UNKNOWN_NAME)),
+                log.getCreatedAt());
     }
 
+    /** 미션 카드용 사용자 이름 맵 조회. */
     private Map<Long, String> loadCustomerNameMap(List<MissionItem> missions) {
         Set<Long> customerIds =
                 missions.stream()
-                        .flatMap(
-                                m ->
-                                        java.util.stream.Stream.of(
-                                                m.getTargetCustomerId(), m.getCreatedById()))
+                        .flatMap(mission -> Stream.of(mission.getTargetCustomerId(), mission.getCreatedById()))
                         .collect(Collectors.toSet());
         return customerRepository.findAllById(customerIds).stream()
                 .collect(Collectors.toMap(Customer::getId, Customer::getName));
     }
 
-    private Map<Long, String> loadCustomerNameMapFromRequests(
-            List<MissionRequest> requests, Map<Long, MissionItem> missionMap) {
+    /** 미션 로그용 사용자 이름 맵 조회. */
+    private Map<Long, String> loadCustomerNameMapFromLogs(
+            List<MissionLog> logs, Map<Long, MissionItem> missionMap) {
         Set<Long> customerIds =
-                requests.stream()
+                logs.stream()
                         .flatMap(
-                                req ->
-                                        java.util.stream.Stream.of(
-                                                req.getRequesterId(),
-                                                req.getResolvedById(),
-                                                missionMap.containsKey(req.getMissionItemId())
+                                log ->
+                                        Stream.of(
+                                                log.getActorId(),
+                                                missionMap.containsKey(log.getMissionItemId())
                                                         ? missionMap
-                                                                .get(req.getMissionItemId())
+                                                                .get(log.getMissionItemId())
                                                                 .getTargetCustomerId()
                                                         : null))
-                        .filter(java.util.Objects::nonNull)
+                        .filter(Objects::nonNull)
                         .collect(Collectors.toSet());
         return customerRepository.findAllById(customerIds).stream()
                 .collect(Collectors.toMap(Customer::getId, Customer::getName));
     }
 
+    /** 보상 템플릿 맵 조회. */
     private Map<Long, RewardTemplate> loadRewardTemplateMap(List<MissionItem> missions) {
         Set<Long> templateIds =
                 missions.stream().map(MissionItem::getRewardTemplateId).collect(Collectors.toSet());
@@ -362,12 +381,14 @@ public class MissionServiceImpl implements MissionService {
                 .collect(Collectors.toMap(RewardTemplate::getId, Function.identity()));
     }
 
+    /** 가족 범위 미션 조회. */
     private MissionItem findMissionByFamilyScope(AuthContext auth, Long missionId) {
         return missionItemRepository
                 .findByIdAndFamilyId(missionId, auth.familyId())
                 .orElseThrow(() -> new ApplicationException(MissionErrorCode.MISSION_NOT_FOUND));
     }
 
+    /** 미션 로그 저장. */
     private void appendLog(
             Long missionItemId,
             Long actorCustomerId,
@@ -382,12 +403,14 @@ public class MissionServiceImpl implements MissionService {
                         .build());
     }
 
+    /** 소유자 권한 검증. */
     private void assertOwner(AuthContext auth) {
         if (!auth.isOwner()) {
             throw new ApplicationException(MissionErrorCode.MISSION_OWNER_ONLY);
         }
     }
 
+    /** 미션 상태 파싱. */
     private MissionStatus parseMissionStatus(String status) {
         if (status == null || status.isBlank()) {
             return null;
@@ -399,6 +422,7 @@ public class MissionServiceImpl implements MissionService {
         }
     }
 
+    /** 보상 카테고리 파싱. */
     private RewardCategory parseRewardCategory(String rewardCategory) {
         try {
             return RewardCategory.valueOf(rewardCategory.toUpperCase());
@@ -407,6 +431,7 @@ public class MissionServiceImpl implements MissionService {
         }
     }
 
+    /** 페이지 크기 정규화. */
     private int normalizeSize(int size) {
         if (size <= 0) {
             return DEFAULT_CURSOR_SIZE;
@@ -414,6 +439,7 @@ public class MissionServiceImpl implements MissionService {
         return Math.min(size, MAX_CURSOR_SIZE);
     }
 
+    /** 커서 파싱. */
     private Long parseCursor(String cursor) {
         if (cursor == null || cursor.isBlank()) {
             return null;

@@ -34,7 +34,7 @@ import com.project.global.exception.code.MissionErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
-/** 보상 요청 승인/거절 및 수령내역 조회 구현체다. */
+/** 보상 애플리케이션 서비스. */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -42,6 +42,7 @@ public class RewardServiceImpl implements RewardService {
 
     private static final int DEFAULT_CURSOR_SIZE = 20;
     private static final int MAX_CURSOR_SIZE = 100;
+    private static final String UNKNOWN_NAME = "unknown";
 
     private final MissionRequestRepository missionRequestRepository;
     private final MissionItemRepository missionItemRepository;
@@ -49,11 +50,12 @@ public class RewardServiceImpl implements RewardService {
     private final RewardTemplateRepository rewardTemplateRepository;
     private final CustomerRepository customerRepository;
 
-    /** OWNER가 보상 요청을 승인/거절 처리한다. */
+    /** 보상 요청 응답 처리. */
     @Override
     @Transactional
     public RewardRespondResult respondRewardRequest(
             AuthContext auth, Long requestId, RespondRewardRequest req) {
+        // 1. 요청자 권한과 대상 요청 상태를 검증한다.
         assertOwner(auth);
 
         MissionRequest missionRequest =
@@ -67,9 +69,11 @@ public class RewardServiceImpl implements RewardService {
             throw new ApplicationException(MissionErrorCode.MISSION_REQUEST_INVALID_STATUS);
         }
 
+        // 2. 요청 상태를 파싱하고 대상 미션을 조회한다.
         MissionRequestStatus requestedStatus = parseRequestedStatus(req.status());
         MissionItem mission = findMissionByFamilyScope(auth, missionRequest.getMissionItemId());
 
+        // 3. 승인 또는 거절 처리 후 로그를 남긴다.
         if (MissionRequestStatus.APPROVED.equals(requestedStatus)) {
             if (!mission.canComplete()) {
                 throw new ApplicationException(MissionErrorCode.MISSION_INVALID_STATUS_TRANSITION);
@@ -93,6 +97,7 @@ public class RewardServiceImpl implements RewardService {
                     "Reward rejected");
         }
 
+        // 4. 응답 조합에 필요한 보상 템플릿과 응답자 정보를 조회한다.
         RewardTemplate rewardTemplate =
                 rewardTemplateRepository
                         .findById(mission.getRewardTemplateId())
@@ -105,7 +110,7 @@ public class RewardServiceImpl implements RewardService {
                 customerRepository
                         .findById(auth.customerId())
                         .map(Customer::getName)
-                        .orElse("unknown");
+                        .orElse(UNKNOWN_NAME);
 
         return new RewardRespondResult(
                 missionRequest.getId(),
@@ -125,19 +130,23 @@ public class RewardServiceImpl implements RewardService {
                 missionRequest.getUpdatedAt());
     }
 
-    /** MEMBER 본인이 승인받은 보상 수령내역을 조회한다. */
+    /** 수령 보상 목록 조회. */
     @Override
     public ReceivedRewardListResult listReceivedRewards(AuthContext auth, String cursor, int size) {
+        // 1. 커서 페이징 입력값을 정규화한다.
         int pageSize = normalizeSize(size);
         Long cursorId = parseCursor(cursor);
+
+        // 2. 사용자가 수령한 승인 완료 보상 요청 목록을 조회한다.
         List<MissionRequest> requests =
                 missionRequestRepository.findApprovedByTargetCustomerIdOrderByResolvedAtDesc(
                         auth.customerId(), cursorId, PageRequest.of(0, pageSize + 1));
 
         boolean hasNext = requests.size() > pageSize;
         List<MissionRequest> page = hasNext ? requests.subList(0, pageSize) : requests;
-        String nextCursor = hasNext ? String.valueOf(page.get(page.size() - 1).getId()) : null;
+        String nextCursor = hasNext ? String.valueOf(page.getLast().getId()) : null;
 
+        // 3. 응답 조합에 필요한 미션, 보상 템플릿, 승인자 정보를 조회한다.
         Set<Long> missionIds =
                 page.stream().map(MissionRequest::getMissionItemId).collect(Collectors.toSet());
         Map<Long, MissionItem> missionMap =
@@ -157,6 +166,7 @@ public class RewardServiceImpl implements RewardService {
                 customerRepository.findAllById(approverIds).stream()
                         .collect(Collectors.toMap(Customer::getId, Customer::getName));
 
+        // 4. 조회 결과를 수령 보상 응답으로 변환한다.
         List<ReceivedRewardListResult.ReceivedRewardItem> content =
                 page.stream()
                         .map(
@@ -171,6 +181,7 @@ public class RewardServiceImpl implements RewardService {
         return new ReceivedRewardListResult(content, nextCursor, hasNext);
     }
 
+    /** 수령 보상 응답 변환. */
     private ReceivedRewardListResult.ReceivedRewardItem toReceivedRewardItem(
             MissionRequest request,
             Map<Long, MissionItem> missionMap,
@@ -199,16 +210,19 @@ public class RewardServiceImpl implements RewardService {
                 approverId == null
                         ? null
                         : new MissionListResult.CustomerSummary(
-                                approverId, approverNameMap.getOrDefault(approverId, "unknown")),
+                                approverId,
+                                approverNameMap.getOrDefault(approverId, UNKNOWN_NAME)),
                 request.getResolvedAt());
     }
 
+    /** 가족 범위 미션 조회. */
     private MissionItem findMissionByFamilyScope(AuthContext auth, Long missionId) {
         return missionItemRepository
                 .findByIdAndFamilyId(missionId, auth.familyId())
                 .orElseThrow(() -> new ApplicationException(MissionErrorCode.MISSION_NOT_FOUND));
     }
 
+    /** 미션 로그 저장. */
     private void appendLog(
             Long missionItemId,
             Long actorCustomerId,
@@ -223,6 +237,7 @@ public class RewardServiceImpl implements RewardService {
                         .build());
     }
 
+    /** 요청 상태 파싱. */
     private MissionRequestStatus parseRequestedStatus(String status) {
         if (status == null || status.isBlank()) {
             throw new ApplicationException(MissionErrorCode.MISSION_INVALID_REQUEST_STATUS);
@@ -238,12 +253,14 @@ public class RewardServiceImpl implements RewardService {
         }
     }
 
+    /** 소유자 권한 검증. */
     private void assertOwner(AuthContext auth) {
         if (!auth.isOwner()) {
             throw new ApplicationException(MissionErrorCode.MISSION_OWNER_ONLY);
         }
     }
 
+    /** 페이지 크기 정규화. */
     private int normalizeSize(int size) {
         if (size <= 0) {
             return DEFAULT_CURSOR_SIZE;
@@ -251,6 +268,7 @@ public class RewardServiceImpl implements RewardService {
         return Math.min(size, MAX_CURSOR_SIZE);
     }
 
+    /** 커서 파싱. */
     private Long parseCursor(String cursor) {
         if (cursor == null || cursor.isBlank()) {
             return null;
