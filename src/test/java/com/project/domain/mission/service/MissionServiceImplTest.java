@@ -78,7 +78,9 @@ class MissionServiceImplTest {
                         missionItemRepository.findByFamilyScope(
                                 10L, MissionStatus.ACTIVE, null, PageRequest.of(0, 21)))
                 .willReturn(List.of(mission));
-        given(missionRequestRepository.findByMissionItemIdInOrderByIdDesc(java.util.Set.of(100L)))
+        given(
+                        missionRequestRepository.findByMissionItemIdInOrderByCreatedAtDescIdDesc(
+                                java.util.Set.of(100L)))
                 .willReturn(
                         List.of(
                                 MissionRequest.builder()
@@ -173,7 +175,7 @@ class MissionServiceImplTest {
                         .rewardValue(100L)
                         .status(MissionStatus.ACTIVE)
                         .build();
-        given(missionItemRepository.findByIdAndFamilyId(100L, 10L))
+        given(missionItemRepository.findByIdAndFamilyIdForUpdate(100L, 10L))
                 .willReturn(Optional.of(mission));
 
         assertThatThrownBy(() -> missionService.requestMissionApproval(auth, 100L))
@@ -199,7 +201,7 @@ class MissionServiceImplTest {
                         .rewardValue(100L)
                         .status(MissionStatus.ACTIVE)
                         .build();
-        given(missionItemRepository.findByIdAndFamilyId(100L, 10L))
+        given(missionItemRepository.findByIdAndFamilyIdForUpdate(100L, 10L))
                 .willReturn(Optional.of(mission));
         given(
                         missionRequestRepository.existsByMissionItemIdAndRequesterIdAndStatus(

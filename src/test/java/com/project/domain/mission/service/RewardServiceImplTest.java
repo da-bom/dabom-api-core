@@ -75,8 +75,8 @@ class RewardServiceImplTest {
                         .build();
         var responder = mock(com.project.domain.customer.entity.Customer.class);
         given(responder.getName()).willReturn("owner");
-        given(missionRequestRepository.findById(100L)).willReturn(Optional.of(request));
-        given(missionItemRepository.findByIdAndFamilyId(200L, 10L))
+        given(missionRequestRepository.findByIdForUpdate(100L)).willReturn(Optional.of(request));
+        given(missionItemRepository.findByIdAndFamilyIdForUpdate(200L, 10L))
                 .willReturn(Optional.of(mission));
         given(rewardTemplateRepository.findById(500L)).willReturn(Optional.of(template));
         given(customerRepository.findById(1L)).willReturn(Optional.of(responder));
@@ -122,8 +122,8 @@ class RewardServiceImplTest {
                         .build();
         var responder = mock(com.project.domain.customer.entity.Customer.class);
         given(responder.getName()).willReturn("owner");
-        given(missionRequestRepository.findById(100L)).willReturn(Optional.of(request));
-        given(missionItemRepository.findByIdAndFamilyId(200L, 10L))
+        given(missionRequestRepository.findByIdForUpdate(100L)).willReturn(Optional.of(request));
+        given(missionItemRepository.findByIdAndFamilyIdForUpdate(200L, 10L))
                 .willReturn(Optional.of(mission));
         given(rewardTemplateRepository.findById(500L)).willReturn(Optional.of(template));
         given(customerRepository.findById(1L)).willReturn(Optional.of(responder));
