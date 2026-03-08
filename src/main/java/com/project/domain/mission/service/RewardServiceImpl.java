@@ -215,7 +215,6 @@ public class RewardServiceImpl implements RewardService {
                 request.getResolvedAt());
     }
 
-
     /** 가족 범위 미션 조회 락 획득. */
     private MissionItem findMissionByFamilyScopeForUpdate(AuthContext auth, Long missionId) {
         return missionItemRepository

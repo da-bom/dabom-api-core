@@ -14,8 +14,6 @@ import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 
 import com.project.domain.mission.enums.MissionStatus;
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.MissionErrorCode;
 import com.project.global.util.BaseEntity;
 
 import lombok.AccessLevel;

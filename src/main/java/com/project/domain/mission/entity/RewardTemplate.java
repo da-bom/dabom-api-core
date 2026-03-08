@@ -58,5 +58,4 @@ public class RewardTemplate extends BaseEntity {
         this.unit = unit;
         this.isSystem = isSystem;
     }
-
 }

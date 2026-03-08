@@ -25,7 +25,6 @@ import com.project.domain.mission.enums.MissionStatus;
 import com.project.domain.mission.enums.RewardCategory;
 import com.project.domain.mission.model.AuthContext;
 import com.project.domain.mission.repository.MissionItemRepository;
-import com.project.domain.mission.repository.MissionLogRepository;
 import com.project.domain.mission.repository.MissionRequestRepository;
 import com.project.domain.mission.repository.RewardTemplateRepository;
 import com.project.global.exception.ApplicationException;
