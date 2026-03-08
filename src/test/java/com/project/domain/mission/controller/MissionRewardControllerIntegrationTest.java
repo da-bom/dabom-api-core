@@ -184,6 +184,26 @@ class MissionRewardControllerIntegrationTest {
         Long requestId = requestData.path("requestId").asLong();
         assertThat(requestId).isPositive();
 
+        MvcResult missionListResult =
+                mockMvc.perform(
+                                get("/missions")
+                                        .header("Authorization", "Bearer " + MEMBER_TOKEN)
+                                        .param("size", "20"))
+                        .andExpect(status().isOk())
+                        .andReturn();
+        JsonNode missionListData =
+                objectMapper
+                        .readTree(missionListResult.getResponse().getContentAsString())
+                        .path("data");
+        assertThat(
+                        java.util.stream.StreamSupport.stream(
+                                        missionListData.path("missions").spliterator(), false)
+                                .anyMatch(
+                                        missionNode ->
+                                                "PENDING".equals(
+                                                        missionNode.path("requestStatus").asText())))
+                .isTrue();
+
         String respondBody = objectMapper.writeValueAsString(Map.of("status", "APPROVED"));
         mockMvc.perform(
                         put("/rewards/requests/{requestId}/respond", requestId)
@@ -259,6 +279,7 @@ class MissionRewardControllerIntegrationTest {
                         .path("data");
         assertThat(missionData.path("missions").size()).isEqualTo(1);
         assertThat(missionData.path("hasNext").asBoolean()).isTrue();
+        assertThat(missionData.path("missions").get(0).has("requestStatus")).isTrue();
 
         MissionLog log1 =
                 MissionLog.builder()

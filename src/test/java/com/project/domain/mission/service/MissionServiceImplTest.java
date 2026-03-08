@@ -24,6 +24,7 @@ import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.mission.dto.request.CreateMissionRequest;
 import com.project.domain.mission.entity.MissionItem;
 import com.project.domain.mission.entity.MissionLog;
+import com.project.domain.mission.entity.MissionRequest;
 import com.project.domain.mission.entity.RewardTemplate;
 import com.project.domain.mission.enums.MissionLogActionType;
 import com.project.domain.mission.enums.MissionRequestStatus;
@@ -73,8 +74,19 @@ class MissionServiceImplTest {
                         .unit("MB")
                         .isSystem(true)
                         .build();
-        given(missionItemRepository.findByFamilyScope(10L, null, null, PageRequest.of(0, 21)))
+        given(
+                        missionItemRepository.findByFamilyScope(
+                                10L, MissionStatus.ACTIVE, null, PageRequest.of(0, 21)))
                 .willReturn(List.of(mission));
+        given(missionRequestRepository.findByMissionItemIdInOrderByIdDesc(java.util.Set.of(100L)))
+                .willReturn(
+                        List.of(
+                                MissionRequest.builder()
+                                        .id(200L)
+                                        .missionItemId(100L)
+                                        .requesterId(2L)
+                                        .status(MissionRequestStatus.PENDING)
+                                        .build()));
         var owner = mock(com.project.domain.customer.entity.Customer.class);
         given(owner.getId()).willReturn(1L);
         given(owner.getName()).willReturn("owner");
@@ -84,10 +96,12 @@ class MissionServiceImplTest {
         given(customerRepository.findAllById(anyIterable())).willReturn(List.of(owner, member));
         given(rewardTemplateRepository.findAllById(anyIterable())).willReturn(List.of(template));
 
-        var result = missionService.listMissions(auth, null, null, 20);
+        var result = missionService.listMissions(auth, null, 20);
 
         assertThat(result.missions()).hasSize(1);
-        verify(missionItemRepository).findByFamilyScope(10L, null, null, PageRequest.of(0, 21));
+        assertThat(result.missions().get(0).requestStatus()).isEqualTo("PENDING");
+        verify(missionItemRepository)
+                .findByFamilyScope(10L, MissionStatus.ACTIVE, null, PageRequest.of(0, 21));
     }
 
     @Test
