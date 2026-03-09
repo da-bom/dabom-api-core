@@ -207,13 +207,21 @@ class MissionRewardControllerIntegrationTest {
                                         .param("size", "20"))
                         .andExpect(status().isOk())
                         .andReturn();
-        JsonNode missionNode =
+        JsonNode missionList =
                 objectMapper
                         .readTree(missionListResult.getResponse().getContentAsString())
                         .path("data")
-                        .path("missions")
-                        .get(0);
-        assertRewardNode(missionNode.path("reward"), rewardTemplate.getId(), "data reward", 200L);
+                        .path("missions");
+        JsonNode existingMissionNode = null;
+        for (JsonNode node : missionList) {
+            if (node.path("missionItemId").asLong() == mission.getId()) {
+                existingMissionNode = node;
+                break;
+            }
+        }
+        assertThat(existingMissionNode).isNotNull();
+        assertRewardNode(
+                existingMissionNode.path("reward"), rewardTemplate.getId(), "data reward", 200L);
 
         MvcResult logsResult =
                 mockMvc.perform(

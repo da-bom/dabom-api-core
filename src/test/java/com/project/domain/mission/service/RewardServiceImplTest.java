@@ -69,7 +69,7 @@ class RewardServiceImplTest {
         given(missionRequestRepository.findByIdForUpdate(100L)).willReturn(Optional.of(request));
         given(missionItemRepository.findByIdAndFamilyIdForUpdate(200L, 10L))
                 .willReturn(Optional.of(mission));
-        Customer owner = customer(1L, "owner");
+        Customer owner = namedCustomer("owner");
         given(customerRepository.findById(1L)).willReturn(Optional.of(owner));
 
         var result =
@@ -96,7 +96,7 @@ class RewardServiceImplTest {
         given(missionRequestRepository.findByIdForUpdate(100L)).willReturn(Optional.of(request));
         given(missionItemRepository.findByIdAndFamilyIdForUpdate(200L, 10L))
                 .willReturn(Optional.of(mission));
-        Customer owner = customer(1L, "owner");
+        Customer owner = namedCustomer("owner");
         given(customerRepository.findById(1L)).willReturn(Optional.of(owner));
 
         var result =
@@ -188,6 +188,12 @@ class RewardServiceImplTest {
     private Customer customer(Long id, String name) {
         Customer customer = mock(Customer.class);
         given(customer.getId()).willReturn(id);
+        given(customer.getName()).willReturn(name);
+        return customer;
+    }
+
+    private Customer namedCustomer(String name) {
+        Customer customer = mock(Customer.class);
         given(customer.getName()).willReturn(name);
         return customer;
     }

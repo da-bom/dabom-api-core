@@ -215,7 +215,7 @@ class MissionServiceImplTest {
                                 .requesterId(2L)
                                 .status(MissionRequestStatus.PENDING)
                                 .build());
-        Customer member = customer(2L, "member");
+        Customer member = namedCustomer("member");
         given(customerRepository.findById(2L)).willReturn(Optional.of(member));
 
         var result = missionService.requestMissionApproval(auth, 100L);
@@ -296,6 +296,12 @@ class MissionServiceImplTest {
     private Customer customer(Long id, String name) {
         Customer customer = mock(Customer.class);
         given(customer.getId()).willReturn(id);
+        given(customer.getName()).willReturn(name);
+        return customer;
+    }
+
+    private Customer namedCustomer(String name) {
+        Customer customer = mock(Customer.class);
         given(customer.getName()).willReturn(name);
         return customer;
     }
