@@ -84,7 +84,13 @@ public class SignInServiceImpl implements SignInService {
             }
 
             Long customerId = Long.parseLong(claims.getSubject());
-            return jwtTokenUtil.reissueTokens(customerId, role);
+
+            RoleType currentRole = familyMemberRepository.findRoleById(customerId);
+            if (currentRole == null) {
+                throw new ApplicationException(CustomerErrorCode.CUSTOMER_REFRESH_TOKEN_INVALID);
+            }
+
+            return jwtTokenUtil.reissueTokens(customerId, currentRole);
         } catch (JwtException | IllegalArgumentException e) {
             throw new ApplicationException(CustomerErrorCode.CUSTOMER_REFRESH_TOKEN_INVALID);
         }

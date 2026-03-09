@@ -84,7 +84,11 @@ public class JwtTokenUtil {
     }
 
     public Long getMemberId(String token) {
-        return Long.parseLong(verifyAccessToken(token).getSubject());
+        try {
+            return Long.parseLong(verifyAccessToken(token).getSubject());
+        } catch (NumberFormatException e) {
+            throw new JwtException("유효하지 않은 토큰 subject입니다");
+        }
     }
 
     public RoleType getRole(String token) {
@@ -113,11 +117,7 @@ public class JwtTokenUtil {
     public TokenRefreshResult reissueTokens(Long memberId, RoleType role) {
         String accessToken = createToken(memberId, role);
         String refreshToken = createRefreshToken(memberId, role);
-        long expiresIn = refreshExpirationMillis / 1000;
+        long expiresIn = accessExpirationMillis / 1000;
         return new TokenRefreshResult(accessToken, refreshToken, expiresIn);
-    }
-
-    public long getRefreshTokenExpirationMillis() {
-        return refreshExpirationMillis;
     }
 }

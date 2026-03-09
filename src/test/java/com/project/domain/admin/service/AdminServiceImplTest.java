@@ -39,6 +39,7 @@ class AdminServiceImplTest {
         given(claims.getSubject()).willReturn("1");
 
         given(jwtTokenUtil.verifyRefreshToken("valid-refresh-token")).willReturn(claims);
+        given(adminRepository.existsById(1L)).willReturn(true);
         given(jwtTokenUtil.reissueTokens(1L, RoleType.ADMIN))
                 .willReturn(new TokenRefreshResult("new-access", "new-refresh", 1800L));
 
@@ -113,6 +114,26 @@ class AdminServiceImplTest {
 
         // when & then
         assertThatThrownBy(() -> adminService.refreshToken("bad-subject-token"))
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(
+                        e ->
+                                assertThat(((ApplicationException) e).getCode())
+                                        .isEqualTo(AdminErrorCode.ADMIN_REFRESH_TOKEN_INVALID));
+    }
+
+    @Test
+    @DisplayName("refreshToken - DB에 존재하지 않는 관리자이면 예외를 던진다")
+    void refreshToken_adminNotFound_throwsException() {
+        // given
+        Claims claims = mock(Claims.class);
+        given(claims.get("role", String.class)).willReturn("ADMIN");
+        given(claims.getSubject()).willReturn("999");
+
+        given(jwtTokenUtil.verifyRefreshToken("deleted-admin-token")).willReturn(claims);
+        given(adminRepository.existsById(999L)).willReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> adminService.refreshToken("deleted-admin-token"))
                 .isInstanceOf(ApplicationException.class)
                 .satisfies(
                         e ->

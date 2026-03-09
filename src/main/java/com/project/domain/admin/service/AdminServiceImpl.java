@@ -70,6 +70,11 @@ public class AdminServiceImpl implements AdminService {
             }
 
             Long adminId = Long.parseLong(claims.getSubject());
+
+            if (!adminRepository.existsById(adminId)) {
+                throw new ApplicationException(AdminErrorCode.ADMIN_REFRESH_TOKEN_INVALID);
+            }
+
             return jwtTokenUtil.reissueTokens(adminId, RoleType.ADMIN);
         } catch (JwtException | IllegalArgumentException e) {
             throw new ApplicationException(AdminErrorCode.ADMIN_REFRESH_TOKEN_INVALID);

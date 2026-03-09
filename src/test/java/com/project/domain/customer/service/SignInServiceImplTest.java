@@ -41,6 +41,7 @@ class SignInServiceImplTest {
         given(claims.getSubject()).willReturn("10");
 
         given(jwtTokenUtil.verifyRefreshToken("owner-refresh-token")).willReturn(claims);
+        given(familyMemberRepository.findRoleById(10L)).willReturn(RoleType.OWNER);
         given(jwtTokenUtil.reissueTokens(10L, RoleType.OWNER))
                 .willReturn(new TokenRefreshResult("new-access", "new-refresh", 1800L));
 
@@ -62,6 +63,7 @@ class SignInServiceImplTest {
         given(claims.getSubject()).willReturn("20");
 
         given(jwtTokenUtil.verifyRefreshToken("member-refresh-token")).willReturn(claims);
+        given(familyMemberRepository.findRoleById(20L)).willReturn(RoleType.MEMBER);
         given(jwtTokenUtil.reissueTokens(20L, RoleType.MEMBER))
                 .willReturn(new TokenRefreshResult("new-access", "new-refresh", 1800L));
 
@@ -139,6 +141,27 @@ class SignInServiceImplTest {
 
         // when & then
         assertThatThrownBy(() -> signInService.refreshToken("bad-subject-token"))
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(
+                        e ->
+                                assertThat(((ApplicationException) e).getCode())
+                                        .isEqualTo(
+                                                CustomerErrorCode.CUSTOMER_REFRESH_TOKEN_INVALID));
+    }
+
+    @Test
+    @DisplayName("refreshToken - DB에 존재하지 않는 사용자이면 예외를 던진다")
+    void refreshToken_customerNotFound_throwsException() {
+        // given
+        Claims claims = mock(Claims.class);
+        given(claims.get("role", String.class)).willReturn("MEMBER");
+        given(claims.getSubject()).willReturn("999");
+
+        given(jwtTokenUtil.verifyRefreshToken("deleted-customer-token")).willReturn(claims);
+        given(familyMemberRepository.findRoleById(999L)).willReturn(null);
+
+        // when & then
+        assertThatThrownBy(() -> signInService.refreshToken("deleted-customer-token"))
                 .isInstanceOf(ApplicationException.class)
                 .satisfies(
                         e ->
