@@ -35,11 +35,10 @@ class AdminServiceImplTest {
     void refreshToken_validRefreshToken_returnsNewTokenPair() {
         // given
         Claims claims = mock(Claims.class);
-        given(claims.get("type", String.class)).willReturn("refresh");
         given(claims.get("role", String.class)).willReturn("ADMIN");
         given(claims.getSubject()).willReturn("1");
 
-        given(jwtTokenUtil.verify("valid-refresh-token")).willReturn(claims);
+        given(jwtTokenUtil.verifyRefreshToken("valid-refresh-token")).willReturn(claims);
         given(jwtTokenUtil.createToken(1L, RoleType.ADMIN)).willReturn("new-access");
         given(jwtTokenUtil.createRefreshToken(1L, RoleType.ADMIN)).willReturn("new-refresh");
         given(jwtTokenUtil.getRefreshTokenExpirationMillis()).willReturn(1800000L);
@@ -57,10 +56,8 @@ class AdminServiceImplTest {
     @DisplayName("refreshToken - access token을 사용하면 예외를 던진다")
     void refreshToken_accessToken_throwsException() {
         // given
-        Claims claims = mock(Claims.class);
-        given(claims.get("type", String.class)).willReturn("access");
-
-        given(jwtTokenUtil.verify("access-token")).willReturn(claims);
+        given(jwtTokenUtil.verifyRefreshToken("access-token"))
+                .willThrow(new JwtException("리프레시 토큰이 아닙니다."));
 
         // when & then
         assertThatThrownBy(() -> adminService.refreshToken("access-token"))
@@ -76,10 +73,9 @@ class AdminServiceImplTest {
     void refreshToken_nonAdminRole_throwsException() {
         // given
         Claims claims = mock(Claims.class);
-        given(claims.get("type", String.class)).willReturn("refresh");
         given(claims.get("role", String.class)).willReturn("MEMBER");
 
-        given(jwtTokenUtil.verify("member-refresh-token")).willReturn(claims);
+        given(jwtTokenUtil.verifyRefreshToken("member-refresh-token")).willReturn(claims);
 
         // when & then
         assertThatThrownBy(() -> adminService.refreshToken("member-refresh-token"))
@@ -94,7 +90,8 @@ class AdminServiceImplTest {
     @DisplayName("refreshToken - 만료/변조된 토큰이면 예외를 던진다")
     void refreshToken_expiredToken_throwsException() {
         // given
-        given(jwtTokenUtil.verify("expired-token")).willThrow(new JwtException("만료된 토큰"));
+        given(jwtTokenUtil.verifyRefreshToken("expired-token"))
+                .willThrow(new JwtException("만료된 토큰"));
 
         // when & then
         assertThatThrownBy(() -> adminService.refreshToken("expired-token"))
@@ -110,14 +107,31 @@ class AdminServiceImplTest {
     void refreshToken_invalidSubject_throwsException() {
         // given
         Claims claims = mock(Claims.class);
-        given(claims.get("type", String.class)).willReturn("refresh");
         given(claims.get("role", String.class)).willReturn("ADMIN");
         given(claims.getSubject()).willReturn("not-a-number");
 
-        given(jwtTokenUtil.verify("bad-subject-token")).willReturn(claims);
+        given(jwtTokenUtil.verifyRefreshToken("bad-subject-token")).willReturn(claims);
 
         // when & then
         assertThatThrownBy(() -> adminService.refreshToken("bad-subject-token"))
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(
+                        e ->
+                                assertThat(((ApplicationException) e).getCode())
+                                        .isEqualTo(AdminErrorCode.ADMIN_REFRESH_TOKEN_INVALID));
+    }
+
+    @Test
+    @DisplayName("refreshToken - role이 유효하지 않은 문자열이면 예외를 던진다")
+    void refreshToken_invalidRoleString_throwsException() {
+        // given
+        Claims claims = mock(Claims.class);
+        given(claims.get("role", String.class)).willReturn("INVALID_ROLE");
+
+        given(jwtTokenUtil.verifyRefreshToken("invalid-role-token")).willReturn(claims);
+
+        // when & then
+        assertThatThrownBy(() -> adminService.refreshToken("invalid-role-token"))
                 .isInstanceOf(ApplicationException.class)
                 .satisfies(
                         e ->

@@ -76,13 +76,7 @@ public class SignInServiceImpl implements SignInService {
     @Override
     public CustomerRefreshResponse refreshToken(String refreshToken) {
         try {
-            Claims claims = jwtTokenUtil.verify(refreshToken);
-            String type = claims.get("type", String.class);
-
-            if (!"refresh".equals(type)) {
-                throw new ApplicationException(CustomerErrorCode.CUSTOMER_REFRESH_TOKEN_INVALID);
-            }
-
+            Claims claims = jwtTokenUtil.verifyRefreshToken(refreshToken);
             RoleType role = RoleType.valueOf(claims.get("role", String.class));
 
             if (role == RoleType.ADMIN) {
@@ -96,7 +90,7 @@ public class SignInServiceImpl implements SignInService {
             long expiresIn = jwtTokenUtil.getRefreshTokenExpirationMillis() / 1000;
 
             return new CustomerRefreshResponse(newAccessToken, newRefreshToken, expiresIn);
-        } catch (JwtException | NumberFormatException e) {
+        } catch (JwtException | IllegalArgumentException e) {
             throw new ApplicationException(CustomerErrorCode.CUSTOMER_REFRESH_TOKEN_INVALID);
         }
     }

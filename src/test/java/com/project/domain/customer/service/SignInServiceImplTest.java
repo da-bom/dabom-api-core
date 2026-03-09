@@ -37,11 +37,10 @@ class SignInServiceImplTest {
     void refreshToken_validOwnerRefreshToken_returnsNewTokenPair() {
         // given
         Claims claims = mock(Claims.class);
-        given(claims.get("type", String.class)).willReturn("refresh");
         given(claims.get("role", String.class)).willReturn("OWNER");
         given(claims.getSubject()).willReturn("10");
 
-        given(jwtTokenUtil.verify("owner-refresh-token")).willReturn(claims);
+        given(jwtTokenUtil.verifyRefreshToken("owner-refresh-token")).willReturn(claims);
         given(jwtTokenUtil.createToken(10L, RoleType.OWNER)).willReturn("new-access");
         given(jwtTokenUtil.createRefreshToken(10L, RoleType.OWNER)).willReturn("new-refresh");
         given(jwtTokenUtil.getRefreshTokenExpirationMillis()).willReturn(1800000L);
@@ -60,11 +59,10 @@ class SignInServiceImplTest {
     void refreshToken_validMemberRefreshToken_returnsNewTokenPair() {
         // given
         Claims claims = mock(Claims.class);
-        given(claims.get("type", String.class)).willReturn("refresh");
         given(claims.get("role", String.class)).willReturn("MEMBER");
         given(claims.getSubject()).willReturn("20");
 
-        given(jwtTokenUtil.verify("member-refresh-token")).willReturn(claims);
+        given(jwtTokenUtil.verifyRefreshToken("member-refresh-token")).willReturn(claims);
         given(jwtTokenUtil.createToken(20L, RoleType.MEMBER)).willReturn("new-access");
         given(jwtTokenUtil.createRefreshToken(20L, RoleType.MEMBER)).willReturn("new-refresh");
         given(jwtTokenUtil.getRefreshTokenExpirationMillis()).willReturn(1800000L);
@@ -82,10 +80,8 @@ class SignInServiceImplTest {
     @DisplayName("refreshToken - access token을 사용하면 예외를 던진다")
     void refreshToken_accessToken_throwsException() {
         // given
-        Claims claims = mock(Claims.class);
-        given(claims.get("type", String.class)).willReturn("access");
-
-        given(jwtTokenUtil.verify("access-token")).willReturn(claims);
+        given(jwtTokenUtil.verifyRefreshToken("access-token"))
+                .willThrow(new JwtException("리프레시 토큰이 아닙니다."));
 
         // when & then
         assertThatThrownBy(() -> signInService.refreshToken("access-token"))
@@ -102,10 +98,9 @@ class SignInServiceImplTest {
     void refreshToken_adminRole_throwsException() {
         // given
         Claims claims = mock(Claims.class);
-        given(claims.get("type", String.class)).willReturn("refresh");
         given(claims.get("role", String.class)).willReturn("ADMIN");
 
-        given(jwtTokenUtil.verify("admin-refresh-token")).willReturn(claims);
+        given(jwtTokenUtil.verifyRefreshToken("admin-refresh-token")).willReturn(claims);
 
         // when & then
         assertThatThrownBy(() -> signInService.refreshToken("admin-refresh-token"))
@@ -121,7 +116,8 @@ class SignInServiceImplTest {
     @DisplayName("refreshToken - 만료/변조된 토큰이면 예외를 던진다")
     void refreshToken_expiredToken_throwsException() {
         // given
-        given(jwtTokenUtil.verify("expired-token")).willThrow(new JwtException("만료된 토큰"));
+        given(jwtTokenUtil.verifyRefreshToken("expired-token"))
+                .willThrow(new JwtException("만료된 토큰"));
 
         // when & then
         assertThatThrownBy(() -> signInService.refreshToken("expired-token"))
@@ -138,14 +134,32 @@ class SignInServiceImplTest {
     void refreshToken_invalidSubject_throwsException() {
         // given
         Claims claims = mock(Claims.class);
-        given(claims.get("type", String.class)).willReturn("refresh");
         given(claims.get("role", String.class)).willReturn("OWNER");
         given(claims.getSubject()).willReturn("not-a-number");
 
-        given(jwtTokenUtil.verify("bad-subject-token")).willReturn(claims);
+        given(jwtTokenUtil.verifyRefreshToken("bad-subject-token")).willReturn(claims);
 
         // when & then
         assertThatThrownBy(() -> signInService.refreshToken("bad-subject-token"))
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(
+                        e ->
+                                assertThat(((ApplicationException) e).getCode())
+                                        .isEqualTo(
+                                                CustomerErrorCode.CUSTOMER_REFRESH_TOKEN_INVALID));
+    }
+
+    @Test
+    @DisplayName("refreshToken - role이 유효하지 않은 문자열이면 예외를 던진다")
+    void refreshToken_invalidRoleString_throwsException() {
+        // given
+        Claims claims = mock(Claims.class);
+        given(claims.get("role", String.class)).willReturn("INVALID_ROLE");
+
+        given(jwtTokenUtil.verifyRefreshToken("invalid-role-token")).willReturn(claims);
+
+        // when & then
+        assertThatThrownBy(() -> signInService.refreshToken("invalid-role-token"))
                 .isInstanceOf(ApplicationException.class)
                 .satisfies(
                         e ->

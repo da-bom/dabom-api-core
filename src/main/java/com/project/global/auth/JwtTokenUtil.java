@@ -92,6 +92,15 @@ public class JwtTokenUtil {
         return RoleType.valueOf(roleStr);
     }
 
+    public Claims verifyRefreshToken(String token) {
+        Claims claims = verify(token);
+        String type = claims.get("type", String.class);
+        if (!"refresh".equals(type)) {
+            throw new JwtException("리프레시 토큰이 아닙니다.");
+        }
+        return claims;
+    }
+
     public long getRefreshTokenExpirationMillis() {
         return refreshExpirationMillis;
     }
