@@ -2,13 +2,17 @@ package com.project.domain.customer.controller;
 
 import jakarta.validation.Valid;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.project.domain.customer.dto.request.CustomerRefreshRequest;
 import com.project.domain.customer.dto.request.CustomerSignInRequest;
 import com.project.domain.customer.dto.request.CustomerSignUpRequest;
+import com.project.domain.customer.dto.response.CustomerRefreshResponse;
 import com.project.domain.customer.dto.response.SignInResponse;
 import com.project.domain.customer.dto.response.SignUpResponse;
 import com.project.domain.customer.service.SignInService;
@@ -39,5 +43,19 @@ public class CustomerController {
     public ApiResponse<SignUpResponse> signUp(
             @Valid @RequestBody CustomerSignUpRequest requestDto) {
         return ApiResponse.success(signInService.signUp(requestDto));
+    }
+
+    @PostMapping("/refresh")
+    @Operation(summary = "사용자 토큰 갱신", description = "리프레시 토큰으로 새 액세스 토큰을 발급합니다.")
+    public ApiResponse<CustomerRefreshResponse> refreshToken(
+            @Valid @RequestBody CustomerRefreshRequest request) {
+        return ApiResponse.success(signInService.refreshToken(request.refreshToken()));
+    }
+
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "사용자 로그아웃", description = "사용자 로그아웃 처리합니다. (클라이언트 측 토큰 삭제)")
+    public void logout() {
+        // 서버 측 처리 없음 — 클라이언트가 토큰을 삭제
     }
 }
