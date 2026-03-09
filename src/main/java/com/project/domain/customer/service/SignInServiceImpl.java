@@ -5,6 +5,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.project.domain.customer.dto.request.CustomerSignInRequest;
 import com.project.domain.customer.dto.request.CustomerSignUpRequest;
+import com.project.domain.customer.dto.response.CustomerRefreshResponse;
 import com.project.domain.customer.dto.response.SignInResponse;
 import com.project.domain.customer.dto.response.SignUpResponse;
 import com.project.domain.customer.entity.Customer;
@@ -16,6 +17,9 @@ import com.project.global.auth.JwtTokenUtil;
 import com.project.global.auth.PasswordHash;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.CustomerErrorCode;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -67,5 +71,27 @@ public class SignInServiceImpl implements SignInService {
         familyMemberRepository.save(familyMember);
 
         return new SignUpResponse(customer.getId());
+    }
+
+    @Override
+    public CustomerRefreshResponse refreshToken(String refreshToken) {
+        try {
+            Claims claims = jwtTokenUtil.verify(refreshToken);
+            RoleType role = RoleType.valueOf(claims.get("role", String.class));
+
+            if (role == RoleType.ADMIN) {
+                throw new ApplicationException(CustomerErrorCode.CUSTOMER_REFRESH_TOKEN_INVALID);
+            }
+
+            Long customerId = Long.parseLong(claims.getSubject());
+
+            String newAccessToken = jwtTokenUtil.createToken(customerId, role);
+            String newRefreshToken = jwtTokenUtil.createRefreshToken(customerId, role);
+            long expiresIn = jwtTokenUtil.getRefreshTokenExpirationMillis() / 1000;
+
+            return new CustomerRefreshResponse(newAccessToken, newRefreshToken, expiresIn);
+        } catch (JwtException e) {
+            throw new ApplicationException(CustomerErrorCode.CUSTOMER_REFRESH_TOKEN_INVALID);
+        }
     }
 }
