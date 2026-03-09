@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.project.domain.recap.dto.response.MonthlyRecapResponse;
+import com.project.domain.recap.model.MonthlyRecap;
 import com.project.domain.recap.service.RecapService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.CustomerId;
@@ -37,6 +38,7 @@ public class RecapController {
                     int year,
             @Parameter(description = "Month (1-12)", required = true) @RequestParam @Min(1) @Max(12)
                     int month) {
-        return ApiResponse.success(recapService.getMonthlyRecap(customerId, year, month));
+        MonthlyRecap monthlyRecap = recapService.getMonthlyRecap(customerId, year, month);
+        return ApiResponse.success(MonthlyRecapResponse.from(monthlyRecap));
     }
 }

@@ -10,8 +10,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.family.entity.Family;
 import com.project.domain.family.service.FamilyService;
-import com.project.domain.recap.dto.response.MonthlyRecapResponse;
 import com.project.domain.recap.entity.FamilyRecapMonthly;
+import com.project.domain.recap.model.MonthlyRecap;
 import com.project.domain.recap.repository.FamilyRecapMonthlyRepository;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.RecapErrorCode;
@@ -28,7 +28,7 @@ public class RecapServiceImpl implements RecapService {
     private final ObjectMapper objectMapper;
 
     @Override
-    public MonthlyRecapResponse getMonthlyRecap(Long customerId, int year, int month) {
+    public MonthlyRecap getMonthlyRecap(Long customerId, int year, int month) {
         Long familyId = familyService.getFamilyIdByCustomerId(customerId);
         LocalDate reportMonth = LocalDate.of(year, month, 1);
 
@@ -40,7 +40,7 @@ public class RecapServiceImpl implements RecapService {
 
         Family family = familyService.getFamilyById(familyId);
 
-        return new MonthlyRecapResponse(
+        return new MonthlyRecap(
                 recap.getId(),
                 recap.getFamilyId(),
                 family.getName(),
@@ -50,24 +50,24 @@ public class RecapServiceImpl implements RecapService {
                 recap.getUsageRatePercent(),
                 readSnapshot(
                         recap.getUsageByWeekday(),
-                        MonthlyRecapResponse.UsageByWeekday.class,
-                        MonthlyRecapResponse.UsageByWeekday.empty()),
+                        MonthlyRecap.UsageByWeekday.class,
+                        MonthlyRecap.UsageByWeekday.empty()),
                 readSnapshot(
                         recap.getPeakUsage(),
-                        MonthlyRecapResponse.PeakUsage.class,
-                        MonthlyRecapResponse.PeakUsage.empty()),
+                        MonthlyRecap.PeakUsage.class,
+                        MonthlyRecap.PeakUsage.empty()),
                 readSnapshot(
                         recap.getMissionSummaryJson(),
-                        MonthlyRecapResponse.MissionSummary.class,
-                        MonthlyRecapResponse.MissionSummary.empty()),
+                        MonthlyRecap.MissionSummary.class,
+                        MonthlyRecap.MissionSummary.empty()),
                 readSnapshot(
                         recap.getAppealSummaryJson(),
-                        MonthlyRecapResponse.AppealSummary.class,
-                        MonthlyRecapResponse.AppealSummary.empty()),
+                        MonthlyRecap.AppealSummary.class,
+                        MonthlyRecap.AppealSummary.empty()),
                 readSnapshot(
                         recap.getAppealHighlightsJson(),
-                        MonthlyRecapResponse.AppealHighlights.class,
-                        MonthlyRecapResponse.AppealHighlights.empty()),
+                        MonthlyRecap.AppealHighlights.class,
+                        MonthlyRecap.AppealHighlights.empty()),
                 recap.getCommunicationScore(),
                 resolveGeneratedAt(recap));
     }
@@ -84,8 +84,7 @@ public class RecapServiceImpl implements RecapService {
             T value = objectMapper.readValue(json, type);
             return value == null ? defaultValue : value;
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException(
-                    "Failed to parse family recap monthly snapshot: " + type.getSimpleName(), e);
+            throw new ApplicationException(RecapErrorCode.RECAP_JSON_DESERIALIZATION_FAILED);
         }
     }
 }

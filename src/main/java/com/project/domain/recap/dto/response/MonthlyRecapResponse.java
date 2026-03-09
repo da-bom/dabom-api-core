@@ -5,6 +5,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.project.domain.recap.model.MonthlyRecap;
+
 public record MonthlyRecapResponse(
         Long recapId,
         Long familyId,
@@ -21,6 +23,24 @@ public record MonthlyRecapResponse(
         BigDecimal communicationScore,
         LocalDateTime generatedAt) {
 
+    public static MonthlyRecapResponse from(MonthlyRecap monthlyRecap) {
+        return new MonthlyRecapResponse(
+                monthlyRecap.recapId(),
+                monthlyRecap.familyId(),
+                monthlyRecap.familyName(),
+                monthlyRecap.reportMonth(),
+                monthlyRecap.totalUsedBytes(),
+                monthlyRecap.totalQuotaBytes(),
+                monthlyRecap.usageRatePercent(),
+                UsageByWeekday.from(monthlyRecap.usageByWeekday()),
+                PeakUsage.from(monthlyRecap.peakUsage()),
+                MissionSummary.from(monthlyRecap.missionSummary()),
+                AppealSummary.from(monthlyRecap.appealSummary()),
+                AppealHighlights.from(monthlyRecap.appealHighlights()),
+                monthlyRecap.communicationScore(),
+                monthlyRecap.generatedAt());
+    }
+
     public record UsageByWeekday(
             Double monday,
             Double tuesday,
@@ -30,28 +50,22 @@ public record MonthlyRecapResponse(
             Double saturday,
             Double sunday) {
 
-        public UsageByWeekday {
-            monday = defaultToZero(monday);
-            tuesday = defaultToZero(tuesday);
-            wednesday = defaultToZero(wednesday);
-            thursday = defaultToZero(thursday);
-            friday = defaultToZero(friday);
-            saturday = defaultToZero(saturday);
-            sunday = defaultToZero(sunday);
-        }
-
-        public static UsageByWeekday empty() {
-            return new UsageByWeekday(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-        }
-
-        private static Double defaultToZero(Double value) {
-            return value == null ? 0.0 : value;
+        public static UsageByWeekday from(MonthlyRecap.UsageByWeekday usageByWeekday) {
+            return new UsageByWeekday(
+                    usageByWeekday.monday(),
+                    usageByWeekday.tuesday(),
+                    usageByWeekday.wednesday(),
+                    usageByWeekday.thursday(),
+                    usageByWeekday.friday(),
+                    usageByWeekday.saturday(),
+                    usageByWeekday.sunday());
         }
     }
 
     public record PeakUsage(Integer startHour, Integer endHour, String mostUsedWeekday) {
-        public static PeakUsage empty() {
-            return new PeakUsage(null, null, null);
+        public static PeakUsage from(MonthlyRecap.PeakUsage peakUsage) {
+            return new PeakUsage(
+                    peakUsage.startHour(), peakUsage.endHour(), peakUsage.mostUsedWeekday());
         }
     }
 
@@ -60,28 +74,22 @@ public record MonthlyRecapResponse(
             Integer completedMissionCount,
             Integer rejectedRequestCount) {
 
-        public MissionSummary {
-            totalMissionCount = defaultToZero(totalMissionCount);
-            completedMissionCount = defaultToZero(completedMissionCount);
-            rejectedRequestCount = defaultToZero(rejectedRequestCount);
-        }
-
-        public static MissionSummary empty() {
-            return new MissionSummary(0, 0, 0);
+        public static MissionSummary from(MonthlyRecap.MissionSummary missionSummary) {
+            return new MissionSummary(
+                    missionSummary.totalMissionCount(),
+                    missionSummary.completedMissionCount(),
+                    missionSummary.rejectedRequestCount());
         }
     }
 
     public record AppealSummary(
             Integer totalAppeals, Integer approvedAppeals, Integer rejectedAppeals) {
 
-        public AppealSummary {
-            totalAppeals = defaultToZero(totalAppeals);
-            approvedAppeals = defaultToZero(approvedAppeals);
-            rejectedAppeals = defaultToZero(rejectedAppeals);
-        }
-
-        public static AppealSummary empty() {
-            return new AppealSummary(0, 0, 0);
+        public static AppealSummary from(MonthlyRecap.AppealSummary appealSummary) {
+            return new AppealSummary(
+                    appealSummary.totalAppeals(),
+                    appealSummary.approvedAppeals(),
+                    appealSummary.rejectedAppeals());
         }
     }
 
@@ -89,17 +97,10 @@ public record MonthlyRecapResponse(
             TopSuccessfulRequester topSuccessfulRequester,
             TopAcceptedApprover topAcceptedApprover) {
 
-        public AppealHighlights {
-            topSuccessfulRequester =
-                    topSuccessfulRequester == null
-                            ? TopSuccessfulRequester.empty()
-                            : topSuccessfulRequester;
-            topAcceptedApprover =
-                    topAcceptedApprover == null ? TopAcceptedApprover.empty() : topAcceptedApprover;
-        }
-
-        public static AppealHighlights empty() {
-            return new AppealHighlights(null, null);
+        public static AppealHighlights from(MonthlyRecap.AppealHighlights appealHighlights) {
+            return new AppealHighlights(
+                    TopSuccessfulRequester.from(appealHighlights.topSuccessfulRequester()),
+                    TopAcceptedApprover.from(appealHighlights.topAcceptedApprover()));
         }
     }
 
@@ -109,14 +110,15 @@ public record MonthlyRecapResponse(
             Integer approvedAppealCount,
             List<RecentApprovedAppeal> recentApprovedAppeals) {
 
-        public TopSuccessfulRequester {
-            approvedAppealCount = defaultToZero(approvedAppealCount);
-            recentApprovedAppeals =
-                    recentApprovedAppeals == null ? List.of() : List.copyOf(recentApprovedAppeals);
-        }
-
-        public static TopSuccessfulRequester empty() {
-            return new TopSuccessfulRequester(null, null, 0, List.of());
+        public static TopSuccessfulRequester from(
+                MonthlyRecap.TopSuccessfulRequester topSuccessfulRequester) {
+            return new TopSuccessfulRequester(
+                    topSuccessfulRequester.requesterId(),
+                    topSuccessfulRequester.requesterName(),
+                    topSuccessfulRequester.approvedAppealCount(),
+                    topSuccessfulRequester.recentApprovedAppeals().stream()
+                            .map(RecentApprovedAppeal::from)
+                            .toList());
         }
     }
 
@@ -125,7 +127,18 @@ public record MonthlyRecapResponse(
             Long approverId,
             String approverName,
             String requestReason,
-            LocalDateTime requestedAt) {}
+            LocalDateTime requestedAt) {
+
+        public static RecentApprovedAppeal from(
+                MonthlyRecap.RecentApprovedAppeal recentApprovedAppeal) {
+            return new RecentApprovedAppeal(
+                    recentApprovedAppeal.appealId(),
+                    recentApprovedAppeal.approverId(),
+                    recentApprovedAppeal.approverName(),
+                    recentApprovedAppeal.requestReason(),
+                    recentApprovedAppeal.requestedAt());
+        }
+    }
 
     public record TopAcceptedApprover(
             Long approverId,
@@ -133,14 +146,15 @@ public record MonthlyRecapResponse(
             Integer approvedAppealCount,
             List<RecentAcceptedAppeal> recentAcceptedAppeals) {
 
-        public TopAcceptedApprover {
-            approvedAppealCount = defaultToZero(approvedAppealCount);
-            recentAcceptedAppeals =
-                    recentAcceptedAppeals == null ? List.of() : List.copyOf(recentAcceptedAppeals);
-        }
-
-        public static TopAcceptedApprover empty() {
-            return new TopAcceptedApprover(null, null, 0, List.of());
+        public static TopAcceptedApprover from(
+                MonthlyRecap.TopAcceptedApprover topAcceptedApprover) {
+            return new TopAcceptedApprover(
+                    topAcceptedApprover.approverId(),
+                    topAcceptedApprover.approverName(),
+                    topAcceptedApprover.approvedAppealCount(),
+                    topAcceptedApprover.recentAcceptedAppeals().stream()
+                            .map(RecentAcceptedAppeal::from)
+                            .toList());
         }
     }
 
@@ -149,9 +163,16 @@ public record MonthlyRecapResponse(
             Long requesterId,
             String requesterName,
             String requestReason,
-            LocalDateTime resolvedAt) {}
+            LocalDateTime resolvedAt) {
 
-    private static Integer defaultToZero(Integer value) {
-        return value == null ? 0 : value;
+        public static RecentAcceptedAppeal from(
+                MonthlyRecap.RecentAcceptedAppeal recentAcceptedAppeal) {
+            return new RecentAcceptedAppeal(
+                    recentAcceptedAppeal.appealId(),
+                    recentAcceptedAppeal.requesterId(),
+                    recentAcceptedAppeal.requesterName(),
+                    recentAcceptedAppeal.requestReason(),
+                    recentAcceptedAppeal.resolvedAt());
+        }
     }
 }
