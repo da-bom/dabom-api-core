@@ -29,6 +29,4 @@ public record MissionListResult(List<MissionCard> missions, String nextCursor, b
             Long value,
             String unit,
             Long templateId) {}
-
-
 }

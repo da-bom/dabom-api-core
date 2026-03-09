@@ -65,12 +65,19 @@ public class Reward extends BaseEntity {
 
     @Override
     public String toString() {
-        return "Reward{" +
-                "id=" + id +
-                ", name='" + name + '\'' +
-                ", category=" + category +
-                ", value=" + value +
-                ", unit='" + unit + '\'' +
-                '}';
+        return "Reward{"
+                + "id="
+                + id
+                + ", name='"
+                + name
+                + '\''
+                + ", category="
+                + category
+                + ", value="
+                + value
+                + ", unit='"
+                + unit
+                + '\''
+                + '}';
     }
 }

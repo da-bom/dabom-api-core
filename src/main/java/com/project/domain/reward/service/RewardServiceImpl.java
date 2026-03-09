@@ -25,7 +25,6 @@ import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
 import com.project.domain.mission.repository.MissionRequestRepository;
 import com.project.domain.reward.dto.request.RespondRewardRequest;
-import com.project.domain.reward.entity.Reward;
 import com.project.domain.reward.model.ReceivedRewardListResult;
 import com.project.domain.reward.model.RewardRespondResult;
 import com.project.domain.reward.support.RewardDtoMapper;
@@ -236,6 +235,4 @@ public class RewardServiceImpl implements RewardService {
             throw new ApplicationException(MissionErrorCode.MISSION_INVALID_CURSOR);
         }
     }
-
-    /** Reward 엔티티를 API 응답용 보상 모델로 변환한다. */
 }
