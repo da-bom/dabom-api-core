@@ -79,4 +79,21 @@ public class PolicyAppeal extends BaseEntity {
 
     @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
+
+    @Override
+    public String toString() {
+        return "PolicyAppeal{" +
+                "id=" + id +
+                ", type=" + type +
+                ", requestReason='" + requestReason + '\'' +
+                ", rejectReason='" + rejectReason + '\'' +
+                ", desiredRules=" + desiredRules +
+                ", status=" + status +
+                ", resolvedAt=" + resolvedAt +
+                ", cancelledAt=" + cancelledAt +
+                ", hasPolicyAssignment=" + (policyAssignment != null) +
+                ", hasRequester=" + (requester != null) +
+                ", hasResolvedBy=" + (resolvedBy != null) +
+                '}';
+    }
 }
