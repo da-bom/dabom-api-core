@@ -60,6 +60,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public TokenRefreshResult refreshToken(String refreshToken) {
         try {
             Claims claims = jwtTokenUtil.verifyRefreshToken(refreshToken);

@@ -13,7 +13,7 @@ import com.project.domain.admin.service.AdminService;
 import com.project.domain.customer.dto.response.SignInResponse;
 import com.project.domain.customer.dto.response.SignUpResponse;
 import com.project.global.api.response.ApiResponse;
-import com.project.global.auth.TokenRefreshResponse;
+import com.project.global.api.response.TokenRefreshResponse;
 import com.project.global.auth.TokenRefreshResult;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -50,9 +50,7 @@ public class AdminController {
     public ApiResponse<TokenRefreshResponse> refreshToken(
             @Valid @RequestBody AdminRefreshRequest request) {
         TokenRefreshResult result = adminService.refreshToken(request.refreshToken());
-        return ApiResponse.success(
-                new TokenRefreshResponse(
-                        result.accessToken(), result.refreshToken(), result.expiresIn()));
+        return ApiResponse.success(TokenRefreshResponse.from(result));
     }
 
     @PostMapping("/logout")

@@ -74,6 +74,7 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public TokenRefreshResult refreshToken(String refreshToken) {
         try {
             Claims claims = jwtTokenUtil.verifyRefreshToken(refreshToken);
