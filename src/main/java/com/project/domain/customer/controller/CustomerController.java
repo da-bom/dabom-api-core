@@ -10,11 +10,11 @@ import org.springframework.web.bind.annotation.RestController;
 import com.project.domain.customer.dto.request.CustomerRefreshRequest;
 import com.project.domain.customer.dto.request.CustomerSignInRequest;
 import com.project.domain.customer.dto.request.CustomerSignUpRequest;
-import com.project.domain.customer.dto.response.CustomerRefreshResponse;
 import com.project.domain.customer.dto.response.SignInResponse;
 import com.project.domain.customer.dto.response.SignUpResponse;
 import com.project.domain.customer.service.SignInService;
 import com.project.global.api.response.ApiResponse;
+import com.project.global.auth.TokenRefreshResponse;
 import com.project.global.auth.TokenRefreshResult;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,11 +46,11 @@ public class CustomerController {
 
     @PostMapping("/refresh")
     @Operation(summary = "사용자 토큰 갱신", description = "리프레시 토큰으로 새 액세스 토큰을 발급합니다.")
-    public ApiResponse<CustomerRefreshResponse> refreshToken(
+    public ApiResponse<TokenRefreshResponse> refreshToken(
             @Valid @RequestBody CustomerRefreshRequest request) {
         TokenRefreshResult result = signInService.refreshToken(request.refreshToken());
         return ApiResponse.success(
-                new CustomerRefreshResponse(
+                new TokenRefreshResponse(
                         result.accessToken(), result.refreshToken(), result.expiresIn()));
     }
 
