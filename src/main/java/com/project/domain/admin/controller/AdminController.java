@@ -2,12 +2,16 @@ package com.project.domain.admin.controller;
 
 import jakarta.validation.Valid;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.project.domain.admin.dto.request.AdminRefreshRequest;
 import com.project.domain.admin.dto.request.AdminSignInRequest;
+import com.project.domain.admin.dto.response.AdminRefreshResponse;
 import com.project.domain.admin.service.AdminService;
 import com.project.domain.customer.dto.response.SignInResponse;
 import com.project.domain.customer.dto.response.SignUpResponse;
@@ -40,5 +44,19 @@ public class AdminController {
             @Valid @RequestBody AdminSignInRequest signInRequest) {
         return ApiResponse.success(
                 adminService.signUp(signInRequest.email(), signInRequest.password()));
+    }
+
+    @PostMapping("/refresh")
+    @Operation(summary = "관리자 토큰 갱신", description = "리프레시 토큰으로 새 액세스 토큰을 발급합니다.")
+    public ApiResponse<AdminRefreshResponse> refreshToken(
+            @Valid @RequestBody AdminRefreshRequest request) {
+        return ApiResponse.success(adminService.refreshToken(request.refreshToken()));
+    }
+
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "관리자 로그아웃", description = "관리자 로그아웃 처리합니다. (클라이언트 측 토큰 삭제)")
+    public void logout() {
+        // 서버 측 처리 없음 — 클라이언트가 토큰을 삭제
     }
 }
