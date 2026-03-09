@@ -1,11 +1,11 @@
-package com.project.domain.mission.entity;
+package com.project.domain.reward.entity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import com.project.domain.mission.enums.RewardCategory;
+import com.project.domain.reward.enums.RewardCategory;
 
 class RewardTest {
 

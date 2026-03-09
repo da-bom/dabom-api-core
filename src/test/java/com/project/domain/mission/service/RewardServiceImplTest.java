@@ -1,4 +1,4 @@
-package com.project.domain.mission.service;
+package com.project.domain.reward.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -19,18 +19,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.customer.repository.CustomerRepository;
-import com.project.domain.mission.dto.request.RespondRewardRequest;
 import com.project.domain.mission.entity.MissionItem;
 import com.project.domain.mission.entity.MissionRequest;
-import com.project.domain.mission.entity.Reward;
-import com.project.domain.mission.entity.RewardTemplate;
 import com.project.domain.mission.enums.MissionRequestStatus;
 import com.project.domain.mission.enums.MissionStatus;
-import com.project.domain.mission.enums.RewardCategory;
 import com.project.domain.mission.model.AuthContext;
 import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
 import com.project.domain.mission.repository.MissionRequestRepository;
+import com.project.domain.reward.dto.request.RespondRewardRequest;
+import com.project.domain.reward.entity.Reward;
+import com.project.domain.reward.entity.RewardTemplate;
+import com.project.domain.reward.enums.RewardCategory;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.MissionErrorCode;
 

@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.LocalDate;
 import java.util.Map;
+import java.util.Objects;
 
 import jakarta.transaction.Transactional;
 
@@ -39,17 +40,17 @@ import com.project.domain.family.repository.FamilyRepository;
 import com.project.domain.mission.entity.MissionItem;
 import com.project.domain.mission.entity.MissionLog;
 import com.project.domain.mission.entity.MissionRequest;
-import com.project.domain.mission.entity.Reward;
-import com.project.domain.mission.entity.RewardTemplate;
 import com.project.domain.mission.enums.MissionLogActionType;
 import com.project.domain.mission.enums.MissionRequestStatus;
 import com.project.domain.mission.enums.MissionStatus;
-import com.project.domain.mission.enums.RewardCategory;
 import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
 import com.project.domain.mission.repository.MissionRequestRepository;
-import com.project.domain.mission.repository.RewardRepository;
-import com.project.domain.mission.repository.RewardTemplateRepository;
+import com.project.domain.reward.entity.Reward;
+import com.project.domain.reward.entity.RewardTemplate;
+import com.project.domain.reward.enums.RewardCategory;
+import com.project.domain.reward.repository.RewardRepository;
+import com.project.domain.reward.repository.RewardTemplateRepository;
 import com.project.global.auth.JwtTokenUtil;
 
 @SpringBootTest
@@ -219,10 +220,17 @@ class MissionRewardControllerIntegrationTest {
                 break;
             }
         }
+        // 테스트 관점에서 null 체크
         assertThat(existingMissionNode).isNotNull();
-        assertRewardNode(
-                existingMissionNode.path("reward"), rewardTemplate.getId(), "data reward", 200L);
 
+        // 컴파일러/정적분석기 관점에서도 null 아님을 명확히 표현
+        JsonNode nonNullExistingMissionNode = Objects.requireNonNull(existingMissionNode);
+
+        assertRewardNode(
+                nonNullExistingMissionNode.path("reward"),
+                rewardTemplate.getId(),
+                "data reward",
+                200L);
         MvcResult logsResult =
                 mockMvc.perform(
                                 get("/missions/logs")

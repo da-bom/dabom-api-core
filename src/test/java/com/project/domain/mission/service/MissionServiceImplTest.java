@@ -28,18 +28,17 @@ import com.project.domain.mission.dto.request.CreateMissionRequest;
 import com.project.domain.mission.entity.MissionItem;
 import com.project.domain.mission.entity.MissionLog;
 import com.project.domain.mission.entity.MissionRequest;
-import com.project.domain.mission.entity.Reward;
-import com.project.domain.mission.entity.RewardTemplate;
 import com.project.domain.mission.enums.MissionLogActionType;
 import com.project.domain.mission.enums.MissionRequestStatus;
 import com.project.domain.mission.enums.MissionStatus;
-import com.project.domain.mission.enums.RewardCategory;
 import com.project.domain.mission.model.AuthContext;
 import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
 import com.project.domain.mission.repository.MissionRequestRepository;
-import com.project.domain.mission.repository.RewardRepository;
-import com.project.domain.mission.repository.RewardTemplateRepository;
+import com.project.domain.reward.entity.Reward;
+import com.project.domain.reward.entity.RewardTemplate;
+import com.project.domain.reward.enums.RewardCategory;
+import com.project.domain.reward.service.RewardSnapshotService;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.MissionErrorCode;
 
@@ -49,8 +48,7 @@ class MissionServiceImplTest {
     @Mock private MissionItemRepository missionItemRepository;
     @Mock private MissionRequestRepository missionRequestRepository;
     @Mock private MissionLogRepository missionLogRepository;
-    @Mock private RewardRepository rewardRepository;
-    @Mock private RewardTemplateRepository rewardTemplateRepository;
+    @Mock private RewardSnapshotService rewardSnapshotService;
     @Mock private CustomerRepository customerRepository;
     @Mock private FamilyMemberRepository familyMemberRepository;
 
@@ -149,8 +147,7 @@ class MissionServiceImplTest {
                         .build();
 
         given(familyMemberRepository.findByCustomerId(2L)).willReturn(Optional.of(target));
-        given(rewardTemplateRepository.findById(500L)).willReturn(Optional.of(template));
-        given(rewardRepository.save(any(Reward.class))).willReturn(savedReward);
+        given(rewardSnapshotService.createFromTemplate(500L, 100L)).willReturn(savedReward);
         given(missionItemRepository.save(any(MissionItem.class)))
                 .willAnswer(
                         invocation -> {
@@ -169,7 +166,7 @@ class MissionServiceImplTest {
         var result = missionService.createMission(auth, request);
 
         assertThat(result.missionItemId()).isEqualTo(300L);
-        verify(rewardRepository).save(any(Reward.class));
+        verify(rewardSnapshotService).createFromTemplate(500L, 100L);
         verify(missionItemRepository).save(any(MissionItem.class));
     }
 
