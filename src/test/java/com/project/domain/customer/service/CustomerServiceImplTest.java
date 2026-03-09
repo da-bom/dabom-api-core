@@ -24,13 +24,13 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 
 @ExtendWith(MockitoExtension.class)
-class SignInServiceImplTest {
+class CustomerServiceImplTest {
 
     @Mock private CustomerRepository customerRepository;
     @Mock private FamilyMemberRepository familyMemberRepository;
     @Mock private JwtTokenUtil jwtTokenUtil;
 
-    @InjectMocks private SignInServiceImpl signInService;
+    @InjectMocks private CustomerServiceImpl customerService;
 
     @Test
     @DisplayName("refreshToken - OWNER role의 유효한 refresh token이면 새 토큰 쌍을 반환한다")
@@ -46,7 +46,7 @@ class SignInServiceImplTest {
                 .willReturn(new TokenRefreshResult("new-access", "new-refresh", 1800L));
 
         // when
-        TokenRefreshResult result = signInService.refreshToken("owner-refresh-token");
+        TokenRefreshResult result = customerService.refreshToken("owner-refresh-token");
 
         // then
         assertThat(result.accessToken()).isEqualTo("new-access");
@@ -68,7 +68,7 @@ class SignInServiceImplTest {
                 .willReturn(new TokenRefreshResult("new-access", "new-refresh", 1800L));
 
         // when
-        TokenRefreshResult result = signInService.refreshToken("member-refresh-token");
+        TokenRefreshResult result = customerService.refreshToken("member-refresh-token");
 
         // then
         assertThat(result.accessToken()).isEqualTo("new-access");
@@ -84,7 +84,7 @@ class SignInServiceImplTest {
                 .willThrow(new JwtException("리프레시 토큰이 아닙니다."));
 
         // when & then
-        assertThatThrownBy(() -> signInService.refreshToken("access-token"))
+        assertThatThrownBy(() -> customerService.refreshToken("access-token"))
                 .isInstanceOf(ApplicationException.class)
                 .satisfies(
                         e ->
@@ -103,7 +103,7 @@ class SignInServiceImplTest {
         given(jwtTokenUtil.verifyRefreshToken("admin-refresh-token")).willReturn(claims);
 
         // when & then
-        assertThatThrownBy(() -> signInService.refreshToken("admin-refresh-token"))
+        assertThatThrownBy(() -> customerService.refreshToken("admin-refresh-token"))
                 .isInstanceOf(ApplicationException.class)
                 .satisfies(
                         e ->
@@ -120,7 +120,7 @@ class SignInServiceImplTest {
                 .willThrow(new JwtException("만료된 토큰"));
 
         // when & then
-        assertThatThrownBy(() -> signInService.refreshToken("expired-token"))
+        assertThatThrownBy(() -> customerService.refreshToken("expired-token"))
                 .isInstanceOf(ApplicationException.class)
                 .satisfies(
                         e ->
@@ -140,7 +140,7 @@ class SignInServiceImplTest {
         given(jwtTokenUtil.verifyRefreshToken("bad-subject-token")).willReturn(claims);
 
         // when & then
-        assertThatThrownBy(() -> signInService.refreshToken("bad-subject-token"))
+        assertThatThrownBy(() -> customerService.refreshToken("bad-subject-token"))
                 .isInstanceOf(ApplicationException.class)
                 .satisfies(
                         e ->
@@ -161,7 +161,7 @@ class SignInServiceImplTest {
         given(familyMemberRepository.findRoleById(999L)).willReturn(null);
 
         // when & then
-        assertThatThrownBy(() -> signInService.refreshToken("deleted-customer-token"))
+        assertThatThrownBy(() -> customerService.refreshToken("deleted-customer-token"))
                 .isInstanceOf(ApplicationException.class)
                 .satisfies(
                         e ->
@@ -180,7 +180,7 @@ class SignInServiceImplTest {
         given(jwtTokenUtil.verifyRefreshToken("invalid-role-token")).willReturn(claims);
 
         // when & then
-        assertThatThrownBy(() -> signInService.refreshToken("invalid-role-token"))
+        assertThatThrownBy(() -> customerService.refreshToken("invalid-role-token"))
                 .isInstanceOf(ApplicationException.class)
                 .satisfies(
                         e ->

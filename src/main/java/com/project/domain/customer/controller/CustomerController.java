@@ -12,7 +12,7 @@ import com.project.domain.customer.dto.request.CustomerSignInRequest;
 import com.project.domain.customer.dto.request.CustomerSignUpRequest;
 import com.project.domain.customer.dto.response.SignInResponse;
 import com.project.domain.customer.dto.response.SignUpResponse;
-import com.project.domain.customer.service.SignInService;
+import com.project.domain.customer.service.CustomerService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.TokenRefreshResponse;
 import com.project.global.auth.TokenRefreshResult;
@@ -28,27 +28,27 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CustomerController {
 
-    private final SignInService signInService;
+    private final CustomerService customerService;
 
     @PostMapping("/login")
     @Operation(summary = "사용자 로그인", description = "사용자 이메일/비밀번호로 로그인합니다.")
     public ApiResponse<SignInResponse> signIn(
             @Valid @RequestBody CustomerSignInRequest requestDto) {
-        return ApiResponse.success(signInService.signIn(requestDto));
+        return ApiResponse.success(customerService.signIn(requestDto));
     }
 
     @PostMapping("/signup")
     @Operation(summary = "사용자 회원가입", description = "사용자 이메일/비밀번호로 회원가입합니다.")
     public ApiResponse<SignUpResponse> signUp(
             @Valid @RequestBody CustomerSignUpRequest requestDto) {
-        return ApiResponse.success(signInService.signUp(requestDto));
+        return ApiResponse.success(customerService.signUp(requestDto));
     }
 
     @PostMapping("/refresh")
     @Operation(summary = "사용자 토큰 갱신", description = "리프레시 토큰으로 새 액세스 토큰을 발급합니다.")
     public ApiResponse<TokenRefreshResponse> refreshToken(
             @Valid @RequestBody CustomerRefreshRequest request) {
-        TokenRefreshResult result = signInService.refreshToken(request.refreshToken());
+        TokenRefreshResult result = customerService.refreshToken(request.refreshToken());
         return ApiResponse.success(
                 new TokenRefreshResponse(
                         result.accessToken(), result.refreshToken(), result.expiresIn()));
