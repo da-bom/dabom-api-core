@@ -91,6 +91,51 @@ class MissionServiceImplTest {
     }
 
     @Test
+    @DisplayName("미션 목록 조회 시 요청 상태가 APPROVED 인 미션은 제외하고 PENDING 또는 요청 이력 없는 미션만 반환한다")
+    void listMissions_returnsOnlyPendingOrNoRequestStatus() {
+        AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
+        MissionItem pendingMission =
+                mission(100L, 10L, 2L, 1L, reward(900L, 500L, 100L), "pending mission");
+        MissionItem approvedMission =
+                mission(99L, 10L, 2L, 1L, reward(901L, 500L, 200L), "approved mission");
+        MissionItem noRequestMission =
+                mission(98L, 10L, 2L, 1L, reward(902L, 500L, 300L), "no request mission");
+
+        given(
+                        missionItemRepository.findByFamilyScope(
+                                10L, MissionStatus.ACTIVE, null, PageRequest.of(0, 21)))
+                .willReturn(List.of(pendingMission, approvedMission, noRequestMission));
+        given(
+                        missionRequestRepository.findByMissionItemIdInOrderByCreatedAtDescIdDesc(
+                                java.util.Set.of(100L, 99L, 98L)))
+                .willReturn(
+                        List.of(
+                                MissionRequest.builder()
+                                        .id(201L)
+                                        .missionItemId(100L)
+                                        .requesterId(2L)
+                                        .status(MissionRequestStatus.PENDING)
+                                        .build(),
+                                MissionRequest.builder()
+                                        .id(202L)
+                                        .missionItemId(99L)
+                                        .requesterId(2L)
+                                        .status(MissionRequestStatus.APPROVED)
+                                        .build()));
+        Customer owner = customer(1L, "owner");
+        Customer member = customer(2L, "member");
+        given(customerRepository.findAllById(anyIterable())).willReturn(List.of(owner, member));
+
+        var result = missionService.listMissions(auth, null, 20);
+
+        assertThat(result.missions()).hasSize(2);
+        assertThat(result.missions().stream().map(m -> m.missionItemId()).toList())
+                .containsExactly(100L, 98L);
+        assertThat(result.missions().get(0).requestStatus()).isEqualTo("PENDING");
+        assertThat(result.missions().get(1).requestStatus()).isNull();
+    }
+
+    @Test
     @DisplayName("미션 로그 응답은 reward 객체를 포함한다")
     void listMissionLogs_readsFromMissionLogRepository() {
         AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
