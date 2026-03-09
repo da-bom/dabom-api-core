@@ -32,6 +32,7 @@ import com.project.domain.mission.enums.MissionLogActionType;
 import com.project.domain.mission.enums.MissionRequestStatus;
 import com.project.domain.mission.enums.MissionStatus;
 import com.project.domain.mission.model.AuthContext;
+import com.project.domain.mission.model.MissionListResult;
 import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
 import com.project.domain.mission.repository.MissionRequestRepository;
@@ -129,7 +130,10 @@ class MissionServiceImplTest {
         var result = missionService.listMissions(auth, null, 20);
 
         assertThat(result.missions()).hasSize(2);
-        assertThat(result.missions().stream().map(m -> m.missionItemId()).toList())
+        assertThat(
+                        result.missions().stream()
+                                .map(MissionListResult.MissionCard::missionItemId)
+                                .toList())
                 .containsExactly(100L, 98L);
         assertThat(result.missions().get(0).requestStatus()).isEqualTo("PENDING");
         assertThat(result.missions().get(1).requestStatus()).isNull();

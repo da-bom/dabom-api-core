@@ -38,9 +38,7 @@ import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.family.repository.FamilyRepository;
 import com.project.domain.mission.entity.MissionItem;
 import com.project.domain.mission.entity.MissionLog;
-import com.project.domain.mission.entity.MissionRequest;
 import com.project.domain.mission.enums.MissionLogActionType;
-import com.project.domain.mission.enums.MissionRequestStatus;
 import com.project.domain.mission.enums.MissionStatus;
 import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
@@ -144,7 +142,9 @@ class MissionControllerIntegrationTest {
                                 .status(MissionStatus.ACTIVE)
                                 .build());
 
-        lenient().when(jwtTokenUtil.verify(org.mockito.ArgumentMatchers.anyString())).thenReturn(null);
+        lenient()
+                .when(jwtTokenUtil.verify(org.mockito.ArgumentMatchers.anyString()))
+                .thenReturn(null);
         lenient().when(jwtTokenUtil.getMemberId(OWNER_TOKEN)).thenReturn(owner.getId());
         lenient().when(jwtTokenUtil.getMemberId(MEMBER_TOKEN)).thenReturn(member.getId());
         lenient().when(jwtTokenUtil.getRole(OWNER_TOKEN)).thenReturn(RoleType.OWNER);
@@ -157,11 +157,16 @@ class MissionControllerIntegrationTest {
         String createBody =
                 objectMapper.writeValueAsString(
                         Map.of(
-                                "targetCustomerId", member.getId(),
-                                "rewardTemplateId", rewardTemplate.getId(),
-                                "missionText", "wash dishes",
-                                "rewardValue", 300,
-                                "rewardCategory", "DATA"));
+                                "targetCustomerId",
+                                member.getId(),
+                                "rewardTemplateId",
+                                rewardTemplate.getId(),
+                                "missionText",
+                                "wash dishes",
+                                "rewardValue",
+                                300,
+                                "rewardCategory",
+                                "DATA"));
 
         MvcResult createResult =
                 mockMvc.perform(
@@ -186,7 +191,9 @@ class MissionControllerIntegrationTest {
                         .andExpect(status().isOk())
                         .andReturn();
         JsonNode requestData =
-                objectMapper.readTree(requestResult.getResponse().getContentAsString()).path("data");
+                objectMapper
+                        .readTree(requestResult.getResponse().getContentAsString())
+                        .path("data");
         assertRewardNode(
                 requestData.path("missionItem").path("reward"),
                 rewardTemplate.getId(),
@@ -247,11 +254,16 @@ class MissionControllerIntegrationTest {
         String createBody =
                 objectMapper.writeValueAsString(
                         Map.of(
-                                "targetCustomerId", member.getId(),
-                                "rewardTemplateId", rewardTemplate.getId(),
-                                "missionText", "wash dishes",
-                                "rewardValue", 300,
-                                "rewardCategory", "MONEY"));
+                                "targetCustomerId",
+                                member.getId(),
+                                "rewardTemplateId",
+                                rewardTemplate.getId(),
+                                "missionText",
+                                "wash dishes",
+                                "rewardValue",
+                                300,
+                                "rewardCategory",
+                                "MONEY"));
 
         MvcResult result =
                 mockMvc.perform(
@@ -278,10 +290,14 @@ class MissionControllerIntegrationTest {
         String createBody =
                 objectMapper.writeValueAsString(
                         Map.of(
-                                "targetCustomerId", member.getId(),
-                                "rewardTemplateId", rewardTemplate.getId(),
-                                "missionText", "wash dishes",
-                                "rewardValue", 300));
+                                "targetCustomerId",
+                                member.getId(),
+                                "rewardTemplateId",
+                                rewardTemplate.getId(),
+                                "missionText",
+                                "wash dishes",
+                                "rewardValue",
+                                300));
 
         mockMvc.perform(
                         post("/missions")

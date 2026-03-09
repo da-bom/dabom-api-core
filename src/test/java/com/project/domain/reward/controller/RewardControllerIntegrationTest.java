@@ -140,7 +140,9 @@ class RewardControllerIntegrationTest {
                                 .status(MissionStatus.ACTIVE)
                                 .build());
 
-        lenient().when(jwtTokenUtil.verify(org.mockito.ArgumentMatchers.anyString())).thenReturn(null);
+        lenient()
+                .when(jwtTokenUtil.verify(org.mockito.ArgumentMatchers.anyString()))
+                .thenReturn(null);
         lenient().when(jwtTokenUtil.getMemberId(OWNER_TOKEN)).thenReturn(owner.getId());
         lenient().when(jwtTokenUtil.getMemberId(MEMBER_TOKEN)).thenReturn(member.getId());
         lenient().when(jwtTokenUtil.getRole(OWNER_TOKEN)).thenReturn(RoleType.OWNER);
@@ -173,7 +175,9 @@ class RewardControllerIntegrationTest {
                         .andExpect(status().isOk())
                         .andReturn();
         JsonNode respondData =
-                objectMapper.readTree(respondResult.getResponse().getContentAsString()).path("data");
+                objectMapper
+                        .readTree(respondResult.getResponse().getContentAsString())
+                        .path("data");
         assertRewardNode(
                 respondData.path("missionItem").path("reward"),
                 rewardTemplate.getId(),
@@ -230,7 +234,9 @@ class RewardControllerIntegrationTest {
                         .andExpect(status().isOk())
                         .andReturn();
         JsonNode receivedData =
-                objectMapper.readTree(receivedResult.getResponse().getContentAsString()).path("data");
+                objectMapper
+                        .readTree(receivedResult.getResponse().getContentAsString())
+                        .path("data");
         assertThat(receivedData.path("rewards").size()).isEqualTo(1);
         assertThat(receivedData.has("hasNext")).isTrue();
         assertThat(receivedData.has("nextCursor")).isTrue();
