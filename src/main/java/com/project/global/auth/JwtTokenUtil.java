@@ -24,6 +24,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class JwtTokenUtil {
 
+    private static final String TOKEN_TYPE_ACCESS = "access";
+    private static final String TOKEN_TYPE_REFRESH = "refresh";
+
     @Value("${spring.jwt.token.access-expiration-time}")
     private Long accessExpirationMillis;
 
@@ -41,11 +44,12 @@ public class JwtTokenUtil {
     }
 
     public String createToken(Long memberId, RoleType role) {
-        return generateToken(memberId.toString(), role, accessExpirationMillis, "access");
+        return generateToken(memberId.toString(), role, accessExpirationMillis, TOKEN_TYPE_ACCESS);
     }
 
     public String createRefreshToken(Long memberId, RoleType role) {
-        return generateToken(memberId.toString(), role, refreshExpirationMillis, "refresh");
+        return generateToken(
+                memberId.toString(), role, refreshExpirationMillis, TOKEN_TYPE_REFRESH);
     }
 
     private String generateToken(String subject, RoleType role, Long expirationTime, String type) {
@@ -90,7 +94,7 @@ public class JwtTokenUtil {
     public Claims verifyAccessToken(String token) {
         Claims claims = verify(token);
         String type = claims.get("type", String.class);
-        if (!"access".equals(type)) {
+        if (!TOKEN_TYPE_ACCESS.equals(type)) {
             throw new JwtException("액세스 토큰이 아닙니다.");
         }
         return claims;
@@ -99,7 +103,7 @@ public class JwtTokenUtil {
     public Claims verifyRefreshToken(String token) {
         Claims claims = verify(token);
         String type = claims.get("type", String.class);
-        if (!"refresh".equals(type)) {
+        if (!TOKEN_TYPE_REFRESH.equals(type)) {
             throw new JwtException("리프레시 토큰이 아닙니다.");
         }
         return claims;
