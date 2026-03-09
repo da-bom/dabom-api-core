@@ -77,7 +77,7 @@ public class AdminServiceImpl implements AdminService {
             }
 
             return jwtTokenUtil.reissueTokens(adminId, RoleType.ADMIN);
-        } catch (JwtException | IllegalArgumentException e) {
+        } catch (JwtException | IllegalArgumentException | NullPointerException e) {
             throw new ApplicationException(AdminErrorCode.ADMIN_REFRESH_TOKEN_INVALID);
         }
     }

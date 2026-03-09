@@ -92,7 +92,7 @@ public class CustomerServiceImpl implements CustomerService {
             }
 
             return jwtTokenUtil.reissueTokens(customerId, currentRole);
-        } catch (JwtException | IllegalArgumentException e) {
+        } catch (JwtException | IllegalArgumentException | NullPointerException e) {
             throw new ApplicationException(CustomerErrorCode.CUSTOMER_REFRESH_TOKEN_INVALID);
         }
     }

@@ -70,7 +70,7 @@ public class JwtTokenUtil {
         } catch (ExpiredJwtException e) {
             throw new JwtException("유효기간이 만료된 토큰입니다");
         } catch (JwtException | IllegalArgumentException e) {
-            throw new JwtException("토큰을 담지 않았습니다");
+            throw new JwtException("유효하지 않은 토큰입니다");
         }
     }
 
