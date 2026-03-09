@@ -27,7 +27,8 @@ public class AppealServiceImpl implements AppealService {
 
     /** 이의제기 목록 조회 */
     @Override
-    public AppealListResult getAppeals(AuthContext auth, AppealStatus status, Long cursor, int size) {
+    public AppealListResult getAppeals(
+            AuthContext auth, AppealStatus status, Long cursor, int size) {
         // 1. 요청 size를 기본값과 최대값 범위 안으로 보정한다.
         int pageSize = normalizeSize(size);
         // 2. 역할에 따라 OWNER는 가족 전체, MEMBER는 본인 이의제기만 조회한다.
