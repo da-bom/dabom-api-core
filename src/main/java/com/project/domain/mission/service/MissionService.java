@@ -1,11 +1,11 @@
 package com.project.domain.mission.service;
 
 import com.project.domain.mission.dto.request.CreateMissionRequest;
-import com.project.domain.mission.model.AuthContext;
 import com.project.domain.mission.model.CreateMissionResult;
 import com.project.domain.mission.model.MissionListResult;
 import com.project.domain.mission.model.MissionLogListResult;
 import com.project.domain.mission.model.MissionRequestResult;
+import com.project.global.auth.model.AuthContext;
 
 /** 미션 도메인 비즈니스 로직 인터페이스다. */
 public interface MissionService {
