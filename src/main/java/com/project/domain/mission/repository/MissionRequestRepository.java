@@ -1,6 +1,7 @@
 package com.project.domain.mission.repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import jakarta.persistence.LockModeType;
@@ -21,7 +22,7 @@ public interface MissionRequestRepository extends JpaRepository<MissionRequest, 
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select mr from MissionRequest mr where mr.id = :requestId")
-    java.util.Optional<MissionRequest> findByIdForUpdate(Long requestId);
+    Optional<MissionRequest> findByIdForUpdate(Long requestId);
 
     @Query(
             """
@@ -37,7 +38,7 @@ public interface MissionRequestRepository extends JpaRepository<MissionRequest, 
             select mr
             from MissionRequest mr
             where mr.requesterId = :requesterId
-              and mr.status = com.project.domain.mission.enums.MissionRequestStatus.APPROVED
+              and mr.status = MissionRequestStatus.APPROVED
               and mr.resolvedAt is not null
               and (:cursorId is null or mr.id < :cursorId)
             order by mr.id desc
