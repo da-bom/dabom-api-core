@@ -42,7 +42,6 @@ import com.project.domain.mission.enums.MissionLogActionType;
 import com.project.domain.mission.enums.MissionStatus;
 import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
-import com.project.domain.mission.repository.MissionRequestRepository;
 import com.project.domain.reward.entity.Reward;
 import com.project.domain.reward.entity.RewardTemplate;
 import com.project.domain.reward.enums.RewardCategory;
