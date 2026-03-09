@@ -22,11 +22,11 @@ import com.project.domain.mission.dto.request.CreateMissionRequest;
 import com.project.domain.mission.entity.MissionItem;
 import com.project.domain.mission.entity.MissionLog;
 import com.project.domain.mission.entity.MissionRequest;
+import com.project.domain.mission.entity.Reward;
 import com.project.domain.mission.entity.RewardTemplate;
 import com.project.domain.mission.enums.MissionLogActionType;
 import com.project.domain.mission.enums.MissionRequestStatus;
 import com.project.domain.mission.enums.MissionStatus;
-import com.project.domain.mission.enums.RewardCategory;
 import com.project.domain.mission.model.AuthContext;
 import com.project.domain.mission.model.CreateMissionResult;
 import com.project.domain.mission.model.MissionListResult;
@@ -35,13 +35,14 @@ import com.project.domain.mission.model.MissionRequestResult;
 import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
 import com.project.domain.mission.repository.MissionRequestRepository;
+import com.project.domain.mission.repository.RewardRepository;
 import com.project.domain.mission.repository.RewardTemplateRepository;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.MissionErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
-/** 미션 애플리케이션 서비스. */
+/** 미션 조회, 생성, 취소, 완료 요청을 처리하는 서비스 구현체. */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -54,51 +55,44 @@ public class MissionServiceImpl implements MissionService {
     private final MissionItemRepository missionItemRepository;
     private final MissionRequestRepository missionRequestRepository;
     private final MissionLogRepository missionLogRepository;
+    private final RewardRepository rewardRepository;
     private final RewardTemplateRepository rewardTemplateRepository;
     private final CustomerRepository customerRepository;
     private final FamilyMemberRepository familyMemberRepository;
 
-    /** 미션 목록 조회. */
+    /** 권한 범위에 맞는 활성 미션 목록을 커서 기반으로 조회한다. */
     @Override
     public MissionListResult listMissions(AuthContext auth, String cursor, int size) {
-        // 1. 커서 페이징 입력값을 정규화한다.
+        // 1. 커서 입력을 정규화하고 조회 범위를 결정한다.
         int pageSize = normalizeSize(size);
         Long cursorId = parseCursor(cursor);
 
-        // 2. 호출자 역할에 맞는 ACTIVE 미션 목록만 조회한다.
+        // 2. 역할별 조회 범위에 맞는 미션을 가져온다.
         List<MissionItem> missions = findActiveMissionItemsByRole(auth, cursorId, pageSize);
         boolean hasNext = missions.size() > pageSize;
         List<MissionItem> page = hasNext ? missions.subList(0, pageSize) : missions;
         String nextCursor = hasNext ? String.valueOf(page.getLast().getId()) : null;
 
-        // 3. 응답 조합에 필요한 연관 데이터와 요청 상태를 조회한다.
+        // 3. 응답 조합에 필요한 사용자명과 최신 요청 상태를 함께 로드한다.
         Map<Long, String> customerNameMap = loadCustomerNameMap(page);
-        Map<Long, RewardTemplate> rewardTemplateMap = loadRewardTemplateMap(page);
         Map<Long, String> requestStatusMap = loadMissionRequestStatusMap(page);
 
-        // 4. 조회한 도메인 데이터를 응답 모델로 변환한다.
         return new MissionListResult(
                 page.stream()
-                        .map(
-                                mission ->
-                                        toMissionCard(
-                                                mission,
-                                                customerNameMap,
-                                                rewardTemplateMap,
-                                                requestStatusMap))
+                        .map(mission -> toMissionCard(mission, customerNameMap, requestStatusMap))
                         .toList(),
                 nextCursor,
                 hasNext);
     }
 
-    /** 미션 로그 조회. */
+    /** 권한 범위에 맞는 미션 로그 목록을 커서 기반으로 조회한다. */
     @Override
     public MissionLogListResult listMissionLogs(AuthContext auth, String cursor, int size) {
-        // 1. 커서 페이징 입력값을 정규화한다.
+        // 1. 커서 입력을 정규화한다.
         int pageSize = normalizeSize(size);
         Long cursorId = parseCursor(cursor);
 
-        // 2. 호출자 권한 범위에 맞는 미션 로그를 조회한다.
+        // 2. OWNER는 가족 기준, MEMBER는 본인 기준으로 로그를 조회한다.
         List<MissionLog> logs =
                 auth.isOwner()
                         ? missionLogRepository.findByFamilyScope(
@@ -110,40 +104,29 @@ public class MissionServiceImpl implements MissionService {
         List<MissionLog> page = hasNext ? logs.subList(0, pageSize) : logs;
         String nextCursor = hasNext ? String.valueOf(page.getLast().getId()) : null;
 
-        // 3. 응답 조합에 필요한 미션, 사용자, 보상 템플릿 정보를 조회한다.
+        // 3. 로그에 연결된 미션과 사용자명을 조회해 응답 모델로 조합한다.
         Map<Long, MissionItem> missionMap =
                 missionItemRepository
-                        .findAllById(
+                        .findAllWithRewardByIdIn(
                                 page.stream()
                                         .map(MissionLog::getMissionItemId)
                                         .collect(Collectors.toSet()))
                         .stream()
                         .collect(Collectors.toMap(MissionItem::getId, Function.identity()));
         Map<Long, String> customerNameMap = loadCustomerNameMapFromLogs(page, missionMap);
-        Map<Long, RewardTemplate> rewardTemplateMap =
-                loadRewardTemplateMap(missionMap.values().stream().toList());
 
-        // 4. 조회한 도메인 데이터를 응답 모델로 변환한다.
-        List<MissionLogListResult.MissionLogItem> missionLogItems =
-                page.stream()
-                        .map(
-                                log ->
-                                        toMissionLogItem(
-                                                log,
-                                                missionMap,
-                                                customerNameMap,
-                                                rewardTemplateMap))
-                        .toList();
-
-        return new MissionLogListResult(missionLogItems, nextCursor, hasNext);
+        List<MissionLogListResult.MissionLogItem> items =
+                page.stream().map(log -> toMissionLogItem(log, missionMap, customerNameMap)).toList();
+        return new MissionLogListResult(items, nextCursor, hasNext);
     }
 
-    /** 미션 생성. */
+    /** OWNER가 미션을 생성하고 Reward 스냅샷을 함께 저장한다. */
     @Override
     @Transactional
     public CreateMissionResult createMission(AuthContext auth, CreateMissionRequest req) {
-        // 1. 요청자 권한과 대상 가족 구성원을 검증한다.
+        // 1. 요청자가 OWNER인지, 대상이 같은 가족의 MEMBER인지 검증한다.
         assertOwner(auth);
+
         FamilyMember targetMember =
                 familyMemberRepository
                         .findByCustomerId(req.targetCustomerId())
@@ -156,7 +139,7 @@ public class MissionServiceImpl implements MissionService {
             throw new ApplicationException(MissionErrorCode.MISSION_TARGET_INVALID);
         }
 
-        // 2. 보상 템플릿과 보상 카테고리 일치 여부를 검증한다.
+        // 2. 템플릿을 조회한 뒤 현재 값을 복사한 Reward 스냅샷을 생성한다.
         RewardTemplate rewardTemplate =
                 rewardTemplateRepository
                         .findById(req.rewardTemplateId())
@@ -165,57 +148,52 @@ public class MissionServiceImpl implements MissionService {
                                         new ApplicationException(
                                                 MissionErrorCode
                                                         .MISSION_REWARD_TEMPLATE_NOT_FOUND));
-        RewardCategory requestCategory = parseRewardCategory(req.rewardCategory());
-        if (!rewardTemplate.getCategory().equals(requestCategory)) {
-            throw new ApplicationException(MissionErrorCode.MISSION_REWARD_CATEGORY_MISMATCH);
-        }
 
-        // 3. 미션을 저장하고 생성 로그를 남긴다.
+        Reward reward =
+                rewardRepository.save(
+                        Reward.builder()
+                                .rewardTemplate(rewardTemplate)
+                                .name(rewardTemplate.getName())
+                                .category(rewardTemplate.getCategory())
+                                .value(req.rewardValue())
+                                .unit(rewardTemplate.getUnit())
+                                .build());
+
+        // 생성된 Reward를 미션에 연결해 저장한다.
         MissionItem mission =
                 missionItemRepository.save(
                         MissionItem.builder()
                                 .familyId(auth.familyId())
                                 .targetCustomerId(req.targetCustomerId())
                                 .createdById(auth.customerId())
-                                .rewardTemplateId(req.rewardTemplateId())
+                                .reward(reward)
                                 .missionText(req.missionText())
-                                .rewardValue(req.rewardValue())
                                 .status(MissionStatus.ACTIVE)
                                 .build());
 
-        appendLog(
-                mission.getId(),
-                auth.customerId(),
-                MissionLogActionType.CREATED,
-                "Mission created");
+        appendLog(mission.getId(), auth.customerId(), MissionLogActionType.CREATED, "Mission created");
         return new CreateMissionResult(mission.getId(), mission.getCreatedAt());
     }
 
-    /** 미션 취소. */
+    /** OWNER가 활성 미션을 취소한다. */
     @Override
     @Transactional
     public void cancelMission(AuthContext auth, Long missionId) {
-        // 1. 요청자 권한과 현재 미션 상태를 검증한다.
         assertOwner(auth);
         MissionItem mission = findMissionByFamilyScopeForUpdate(auth, missionId);
         if (!mission.canCancel()) {
             throw new ApplicationException(MissionErrorCode.MISSION_INVALID_STATUS_TRANSITION);
         }
 
-        // 2. 미션 상태를 변경하고 취소 로그를 남긴다.
         mission.cancel();
-        appendLog(
-                mission.getId(),
-                auth.customerId(),
-                MissionLogActionType.CANCELLED,
-                "Mission cancelled");
+        appendLog(mission.getId(), auth.customerId(), MissionLogActionType.CANCELLED, "Mission cancelled");
     }
 
-    /** 미션 승인 요청 생성. */
+    /** MEMBER가 본인에게 할당된 미션의 완료 승인을 요청한다. */
     @Override
     @Transactional
     public MissionRequestResult requestMissionApproval(AuthContext auth, Long missionId) {
-        // 1. 미션 담당자, 미션 상태, 중복 대기 요청 여부를 검증한다.
+        // 1. 미션 할당 대상과 상태, 중복 요청 여부를 검증한다.
         MissionItem mission = findMissionByFamilyScopeForUpdate(auth, missionId);
         if (!mission.isAssignedTo(auth.customerId())) {
             throw new ApplicationException(MissionErrorCode.MISSION_NOT_ASSIGNED);
@@ -228,7 +206,7 @@ public class MissionServiceImpl implements MissionService {
             throw new ApplicationException(MissionErrorCode.MISSION_REQUEST_DUPLICATED);
         }
 
-        // 2. 승인 요청을 생성하고 요청 로그를 남긴다.
+        // 2. 중복 생성 경쟁을 대비해 요청 저장 예외를 도메인 예외로 변환한다.
         MissionRequest request;
         try {
             request =
@@ -242,21 +220,9 @@ public class MissionServiceImpl implements MissionService {
             throw new ApplicationException(MissionErrorCode.MISSION_REQUEST_DUPLICATED);
         }
 
-        appendLog(
-                mission.getId(),
-                auth.customerId(),
-                MissionLogActionType.REQUESTED,
-                "Mission requested");
+        appendLog(mission.getId(), auth.customerId(), MissionLogActionType.REQUESTED, "Mission requested");
 
-        // 3. 응답 조합에 필요한 데이터를 조회한다.
-        RewardTemplate rewardTemplate =
-                rewardTemplateRepository
-                        .findById(mission.getRewardTemplateId())
-                        .orElseThrow(
-                                () ->
-                                        new ApplicationException(
-                                                MissionErrorCode
-                                                        .MISSION_REWARD_TEMPLATE_NOT_FOUND));
+        // 3. 응답에는 MissionItem이 참조하는 Reward 스냅샷을 그대로 사용한다.
         String requesterName =
                 customerRepository
                         .findById(auth.customerId())
@@ -265,20 +231,13 @@ public class MissionServiceImpl implements MissionService {
         return new MissionRequestResult(
                 request.getId(),
                 new MissionLogListResult.MissionItemSimple(
-                        mission.getId(),
-                        mission.getMissionText(),
-                        mission.getRewardValue(),
-                        new MissionListResult.RewardTemplate(
-                                rewardTemplate.getId(),
-                                rewardTemplate.getName(),
-                                rewardTemplate.getCategory(),
-                                rewardTemplate.getUnit())),
+                        mission.getId(), mission.getMissionText(), toReward(mission.getReward())),
                 request.getStatus().name(),
                 new MissionListResult.CustomerSummary(auth.customerId(), requesterName),
                 request.getCreatedAt());
     }
 
-    /** 역할별 활성 미션 조회. */
+    /** 역할에 따라 활성 미션 조회 범위를 분기한다. */
     private List<MissionItem> findActiveMissionItemsByRole(
             AuthContext auth, Long cursorId, int pageSize) {
         if (auth.isOwner()) {
@@ -292,16 +251,11 @@ public class MissionServiceImpl implements MissionService {
                 auth.customerId(), MissionStatus.ACTIVE, cursorId, PageRequest.of(0, pageSize + 1));
     }
 
-    /** 미션 카드 변환. */
+    /** MissionItem 엔티티를 미션 카드 응답 모델로 변환한다. */
     private MissionListResult.MissionCard toMissionCard(
             MissionItem mission,
             Map<Long, String> customerNameMap,
-            Map<Long, RewardTemplate> rewardTemplateMap,
             Map<Long, String> requestStatusMap) {
-        RewardTemplate template = rewardTemplateMap.get(mission.getRewardTemplateId());
-        if (template == null) {
-            throw new ApplicationException(MissionErrorCode.MISSION_REWARD_TEMPLATE_NOT_FOUND);
-        }
         return new MissionListResult.MissionCard(
                 mission.getId(),
                 mission.getMissionText(),
@@ -312,16 +266,11 @@ public class MissionServiceImpl implements MissionService {
                 new MissionListResult.CustomerSummary(
                         mission.getCreatedById(),
                         customerNameMap.getOrDefault(mission.getCreatedById(), UNKNOWN_NAME)),
-                new MissionListResult.RewardTemplate(
-                        template.getId(),
-                        template.getName(),
-                        template.getCategory(),
-                        template.getUnit()),
-                mission.getRewardValue(),
+                toReward(mission.getReward()),
                 mission.getCreatedAt());
     }
 
-    /** 미션 요청 상태 맵 조회. */
+    /** 미션별 최신 요청 상태를 맵 형태로 로드한다. */
     private Map<Long, String> loadMissionRequestStatusMap(List<MissionItem> missions) {
         Set<Long> missionIds =
                 missions.stream().map(MissionItem::getId).collect(Collectors.toSet());
@@ -335,33 +284,19 @@ public class MissionServiceImpl implements MissionService {
                                 (latest, ignored) -> latest));
     }
 
-    /** 미션 로그 응답 변환. */
+    /** 미션 로그 엔티티를 응답 모델로 변환한다. */
     private MissionLogListResult.MissionLogItem toMissionLogItem(
-            MissionLog log,
-            Map<Long, MissionItem> missionMap,
-            Map<Long, String> customerNameMap,
-            Map<Long, RewardTemplate> rewardTemplateMap) {
+            MissionLog log, Map<Long, MissionItem> missionMap, Map<Long, String> customerNameMap) {
         MissionItem mission = missionMap.get(log.getMissionItemId());
         if (mission == null) {
             throw new ApplicationException(MissionErrorCode.MISSION_NOT_FOUND);
-        }
-        RewardTemplate rewardTemplate = rewardTemplateMap.get(mission.getRewardTemplateId());
-        if (rewardTemplate == null) {
-            throw new ApplicationException(MissionErrorCode.MISSION_REWARD_TEMPLATE_NOT_FOUND);
         }
         return new MissionLogListResult.MissionLogItem(
                 log.getId(),
                 log.getActionType().name(),
                 log.getMessage(),
                 new MissionLogListResult.MissionItemSimple(
-                        mission.getId(),
-                        mission.getMissionText(),
-                        mission.getRewardValue(),
-                        new MissionListResult.RewardTemplate(
-                                rewardTemplate.getId(),
-                                rewardTemplate.getName(),
-                                rewardTemplate.getCategory(),
-                                rewardTemplate.getUnit())),
+                        mission.getId(), mission.getMissionText(), toReward(mission.getReward())),
                 new MissionListResult.CustomerSummary(
                         mission.getTargetCustomerId(),
                         customerNameMap.getOrDefault(mission.getTargetCustomerId(), UNKNOWN_NAME)),
@@ -373,7 +308,7 @@ public class MissionServiceImpl implements MissionService {
                 log.getCreatedAt());
     }
 
-    /** 미션 카드용 사용자 이름 맵 조회. */
+    /** 미션 목록 응답에 필요한 사용자명을 일괄 조회한다. */
     private Map<Long, String> loadCustomerNameMap(List<MissionItem> missions) {
         Set<Long> customerIds =
                 missions.stream()
@@ -387,7 +322,7 @@ public class MissionServiceImpl implements MissionService {
                 .collect(Collectors.toMap(Customer::getId, Customer::getName));
     }
 
-    /** 미션 로그용 사용자 이름 맵 조회. */
+    /** 미션 로그 응답에 필요한 사용자명을 일괄 조회한다. */
     private Map<Long, String> loadCustomerNameMapFromLogs(
             List<MissionLog> logs, Map<Long, MissionItem> missionMap) {
         Set<Long> customerIds =
@@ -407,22 +342,14 @@ public class MissionServiceImpl implements MissionService {
                 .collect(Collectors.toMap(Customer::getId, Customer::getName));
     }
 
-    /** 보상 템플릿 맵 조회. */
-    private Map<Long, RewardTemplate> loadRewardTemplateMap(List<MissionItem> missions) {
-        Set<Long> templateIds =
-                missions.stream().map(MissionItem::getRewardTemplateId).collect(Collectors.toSet());
-        return rewardTemplateRepository.findAllById(templateIds).stream()
-                .collect(Collectors.toMap(RewardTemplate::getId, Function.identity()));
-    }
-
-    /** 가족 범위 미션 조회 락 획득. */
+    /** 가족 범위 내 미션을 잠금과 함께 조회한다. */
     private MissionItem findMissionByFamilyScopeForUpdate(AuthContext auth, Long missionId) {
         return missionItemRepository
                 .findByIdAndFamilyIdForUpdate(missionId, auth.familyId())
                 .orElseThrow(() -> new ApplicationException(MissionErrorCode.MISSION_NOT_FOUND));
     }
 
-    /** 미션 로그 저장. */
+    /** 미션 이력 추적을 위해 로그를 추가한다. */
     private void appendLog(
             Long missionItemId,
             Long actorCustomerId,
@@ -437,23 +364,14 @@ public class MissionServiceImpl implements MissionService {
                         .build());
     }
 
-    /** 소유자 권한 검증. */
+    /** OWNER 전용 기능인지 검증한다. */
     private void assertOwner(AuthContext auth) {
         if (!auth.isOwner()) {
             throw new ApplicationException(MissionErrorCode.MISSION_OWNER_ONLY);
         }
     }
 
-    /** 보상 카테고리 파싱. */
-    private RewardCategory parseRewardCategory(String rewardCategory) {
-        try {
-            return RewardCategory.valueOf(rewardCategory.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new ApplicationException(MissionErrorCode.MISSION_REWARD_CATEGORY_MISMATCH);
-        }
-    }
-
-    /** 페이지 크기 정규화. */
+    /** 요청한 페이지 크기를 허용 범위로 보정한다. */
     private int normalizeSize(int size) {
         if (size <= 0) {
             return DEFAULT_CURSOR_SIZE;
@@ -461,7 +379,7 @@ public class MissionServiceImpl implements MissionService {
         return Math.min(size, MAX_CURSOR_SIZE);
     }
 
-    /** 커서 파싱. */
+    /** 커서 문자열을 Long으로 파싱한다. */
     private Long parseCursor(String cursor) {
         if (cursor == null || cursor.isBlank()) {
             return null;
@@ -471,5 +389,19 @@ public class MissionServiceImpl implements MissionService {
         } catch (NumberFormatException e) {
             throw new ApplicationException(MissionErrorCode.MISSION_INVALID_CURSOR);
         }
+    }
+
+    /** Reward 엔티티를 API 응답용 보상 모델로 변환한다. */
+    private MissionListResult.Reward toReward(Reward reward) {
+        if (reward == null || reward.getRewardTemplate() == null) {
+            throw new ApplicationException(MissionErrorCode.MISSION_REWARD_TEMPLATE_NOT_FOUND);
+        }
+        return new MissionListResult.Reward(
+                reward.getId(),
+                reward.getName(),
+                reward.getCategory(),
+                reward.getValue(),
+                reward.getUnit(),
+                reward.getRewardTemplate().getId());
     }
 }
