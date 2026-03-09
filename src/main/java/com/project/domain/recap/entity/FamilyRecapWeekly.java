@@ -1,4 +1,4 @@
-package com.project.domain.family.entity;
+package com.project.domain.recap.entity;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -21,18 +21,18 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Table(
-        name = "family_recap_monthly",
+        name = "family_recap_weekly",
         uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_family_recap_monthly_family_month",
-                        columnNames = {"family_id", "report_month"})
+            @UniqueConstraint(
+                    name = "uk_family_recap_weekly_family_week",
+                    columnNames = {"family_id", "week_start_date"})
         },
         indexes = {
-                @Index(name = "idx_recap_monthly_family_month", columnList = "family_id, report_month")
+            @Index(name = "idx_recap_weekly_family_week", columnList = "family_id, week_start_date")
         })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class FamilyRecapMonthly extends BaseEntity {
+public class FamilyRecapWeekly extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,8 +41,8 @@ public class FamilyRecapMonthly extends BaseEntity {
     @Column(name = "family_id", nullable = false)
     private Long familyId;
 
-    @Column(name = "report_month", nullable = false)
-    private LocalDate reportMonth;
+    @Column(name = "week_start_date", nullable = false)
+    private LocalDate weekStartDate;
 
     @Column(name = "total_used_bytes", nullable = false)
     private Long totalUsedBytes;
@@ -53,50 +53,49 @@ public class FamilyRecapMonthly extends BaseEntity {
     @Column(name = "usage_rate_percent", nullable = false, precision = 5, scale = 2)
     private BigDecimal usageRatePercent;
 
-    @Column(name = "usage_by_weekday", columnDefinition = "json")
+    @Column(name = "usage_by_weekday", columnDefinition = "json", nullable = false)
     private String usageByWeekday;
 
     @Column(name = "peak_usage", columnDefinition = "json")
     private String peakUsage;
 
-    @Column(name = "mission_summary_json", columnDefinition = "json")
-    private String missionSummaryJson;
+    @Column(name = "mission_created_count", nullable = false)
+    private int missionCreatedCount;
 
-    @Column(name = "appeal_summary_json", columnDefinition = "json")
-    private String appealSummaryJson;
+    @Column(name = "mission_completed_count", nullable = false)
+    private int missionCompletedCount;
 
-    @Column(name = "appeal_highlights_json", columnDefinition = "json")
-    private String appealHighlightsJson;
+    @Column(name = "mission_rejected_count", nullable = false)
+    private int missionRejectedCount;
 
-    @Column(name = "communication_score", precision = 5, scale = 2)
-    private BigDecimal communicationScore;
+    @Column(name = "appeal_count", nullable = false)
+    private int appealCount;
 
     @Builder
-    public FamilyRecapMonthly(
+    public FamilyRecapWeekly(
             Long id,
             Long familyId,
-            LocalDate reportMonth,
+            LocalDate weekStartDate,
             Long totalUsedBytes,
             Long totalQuotaBytes,
             BigDecimal usageRatePercent,
             String usageByWeekday,
             String peakUsage,
-            String missionSummaryJson,
-            String appealSummaryJson,
-            String appealHighlightsJson,
-            BigDecimal communicationScore) {
+            int missionCreatedCount,
+            int missionCompletedCount,
+            int missionRejectedCount,
+            int appealCount) {
         this.id = id;
         this.familyId = familyId;
-        this.reportMonth = reportMonth;
+        this.weekStartDate = weekStartDate;
         this.totalUsedBytes = totalUsedBytes;
         this.totalQuotaBytes = totalQuotaBytes;
         this.usageRatePercent = usageRatePercent;
         this.usageByWeekday = usageByWeekday;
         this.peakUsage = peakUsage;
-        this.missionSummaryJson = missionSummaryJson;
-        this.appealSummaryJson = appealSummaryJson;
-        this.appealHighlightsJson = appealHighlightsJson;
-        this.communicationScore = communicationScore;
+        this.missionCreatedCount = missionCreatedCount;
+        this.missionCompletedCount = missionCompletedCount;
+        this.missionRejectedCount = missionRejectedCount;
+        this.appealCount = appealCount;
     }
 }
-
