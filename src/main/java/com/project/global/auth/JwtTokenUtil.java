@@ -55,6 +55,7 @@ public class JwtTokenUtil {
             return Jwts.builder()
                     .setSubject(subject)
                     .claim("role", role.name())
+                    .claim("type", type)
                     .setExpiration(expiration)
                     .signWith(key)
                     .compact();
