@@ -116,7 +116,9 @@ public class MissionServiceImpl implements MissionService {
         Map<Long, String> customerNameMap = loadCustomerNameMapFromLogs(page, missionMap);
 
         List<MissionLogListResult.MissionLogItem> items =
-                page.stream().map(log -> toMissionLogItem(log, missionMap, customerNameMap)).toList();
+                page.stream()
+                        .map(log -> toMissionLogItem(log, missionMap, customerNameMap))
+                        .toList();
         return new MissionLogListResult(items, nextCursor, hasNext);
     }
 
@@ -171,7 +173,11 @@ public class MissionServiceImpl implements MissionService {
                                 .status(MissionStatus.ACTIVE)
                                 .build());
 
-        appendLog(mission.getId(), auth.customerId(), MissionLogActionType.CREATED, "Mission created");
+        appendLog(
+                mission.getId(),
+                auth.customerId(),
+                MissionLogActionType.CREATED,
+                "Mission created");
         return new CreateMissionResult(mission.getId(), mission.getCreatedAt());
     }
 
@@ -186,7 +192,11 @@ public class MissionServiceImpl implements MissionService {
         }
 
         mission.cancel();
-        appendLog(mission.getId(), auth.customerId(), MissionLogActionType.CANCELLED, "Mission cancelled");
+        appendLog(
+                mission.getId(),
+                auth.customerId(),
+                MissionLogActionType.CANCELLED,
+                "Mission cancelled");
     }
 
     /** MEMBER가 본인에게 할당된 미션의 완료 승인을 요청한다. */
@@ -220,7 +230,11 @@ public class MissionServiceImpl implements MissionService {
             throw new ApplicationException(MissionErrorCode.MISSION_REQUEST_DUPLICATED);
         }
 
-        appendLog(mission.getId(), auth.customerId(), MissionLogActionType.REQUESTED, "Mission requested");
+        appendLog(
+                mission.getId(),
+                auth.customerId(),
+                MissionLogActionType.REQUESTED,
+                "Mission requested");
 
         // 3. 응답에는 MissionItem이 참조하는 Reward 스냅샷을 그대로 사용한다.
         String requesterName =

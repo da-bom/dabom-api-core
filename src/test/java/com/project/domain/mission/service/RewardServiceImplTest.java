@@ -69,7 +69,8 @@ class RewardServiceImplTest {
         given(missionRequestRepository.findByIdForUpdate(100L)).willReturn(Optional.of(request));
         given(missionItemRepository.findByIdAndFamilyIdForUpdate(200L, 10L))
                 .willReturn(Optional.of(mission));
-        given(customerRepository.findById(1L)).willReturn(Optional.of(customer(1L, "owner")));
+        Customer owner = customer(1L, "owner");
+        given(customerRepository.findById(1L)).willReturn(Optional.of(owner));
 
         var result =
                 rewardService.respondRewardRequest(
@@ -95,7 +96,8 @@ class RewardServiceImplTest {
         given(missionRequestRepository.findByIdForUpdate(100L)).willReturn(Optional.of(request));
         given(missionItemRepository.findByIdAndFamilyIdForUpdate(200L, 10L))
                 .willReturn(Optional.of(mission));
-        given(customerRepository.findById(1L)).willReturn(Optional.of(customer(1L, "owner")));
+        Customer owner = customer(1L, "owner");
+        given(customerRepository.findById(1L)).willReturn(Optional.of(owner));
 
         var result =
                 rewardService.respondRewardRequest(
@@ -120,14 +122,16 @@ class RewardServiceImplTest {
                         .resolvedAt(java.time.LocalDateTime.now())
                         .build();
         given(
-                        missionRequestRepository.findApprovedByTargetCustomerIdOrderByResolvedAtDesc(
-                                org.mockito.ArgumentMatchers.eq(2L),
-                                org.mockito.ArgumentMatchers.isNull(),
-                                org.mockito.ArgumentMatchers.any()))
+                        missionRequestRepository
+                                .findApprovedByTargetCustomerIdOrderByResolvedAtDesc(
+                                        org.mockito.ArgumentMatchers.eq(2L),
+                                        org.mockito.ArgumentMatchers.isNull(),
+                                        org.mockito.ArgumentMatchers.any()))
                 .willReturn(List.of(approvedRequest));
         given(missionItemRepository.findAllWithRewardByIdIn(anyIterable()))
                 .willReturn(List.of(mission(200L, 10L, reward(900L, 500L, 100L))));
-        given(customerRepository.findAllById(anyIterable())).willReturn(List.of(customer(1L, "owner")));
+        Customer owner = customer(1L, "owner");
+        given(customerRepository.findAllById(anyIterable())).willReturn(List.of(owner));
 
         var result = rewardService.listReceivedRewards(auth, null, 20);
 

@@ -70,7 +70,8 @@ public class RewardServiceImpl implements RewardService {
         MissionRequestStatus requestedStatus = parseRequestedStatus(req.status());
         MissionItem mission =
                 missionItemRepository
-                        .findByIdAndFamilyIdForUpdate(missionRequest.getMissionItemId(), auth.familyId())
+                        .findByIdAndFamilyIdForUpdate(
+                                missionRequest.getMissionItemId(), auth.familyId())
                         .orElseThrow(
                                 () -> new ApplicationException(MissionErrorCode.MISSION_NOT_FOUND));
 
@@ -81,13 +82,21 @@ public class RewardServiceImpl implements RewardService {
             }
             missionRequest.approve(auth.customerId(), LocalDateTime.now());
             mission.complete(LocalDateTime.now());
-            appendLog(mission.getId(), auth.customerId(), MissionLogActionType.APPROVED, "Reward approved");
+            appendLog(
+                    mission.getId(),
+                    auth.customerId(),
+                    MissionLogActionType.APPROVED,
+                    "Reward approved");
         } else {
             if (req.rejectReason() == null || req.rejectReason().isBlank()) {
                 throw new ApplicationException(MissionErrorCode.MISSION_REJECT_REASON_REQUIRED);
             }
             missionRequest.reject(auth.customerId(), req.rejectReason(), LocalDateTime.now());
-            appendLog(mission.getId(), auth.customerId(), MissionLogActionType.REJECTED, "Reward rejected");
+            appendLog(
+                    mission.getId(),
+                    auth.customerId(),
+                    MissionLogActionType.REJECTED,
+                    "Reward rejected");
         }
 
         // 3. 응답에는 MissionItem에 연결된 Reward 스냅샷을 포함한다.

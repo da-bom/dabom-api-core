@@ -305,8 +305,7 @@ class MissionRewardControllerIntegrationTest {
                         .path("data")
                         .path("missionItemId")
                         .asLong();
-        MissionItem createdMission =
-                missionItemRepository.findById(createdMissionId).orElseThrow();
+        MissionItem createdMission = missionItemRepository.findById(createdMissionId).orElseThrow();
         assertThat(createdMission.getReward().getCategory()).isEqualTo(RewardCategory.DATA);
     }
 

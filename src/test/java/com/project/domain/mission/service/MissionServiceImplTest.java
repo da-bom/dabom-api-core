@@ -77,8 +77,9 @@ class MissionServiceImplTest {
                                         .requesterId(2L)
                                         .status(MissionRequestStatus.PENDING)
                                         .build()));
-        given(customerRepository.findAllById(anyIterable()))
-                .willReturn(List.of(customer(1L, "owner"), customer(2L, "member")));
+        Customer owner = customer(1L, "owner");
+        Customer member = customer(2L, "member");
+        given(customerRepository.findAllById(anyIterable())).willReturn(List.of(owner, member));
 
         var result = missionService.listMissions(auth, null, 20);
 
@@ -107,9 +108,11 @@ class MissionServiceImplTest {
 
         given(missionLogRepository.findByFamilyScope(10L, null, PageRequest.of(0, 21)))
                 .willReturn(List.of(log));
-        given(missionItemRepository.findAllWithRewardByIdIn(anyIterable())).willReturn(List.of(mission));
-        given(customerRepository.findAllById(anyIterable()))
-                .willReturn(List.of(customer(1L, "owner"), customer(2L, "member")));
+        given(missionItemRepository.findAllWithRewardByIdIn(anyIterable()))
+                .willReturn(List.of(mission));
+        Customer owner = customer(1L, "owner");
+        Customer member = customer(2L, "member");
+        given(customerRepository.findAllById(anyIterable())).willReturn(List.of(owner, member));
 
         var result = missionService.listMissionLogs(auth, null, 20);
 
@@ -212,7 +215,8 @@ class MissionServiceImplTest {
                                 .requesterId(2L)
                                 .status(MissionRequestStatus.PENDING)
                                 .build());
-        given(customerRepository.findById(2L)).willReturn(Optional.of(customer(2L, "member")));
+        Customer member = customer(2L, "member");
+        given(customerRepository.findById(2L)).willReturn(Optional.of(member));
 
         var result = missionService.requestMissionApproval(auth, 100L);
 
