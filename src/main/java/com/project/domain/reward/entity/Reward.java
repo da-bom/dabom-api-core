@@ -1,15 +1,18 @@
-package com.project.domain.mission.entity;
+package com.project.domain.reward.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
-import com.project.domain.mission.enums.RewardCategory;
+import com.project.domain.reward.enums.RewardCategory;
 import com.project.global.util.BaseEntity;
 
 import lombok.AccessLevel;
@@ -18,14 +21,18 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "reward_template")
+@Table(name = "reward")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class RewardTemplate extends BaseEntity {
+public class Reward extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "reward_template_id", nullable = false)
+    private RewardTemplate rewardTemplate;
 
     @Column(name = "name", nullable = false, length = 100)
     private String name;
@@ -34,28 +41,43 @@ public class RewardTemplate extends BaseEntity {
     @Column(name = "category", nullable = false, length = 20)
     private RewardCategory category;
 
-    @Column(name = "default_value", nullable = false)
-    private Long defaultValue;
+    @Column(name = "`value`", nullable = false)
+    private Long value;
 
     @Column(name = "unit", nullable = false, length = 20)
     private String unit;
 
-    @Column(name = "is_system", nullable = false)
-    private boolean isSystem;
-
     @Builder
-    public RewardTemplate(
+    public Reward(
             Long id,
+            RewardTemplate rewardTemplate,
             String name,
             RewardCategory category,
-            Long defaultValue,
-            String unit,
-            boolean isSystem) {
+            Long value,
+            String unit) {
         this.id = id;
+        this.rewardTemplate = rewardTemplate;
         this.name = name;
         this.category = category;
-        this.defaultValue = defaultValue;
+        this.value = value;
         this.unit = unit;
-        this.isSystem = isSystem;
+    }
+
+    @Override
+    public String toString() {
+        return "Reward{"
+                + "id="
+                + id
+                + ", name='"
+                + name
+                + '\''
+                + ", category="
+                + category
+                + ", value="
+                + value
+                + ", unit='"
+                + unit
+                + '\''
+                + '}';
     }
 }

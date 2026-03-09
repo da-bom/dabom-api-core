@@ -1,8 +1,9 @@
-package com.project.domain.mission.model;
+package com.project.domain.reward.model;
 
 import java.time.LocalDateTime;
 
-/** 보상 요청 응답 처리 결과 모델이다. */
+import com.project.domain.mission.model.MissionListResult;
+
 public record RewardRespondResult(
         Long requestId,
         String status,
@@ -11,11 +12,9 @@ public record RewardRespondResult(
         String rejectReason,
         LocalDateTime updatedAt) {
 
-    /** 상태 포함 미션 요약 모델이다. */
     public record MissionItemWithStatus(
             Long missionItemId,
             String missionText,
             String status,
-            Long rewardValue,
-            MissionListResult.RewardTemplate rewardTemplate) {}
+            MissionListResult.Reward reward) {}
 }

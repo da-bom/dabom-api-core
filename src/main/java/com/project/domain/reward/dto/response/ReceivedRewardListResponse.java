@@ -1,8 +1,8 @@
-package com.project.domain.mission.dto.response;
+package com.project.domain.reward.dto.response;
 
 import java.util.List;
 
-import com.project.domain.mission.model.ReceivedRewardListResult;
+import com.project.domain.reward.model.ReceivedRewardListResult;
 
 /** 보상 수령 내역 목록 응답 DTO */
 public record ReceivedRewardListResponse(

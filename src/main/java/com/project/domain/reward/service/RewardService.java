@@ -1,9 +1,9 @@
-package com.project.domain.mission.service;
+package com.project.domain.reward.service;
 
-import com.project.domain.mission.dto.request.RespondRewardRequest;
 import com.project.domain.mission.model.AuthContext;
-import com.project.domain.mission.model.ReceivedRewardListResult;
-import com.project.domain.mission.model.RewardRespondResult;
+import com.project.domain.reward.dto.request.RespondRewardRequest;
+import com.project.domain.reward.model.ReceivedRewardListResult;
+import com.project.domain.reward.model.RewardRespondResult;
 
 /** 미션 보상 요청 처리 로직 인터페이스다. */
 public interface RewardService {

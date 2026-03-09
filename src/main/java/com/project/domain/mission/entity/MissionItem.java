@@ -7,13 +7,17 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
 import com.project.domain.mission.enums.MissionStatus;
+import com.project.domain.reward.entity.Reward;
 import com.project.global.util.BaseEntity;
 
 import lombok.AccessLevel;
@@ -45,14 +49,12 @@ public class MissionItem extends BaseEntity {
     @Column(name = "created_by_id", nullable = false)
     private Long createdById;
 
-    @Column(name = "reward_template_id", nullable = false)
-    private Long rewardTemplateId;
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "reward_id", nullable = false, unique = true)
+    private Reward reward;
 
     @Column(name = "mission_text", columnDefinition = "TEXT", nullable = false)
     private String missionText;
-
-    @Column(name = "reward_value", nullable = false)
-    private Long rewardValue;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -67,18 +69,16 @@ public class MissionItem extends BaseEntity {
             Long familyId,
             Long targetCustomerId,
             Long createdById,
-            Long rewardTemplateId,
+            Reward reward,
             String missionText,
-            Long rewardValue,
             MissionStatus status,
             LocalDateTime completedAt) {
         this.id = id;
         this.familyId = familyId;
         this.targetCustomerId = targetCustomerId;
         this.createdById = createdById;
-        this.rewardTemplateId = rewardTemplateId;
+        this.reward = reward;
         this.missionText = missionText;
-        this.rewardValue = rewardValue;
         this.status = status == null ? MissionStatus.ACTIVE : status;
         this.completedAt = completedAt;
     }

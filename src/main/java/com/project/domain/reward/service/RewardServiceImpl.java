@@ -1,4 +1,4 @@
-package com.project.domain.mission.service;
+package com.project.domain.reward.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -13,28 +13,27 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.repository.CustomerRepository;
-import com.project.domain.mission.dto.request.RespondRewardRequest;
 import com.project.domain.mission.entity.MissionItem;
 import com.project.domain.mission.entity.MissionLog;
 import com.project.domain.mission.entity.MissionRequest;
-import com.project.domain.mission.entity.RewardTemplate;
 import com.project.domain.mission.enums.MissionLogActionType;
 import com.project.domain.mission.enums.MissionRequestStatus;
 import com.project.domain.mission.model.AuthContext;
 import com.project.domain.mission.model.MissionListResult;
 import com.project.domain.mission.model.MissionLogListResult;
-import com.project.domain.mission.model.ReceivedRewardListResult;
-import com.project.domain.mission.model.RewardRespondResult;
 import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
 import com.project.domain.mission.repository.MissionRequestRepository;
-import com.project.domain.mission.repository.RewardTemplateRepository;
+import com.project.domain.reward.dto.request.RespondRewardRequest;
+import com.project.domain.reward.model.ReceivedRewardListResult;
+import com.project.domain.reward.model.RewardRespondResult;
+import com.project.domain.reward.support.RewardDtoMapper;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.MissionErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
-/** 보상 애플리케이션 서비스. */
+/** 보상 요청 승인/거절과 수령 내역 조회를 처리하는 서비스 구현체. */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -47,15 +46,14 @@ public class RewardServiceImpl implements RewardService {
     private final MissionRequestRepository missionRequestRepository;
     private final MissionItemRepository missionItemRepository;
     private final MissionLogRepository missionLogRepository;
-    private final RewardTemplateRepository rewardTemplateRepository;
     private final CustomerRepository customerRepository;
 
-    /** 보상 요청 응답 처리. */
+    /** OWNER가 보상 요청을 승인하거나 거절한다. */
     @Override
     @Transactional
     public RewardRespondResult respondRewardRequest(
             AuthContext auth, Long requestId, RespondRewardRequest req) {
-        // 1. 요청자 권한과 대상 요청 상태를 검증한다.
+        // 1. 요청자가 OWNER인지, 요청이 아직 처리 가능한 상태인지 확인한다.
         assertOwner(auth);
 
         MissionRequest missionRequest =
@@ -69,12 +67,15 @@ public class RewardServiceImpl implements RewardService {
             throw new ApplicationException(MissionErrorCode.MISSION_REQUEST_INVALID_STATUS);
         }
 
-        // 2. 요청 상태를 파싱하고 대상 미션을 조회한다.
         MissionRequestStatus requestedStatus = parseRequestedStatus(req.status());
         MissionItem mission =
-                findMissionByFamilyScopeForUpdate(auth, missionRequest.getMissionItemId());
+                missionItemRepository
+                        .findByIdAndFamilyIdForUpdate(
+                                missionRequest.getMissionItemId(), auth.familyId())
+                        .orElseThrow(
+                                () -> new ApplicationException(MissionErrorCode.MISSION_NOT_FOUND));
 
-        // 3. 승인 또는 거절 처리 후 로그를 남긴다.
+        // 2. 승인 시 미션을 완료 처리하고, 거절 시 사유를 필수로 받는다.
         if (MissionRequestStatus.APPROVED.equals(requestedStatus)) {
             if (!mission.canComplete()) {
                 throw new ApplicationException(MissionErrorCode.MISSION_INVALID_STATUS_TRANSITION);
@@ -98,15 +99,7 @@ public class RewardServiceImpl implements RewardService {
                     "Reward rejected");
         }
 
-        // 4. 응답 조합에 필요한 보상 템플릿과 응답자 정보를 조회한다.
-        RewardTemplate rewardTemplate =
-                rewardTemplateRepository
-                        .findById(mission.getRewardTemplateId())
-                        .orElseThrow(
-                                () ->
-                                        new ApplicationException(
-                                                MissionErrorCode
-                                                        .MISSION_REWARD_TEMPLATE_NOT_FOUND));
+        // 3. 응답에는 MissionItem에 연결된 Reward 스냅샷을 포함한다.
         String responderName =
                 customerRepository
                         .findById(auth.customerId())
@@ -120,25 +113,20 @@ public class RewardServiceImpl implements RewardService {
                         mission.getId(),
                         mission.getMissionText(),
                         mission.getStatus().name(),
-                        mission.getRewardValue(),
-                        new MissionListResult.RewardTemplate(
-                                rewardTemplate.getId(),
-                                rewardTemplate.getName(),
-                                rewardTemplate.getCategory(),
-                                rewardTemplate.getUnit())),
+                        RewardDtoMapper.toModel(mission.getReward())),
                 new MissionListResult.CustomerSummary(auth.customerId(), responderName),
                 missionRequest.getRejectReason(),
                 missionRequest.getUpdatedAt());
     }
 
-    /** 수령 보상 목록 조회. */
+    /** 본인이 승인받은 보상 수령 내역을 커서 기반으로 조회한다. */
     @Override
     public ReceivedRewardListResult listReceivedRewards(AuthContext auth, String cursor, int size) {
-        // 1. 커서 페이징 입력값을 정규화한다.
+        // 1. 커서 입력을 정규화한다.
         int pageSize = normalizeSize(size);
         Long cursorId = parseCursor(cursor);
 
-        // 2. 사용자가 수령한 승인 완료 보상 요청 목록을 조회한다.
+        // 2. 승인된 요청 목록과 연결된 미션, 승인자 정보를 함께 조회한다.
         List<MissionRequest> requests =
                 missionRequestRepository.findApprovedByTargetCustomerIdOrderByResolvedAtDesc(
                         auth.customerId(), cursorId, PageRequest.of(0, pageSize + 1));
@@ -147,19 +135,11 @@ public class RewardServiceImpl implements RewardService {
         List<MissionRequest> page = hasNext ? requests.subList(0, pageSize) : requests;
         String nextCursor = hasNext ? String.valueOf(page.getLast().getId()) : null;
 
-        // 3. 응답 조합에 필요한 미션, 보상 템플릿, 승인자 정보를 조회한다.
         Set<Long> missionIds =
                 page.stream().map(MissionRequest::getMissionItemId).collect(Collectors.toSet());
         Map<Long, MissionItem> missionMap =
-                missionItemRepository.findAllById(missionIds).stream()
+                missionItemRepository.findAllWithRewardByIdIn(missionIds).stream()
                         .collect(Collectors.toMap(MissionItem::getId, Function.identity()));
-        Set<Long> rewardTemplateIds =
-                missionMap.values().stream()
-                        .map(MissionItem::getRewardTemplateId)
-                        .collect(Collectors.toSet());
-        Map<Long, RewardTemplate> rewardTemplateMap =
-                rewardTemplateRepository.findAllById(rewardTemplateIds).stream()
-                        .collect(Collectors.toMap(RewardTemplate::getId, Function.identity()));
 
         Set<Long> approverIds =
                 page.stream().map(MissionRequest::getResolvedById).collect(Collectors.toSet());
@@ -167,34 +147,22 @@ public class RewardServiceImpl implements RewardService {
                 customerRepository.findAllById(approverIds).stream()
                         .collect(Collectors.toMap(Customer::getId, Customer::getName));
 
-        // 4. 조회 결과를 수령 보상 응답으로 변환한다.
         List<ReceivedRewardListResult.ReceivedRewardItem> content =
                 page.stream()
-                        .map(
-                                req ->
-                                        toReceivedRewardItem(
-                                                req,
-                                                missionMap,
-                                                rewardTemplateMap,
-                                                approverNameMap))
+                        .map(req -> toReceivedRewardItem(req, missionMap, approverNameMap))
                         .toList();
 
         return new ReceivedRewardListResult(content, nextCursor, hasNext);
     }
 
-    /** 수령 보상 응답 변환. */
+    /** 승인된 보상 요청 엔티티를 수령 내역 응답 모델로 변환한다. */
     private ReceivedRewardListResult.ReceivedRewardItem toReceivedRewardItem(
             MissionRequest request,
             Map<Long, MissionItem> missionMap,
-            Map<Long, RewardTemplate> rewardTemplateMap,
             Map<Long, String> approverNameMap) {
         MissionItem mission = missionMap.get(request.getMissionItemId());
         if (mission == null) {
             throw new ApplicationException(MissionErrorCode.MISSION_NOT_FOUND);
-        }
-        RewardTemplate rewardTemplate = rewardTemplateMap.get(mission.getRewardTemplateId());
-        if (rewardTemplate == null) {
-            throw new ApplicationException(MissionErrorCode.MISSION_REWARD_TEMPLATE_NOT_FOUND);
         }
         Long approverId = request.getResolvedById();
         return new ReceivedRewardListResult.ReceivedRewardItem(
@@ -202,12 +170,7 @@ public class RewardServiceImpl implements RewardService {
                 new MissionLogListResult.MissionItemSimple(
                         mission.getId(),
                         mission.getMissionText(),
-                        mission.getRewardValue(),
-                        new MissionListResult.RewardTemplate(
-                                rewardTemplate.getId(),
-                                rewardTemplate.getName(),
-                                rewardTemplate.getCategory(),
-                                rewardTemplate.getUnit())),
+                        RewardDtoMapper.toModel(mission.getReward())),
                 approverId == null
                         ? null
                         : new MissionListResult.CustomerSummary(
@@ -215,14 +178,7 @@ public class RewardServiceImpl implements RewardService {
                 request.getResolvedAt());
     }
 
-    /** 가족 범위 미션 조회 락 획득. */
-    private MissionItem findMissionByFamilyScopeForUpdate(AuthContext auth, Long missionId) {
-        return missionItemRepository
-                .findByIdAndFamilyIdForUpdate(missionId, auth.familyId())
-                .orElseThrow(() -> new ApplicationException(MissionErrorCode.MISSION_NOT_FOUND));
-    }
-
-    /** 미션 로그 저장. */
+    /** 보상 요청 처리 이력을 로그로 남긴다. */
     private void appendLog(
             Long missionItemId,
             Long actorCustomerId,
@@ -237,7 +193,7 @@ public class RewardServiceImpl implements RewardService {
                         .build());
     }
 
-    /** 요청 상태 파싱. */
+    /** 응답 요청 status 문자열을 허용된 상태값으로 파싱한다. */
     private MissionRequestStatus parseRequestedStatus(String status) {
         if (status == null || status.isBlank()) {
             throw new ApplicationException(MissionErrorCode.MISSION_INVALID_REQUEST_STATUS);
@@ -253,14 +209,14 @@ public class RewardServiceImpl implements RewardService {
         }
     }
 
-    /** 소유자 권한 검증. */
+    /** OWNER 전용 기능인지 검증한다. */
     private void assertOwner(AuthContext auth) {
         if (!auth.isOwner()) {
             throw new ApplicationException(MissionErrorCode.MISSION_OWNER_ONLY);
         }
     }
 
-    /** 페이지 크기 정규화. */
+    /** 요청한 페이지 크기를 허용 범위로 보정한다. */
     private int normalizeSize(int size) {
         if (size <= 0) {
             return DEFAULT_CURSOR_SIZE;
@@ -268,7 +224,7 @@ public class RewardServiceImpl implements RewardService {
         return Math.min(size, MAX_CURSOR_SIZE);
     }
 
-    /** 커서 파싱. */
+    /** 커서 문자열을 Long으로 파싱한다. */
     private Long parseCursor(String cursor) {
         if (cursor == null || cursor.isBlank()) {
             return null;

@@ -4,7 +4,7 @@ import java.util.List;
 
 import com.project.domain.mission.model.MissionListResult;
 
-/** 미션 목록 응답 DTO다. */
+/** 미션 목록 응답 DTO */
 public record MissionListResponse(
         List<MissionCardResponse> missions, String nextCursor, boolean hasNext) {
     public static MissionListResponse from(MissionListResult result) {

@@ -1,10 +1,12 @@
-package com.project.domain.mission.service;
+package com.project.domain.reward.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyIterable;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -14,20 +16,21 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.customer.repository.CustomerRepository;
-import com.project.domain.mission.dto.request.RespondRewardRequest;
 import com.project.domain.mission.entity.MissionItem;
 import com.project.domain.mission.entity.MissionRequest;
-import com.project.domain.mission.entity.RewardTemplate;
 import com.project.domain.mission.enums.MissionRequestStatus;
 import com.project.domain.mission.enums.MissionStatus;
-import com.project.domain.mission.enums.RewardCategory;
 import com.project.domain.mission.model.AuthContext;
 import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
 import com.project.domain.mission.repository.MissionRequestRepository;
-import com.project.domain.mission.repository.RewardTemplateRepository;
+import com.project.domain.reward.dto.request.RespondRewardRequest;
+import com.project.domain.reward.entity.Reward;
+import com.project.domain.reward.entity.RewardTemplate;
+import com.project.domain.reward.enums.RewardCategory;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.MissionErrorCode;
 
@@ -37,7 +40,6 @@ class RewardServiceImplTest {
     @Mock private MissionRequestRepository missionRequestRepository;
     @Mock private MissionItemRepository missionItemRepository;
     @Mock private MissionLogRepository missionLogRepository;
-    @Mock private RewardTemplateRepository rewardTemplateRepository;
     @Mock private CustomerRepository customerRepository;
 
     private RewardServiceImpl rewardService;
@@ -49,12 +51,11 @@ class RewardServiceImplTest {
                         missionRequestRepository,
                         missionItemRepository,
                         missionLogRepository,
-                        rewardTemplateRepository,
                         customerRepository);
     }
 
     @Test
-    @DisplayName("OWNER 승인 시 요청은 APPROVED, 미션은 COMPLETED로 전이된다")
+    @DisplayName("OWNER 승인 시 요청은 APPROVED, 미션은 COMPLETED가 된다")
     void respondRewardRequest_whenApproved_thenCompleteMission() {
         AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
         MissionRequest request =
@@ -64,33 +65,12 @@ class RewardServiceImplTest {
                         .requesterId(2L)
                         .status(MissionRequestStatus.PENDING)
                         .build();
-        MissionItem mission =
-                MissionItem.builder()
-                        .id(200L)
-                        .familyId(10L)
-                        .targetCustomerId(2L)
-                        .createdById(1L)
-                        .rewardTemplateId(500L)
-                        .missionText("clean room")
-                        .rewardValue(100L)
-                        .status(MissionStatus.ACTIVE)
-                        .build();
-        RewardTemplate template =
-                RewardTemplate.builder()
-                        .id(500L)
-                        .name("data")
-                        .category(RewardCategory.DATA)
-                        .defaultValue(100L)
-                        .unit("MB")
-                        .isSystem(true)
-                        .build();
-        var responder = mock(com.project.domain.customer.entity.Customer.class);
-        given(responder.getName()).willReturn("owner");
+        MissionItem mission = mission(200L, 10L, reward(900L, 500L, 100L));
         given(missionRequestRepository.findByIdForUpdate(100L)).willReturn(Optional.of(request));
         given(missionItemRepository.findByIdAndFamilyIdForUpdate(200L, 10L))
                 .willReturn(Optional.of(mission));
-        given(rewardTemplateRepository.findById(500L)).willReturn(Optional.of(template));
-        given(customerRepository.findById(1L)).willReturn(Optional.of(responder));
+        Customer owner = namedCustomer("owner");
+        given(customerRepository.findById(1L)).willReturn(Optional.of(owner));
 
         var result =
                 rewardService.respondRewardRequest(
@@ -98,10 +78,11 @@ class RewardServiceImplTest {
 
         assertThat(result.status()).isEqualTo("APPROVED");
         assertThat(result.missionItem().status()).isEqualTo("COMPLETED");
+        assertThat(result.missionItem().reward().rewardId()).isEqualTo(900L);
     }
 
     @Test
-    @DisplayName("거절 시 요청은 REJECTED로 전이되고 거절 사유가 저장된다")
+    @DisplayName("거절 시 rejectReason이 저장된다")
     void respondRewardRequest_whenRejected_thenRejectReasonSaved() {
         AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
         MissionRequest request =
@@ -111,33 +92,12 @@ class RewardServiceImplTest {
                         .requesterId(2L)
                         .status(MissionRequestStatus.PENDING)
                         .build();
-        MissionItem mission =
-                MissionItem.builder()
-                        .id(200L)
-                        .familyId(10L)
-                        .targetCustomerId(2L)
-                        .createdById(1L)
-                        .rewardTemplateId(500L)
-                        .missionText("clean room")
-                        .rewardValue(100L)
-                        .status(MissionStatus.ACTIVE)
-                        .build();
-        RewardTemplate template =
-                RewardTemplate.builder()
-                        .id(500L)
-                        .name("data")
-                        .category(RewardCategory.DATA)
-                        .defaultValue(100L)
-                        .unit("MB")
-                        .isSystem(true)
-                        .build();
-        var responder = mock(com.project.domain.customer.entity.Customer.class);
-        given(responder.getName()).willReturn("owner");
+        MissionItem mission = mission(200L, 10L, reward(900L, 500L, 100L));
         given(missionRequestRepository.findByIdForUpdate(100L)).willReturn(Optional.of(request));
         given(missionItemRepository.findByIdAndFamilyIdForUpdate(200L, 10L))
                 .willReturn(Optional.of(mission));
-        given(rewardTemplateRepository.findById(500L)).willReturn(Optional.of(template));
-        given(customerRepository.findById(1L)).willReturn(Optional.of(responder));
+        Customer owner = namedCustomer("owner");
+        given(customerRepository.findById(1L)).willReturn(Optional.of(owner));
 
         var result =
                 rewardService.respondRewardRequest(
@@ -145,6 +105,38 @@ class RewardServiceImplTest {
 
         assertThat(result.status()).isEqualTo("REJECTED");
         assertThat(result.rejectReason()).isEqualTo("not enough evidence");
+        assertThat(result.missionItem().reward().templateId()).isEqualTo(500L);
+    }
+
+    @Test
+    @DisplayName("수령 보상 목록은 reward 객체를 포함한다")
+    void listReceivedRewards_returnsRewardObject() {
+        AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
+        MissionRequest approvedRequest =
+                MissionRequest.builder()
+                        .id(100L)
+                        .missionItemId(200L)
+                        .requesterId(2L)
+                        .status(MissionRequestStatus.APPROVED)
+                        .resolvedById(1L)
+                        .resolvedAt(java.time.LocalDateTime.now())
+                        .build();
+        given(
+                        missionRequestRepository
+                                .findApprovedByTargetCustomerIdOrderByResolvedAtDesc(
+                                        org.mockito.ArgumentMatchers.eq(2L),
+                                        org.mockito.ArgumentMatchers.isNull(),
+                                        org.mockito.ArgumentMatchers.any()))
+                .willReturn(List.of(approvedRequest));
+        given(missionItemRepository.findAllWithRewardByIdIn(anyIterable()))
+                .willReturn(List.of(mission(200L, 10L, reward(900L, 500L, 100L))));
+        Customer owner = customer(1L, "owner");
+        given(customerRepository.findAllById(anyIterable())).willReturn(List.of(owner));
+
+        var result = rewardService.listReceivedRewards(auth, null, 20);
+
+        assertThat(result.rewards()).hasSize(1);
+        assertThat(result.rewards().getFirst().missionItem().reward().rewardId()).isEqualTo(900L);
     }
 
     @Test
@@ -159,5 +151,50 @@ class RewardServiceImplTest {
                         e ->
                                 assertThat(((ApplicationException) e).getCode())
                                         .isEqualTo(MissionErrorCode.MISSION_OWNER_ONLY));
+    }
+
+    private MissionItem mission(Long missionId, Long familyId, Reward reward) {
+        return MissionItem.builder()
+                .id(missionId)
+                .familyId(familyId)
+                .targetCustomerId(2L)
+                .createdById(1L)
+                .reward(reward)
+                .missionText("clean room")
+                .status(MissionStatus.ACTIVE)
+                .build();
+    }
+
+    private Reward reward(Long rewardId, Long templateId, Long value) {
+        RewardTemplate template =
+                RewardTemplate.builder()
+                        .id(templateId)
+                        .name("data")
+                        .category(RewardCategory.DATA)
+                        .defaultValue(100L)
+                        .unit("MB")
+                        .isSystem(true)
+                        .build();
+        return Reward.builder()
+                .id(rewardId)
+                .rewardTemplate(template)
+                .name("data")
+                .category(RewardCategory.DATA)
+                .value(value)
+                .unit("MB")
+                .build();
+    }
+
+    private Customer customer(Long id, String name) {
+        Customer customer = mock(Customer.class);
+        given(customer.getId()).willReturn(id);
+        given(customer.getName()).willReturn(name);
+        return customer;
+    }
+
+    private Customer namedCustomer(String name) {
+        Customer customer = mock(Customer.class);
+        given(customer.getName()).willReturn(name);
+        return customer;
     }
 }
