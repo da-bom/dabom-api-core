@@ -1,4 +1,4 @@
-package com.project.domain.mission.dto.request;
+package com.project.domain.reward.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 

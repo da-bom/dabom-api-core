@@ -1,6 +1,8 @@
-package com.project.domain.mission.model;
+package com.project.domain.reward.model;
 
 import java.time.LocalDateTime;
+
+import com.project.domain.mission.model.MissionListResult;
 
 public record RewardRespondResult(
         Long requestId,

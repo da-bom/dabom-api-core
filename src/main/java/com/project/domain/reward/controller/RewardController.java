@@ -1,4 +1,4 @@
-package com.project.domain.mission.controller;
+package com.project.domain.reward.controller;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -13,14 +13,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.project.domain.mission.dto.request.RespondRewardRequest;
-import com.project.domain.mission.dto.response.ReceivedRewardListResponse;
-import com.project.domain.mission.dto.response.RewardRespondResponse;
+import com.project.domain.reward.dto.request.RespondRewardRequest;
+import com.project.domain.reward.dto.response.ReceivedRewardListResponse;
+import com.project.domain.reward.dto.response.RewardRespondResponse;
 import com.project.domain.mission.model.AuthContext;
-import com.project.domain.mission.model.ReceivedRewardListResult;
-import com.project.domain.mission.model.RewardRespondResult;
 import com.project.domain.mission.service.MissionAuthService;
-import com.project.domain.mission.service.RewardService;
+import com.project.domain.reward.model.ReceivedRewardListResult;
+import com.project.domain.reward.model.RewardRespondResult;
+import com.project.domain.reward.service.RewardService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.CustomerId;
 import com.project.global.auth.aop.OwnerOnly;

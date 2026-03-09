@@ -1,7 +1,10 @@
-package com.project.domain.mission.model;
+package com.project.domain.reward.model;
 
 import java.time.LocalDateTime;
 import java.util.List;
+
+import com.project.domain.mission.model.MissionListResult;
+import com.project.domain.mission.model.MissionLogListResult;
 
 /** 보상 수령 내역 목록 모델 */
 public record ReceivedRewardListResult(

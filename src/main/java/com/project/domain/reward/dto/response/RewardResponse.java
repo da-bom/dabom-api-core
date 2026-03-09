@@ -1,7 +1,8 @@
-package com.project.domain.mission.dto.response;
+package com.project.domain.reward.dto.response;
 
 import com.project.domain.mission.model.MissionListResult;
 
+/** 보상 정보 응답 DTO */
 public record RewardResponse(
         Long rewardId, String name, String category, Long value, String unit, Long templateId) {
     public static RewardResponse from(MissionListResult.Reward reward) {

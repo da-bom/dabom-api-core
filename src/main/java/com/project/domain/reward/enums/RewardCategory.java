@@ -1,4 +1,4 @@
-package com.project.domain.mission.enums;
+package com.project.domain.reward.enums;
 
 public enum RewardCategory {
     DATA,

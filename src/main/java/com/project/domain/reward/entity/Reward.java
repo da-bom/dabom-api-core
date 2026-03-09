@@ -1,4 +1,4 @@
-package com.project.domain.mission.entity;
+package com.project.domain.reward.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,7 +12,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
-import com.project.domain.mission.enums.RewardCategory;
+import com.project.domain.reward.enums.RewardCategory;
 import com.project.global.util.BaseEntity;
 
 import lombok.AccessLevel;
@@ -41,7 +41,7 @@ public class Reward extends BaseEntity {
     @Column(name = "category", nullable = false, length = 20)
     private RewardCategory category;
 
-    @Column(name = "value", nullable = false)
+    @Column(name = "`value`", nullable = false)
     private Long value;
 
     @Column(name = "unit", nullable = false, length = 20)
@@ -61,5 +61,16 @@ public class Reward extends BaseEntity {
         this.category = category;
         this.value = value;
         this.unit = unit;
+    }
+
+    @Override
+    public String toString() {
+        return "Reward{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", category=" + category +
+                ", value=" + value +
+                ", unit='" + unit + '\'' +
+                '}';
     }
 }
