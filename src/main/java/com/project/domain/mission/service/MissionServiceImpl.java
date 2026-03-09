@@ -22,8 +22,6 @@ import com.project.domain.mission.dto.request.CreateMissionRequest;
 import com.project.domain.mission.entity.MissionItem;
 import com.project.domain.mission.entity.MissionLog;
 import com.project.domain.mission.entity.MissionRequest;
-import com.project.domain.mission.entity.Reward;
-import com.project.domain.mission.entity.RewardTemplate;
 import com.project.domain.mission.enums.MissionLogActionType;
 import com.project.domain.mission.enums.MissionRequestStatus;
 import com.project.domain.mission.enums.MissionStatus;
@@ -35,8 +33,9 @@ import com.project.domain.mission.model.MissionRequestResult;
 import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
 import com.project.domain.mission.repository.MissionRequestRepository;
-import com.project.domain.mission.repository.RewardRepository;
-import com.project.domain.mission.repository.RewardTemplateRepository;
+import com.project.domain.reward.entity.Reward;
+import com.project.domain.reward.service.RewardSnapshotService;
+import com.project.domain.reward.support.RewardDtoMapper;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.MissionErrorCode;
 
@@ -55,8 +54,7 @@ public class MissionServiceImpl implements MissionService {
     private final MissionItemRepository missionItemRepository;
     private final MissionRequestRepository missionRequestRepository;
     private final MissionLogRepository missionLogRepository;
-    private final RewardRepository rewardRepository;
-    private final RewardTemplateRepository rewardTemplateRepository;
+    private final RewardSnapshotService rewardSnapshotService;
     private final CustomerRepository customerRepository;
     private final FamilyMemberRepository familyMemberRepository;
 
@@ -142,24 +140,9 @@ public class MissionServiceImpl implements MissionService {
         }
 
         // 2. 템플릿을 조회한 뒤 현재 값을 복사한 Reward 스냅샷을 생성한다.
-        RewardTemplate rewardTemplate =
-                rewardTemplateRepository
-                        .findById(req.rewardTemplateId())
-                        .orElseThrow(
-                                () ->
-                                        new ApplicationException(
-                                                MissionErrorCode
-                                                        .MISSION_REWARD_TEMPLATE_NOT_FOUND));
-
         Reward reward =
-                rewardRepository.save(
-                        Reward.builder()
-                                .rewardTemplate(rewardTemplate)
-                                .name(rewardTemplate.getName())
-                                .category(rewardTemplate.getCategory())
-                                .value(req.rewardValue())
-                                .unit(rewardTemplate.getUnit())
-                                .build());
+                rewardSnapshotService.createFromTemplate(
+                        req.rewardTemplateId(), req.rewardValue());
 
         // 생성된 Reward를 미션에 연결해 저장한다.
         MissionItem mission =
@@ -245,7 +228,9 @@ public class MissionServiceImpl implements MissionService {
         return new MissionRequestResult(
                 request.getId(),
                 new MissionLogListResult.MissionItemSimple(
-                        mission.getId(), mission.getMissionText(), toReward(mission.getReward())),
+                        mission.getId(),
+                        mission.getMissionText(),
+                        RewardDtoMapper.toModel(mission.getReward())),
                 request.getStatus().name(),
                 new MissionListResult.CustomerSummary(auth.customerId(), requesterName),
                 request.getCreatedAt());
@@ -280,7 +265,7 @@ public class MissionServiceImpl implements MissionService {
                 new MissionListResult.CustomerSummary(
                         mission.getCreatedById(),
                         customerNameMap.getOrDefault(mission.getCreatedById(), UNKNOWN_NAME)),
-                toReward(mission.getReward()),
+                RewardDtoMapper.toModel(mission.getReward()),
                 mission.getCreatedAt());
     }
 
@@ -310,7 +295,9 @@ public class MissionServiceImpl implements MissionService {
                 log.getActionType().name(),
                 log.getMessage(),
                 new MissionLogListResult.MissionItemSimple(
-                        mission.getId(), mission.getMissionText(), toReward(mission.getReward())),
+                        mission.getId(),
+                        mission.getMissionText(),
+                        RewardDtoMapper.toModel(mission.getReward())),
                 new MissionListResult.CustomerSummary(
                         mission.getTargetCustomerId(),
                         customerNameMap.getOrDefault(mission.getTargetCustomerId(), UNKNOWN_NAME)),
@@ -406,16 +393,4 @@ public class MissionServiceImpl implements MissionService {
     }
 
     /** Reward 엔티티를 API 응답용 보상 모델로 변환한다. */
-    private MissionListResult.Reward toReward(Reward reward) {
-        if (reward == null || reward.getRewardTemplate() == null) {
-            throw new ApplicationException(MissionErrorCode.MISSION_REWARD_TEMPLATE_NOT_FOUND);
-        }
-        return new MissionListResult.Reward(
-                reward.getId(),
-                reward.getName(),
-                reward.getCategory(),
-                reward.getValue(),
-                reward.getUnit(),
-                reward.getRewardTemplate().getId());
-    }
 }

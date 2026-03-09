@@ -3,7 +3,7 @@ package com.project.domain.mission.model;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import com.project.domain.mission.enums.RewardCategory;
+import com.project.domain.reward.enums.RewardCategory;
 
 /** 미션 목록 조회 서비스 결과 모델 */
 public record MissionListResult(List<MissionCard> missions, String nextCursor, boolean hasNext) {
@@ -29,4 +29,6 @@ public record MissionListResult(List<MissionCard> missions, String nextCursor, b
             Long value,
             String unit,
             Long templateId) {}
+
+
 }
