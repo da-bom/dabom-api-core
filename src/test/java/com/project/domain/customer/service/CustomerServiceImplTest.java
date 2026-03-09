@@ -41,6 +41,7 @@ class CustomerServiceImplTest {
         given(claims.getSubject()).willReturn("10");
 
         given(jwtTokenUtil.verifyRefreshToken("owner-refresh-token")).willReturn(claims);
+        given(customerRepository.existsById(10L)).willReturn(true);
         given(familyMemberRepository.findRoleById(10L)).willReturn(RoleType.OWNER);
         given(jwtTokenUtil.reissueTokens(10L, RoleType.OWNER))
                 .willReturn(new TokenRefreshResult("new-access", "new-refresh", 1800L));
@@ -63,6 +64,7 @@ class CustomerServiceImplTest {
         given(claims.getSubject()).willReturn("20");
 
         given(jwtTokenUtil.verifyRefreshToken("member-refresh-token")).willReturn(claims);
+        given(customerRepository.existsById(20L)).willReturn(true);
         given(familyMemberRepository.findRoleById(20L)).willReturn(RoleType.MEMBER);
         given(jwtTokenUtil.reissueTokens(20L, RoleType.MEMBER))
                 .willReturn(new TokenRefreshResult("new-access", "new-refresh", 1800L));
@@ -158,7 +160,7 @@ class CustomerServiceImplTest {
         given(claims.getSubject()).willReturn("999");
 
         given(jwtTokenUtil.verifyRefreshToken("deleted-customer-token")).willReturn(claims);
-        given(familyMemberRepository.findRoleById(999L)).willReturn(null);
+        given(customerRepository.existsById(999L)).willReturn(false);
 
         // when & then
         assertThatThrownBy(() -> customerService.refreshToken("deleted-customer-token"))

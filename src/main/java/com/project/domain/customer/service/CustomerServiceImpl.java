@@ -79,16 +79,15 @@ public class CustomerServiceImpl implements CustomerService {
         try {
             Claims claims = jwtTokenUtil.verifyRefreshToken(refreshToken);
             String roleStr = claims.get("role", String.class);
-            if (roleStr == null) {
-                throw new ApplicationException(CustomerErrorCode.CUSTOMER_REFRESH_TOKEN_INVALID);
-            }
-            RoleType role = RoleType.valueOf(roleStr);
-
-            if (role == RoleType.ADMIN) {
+            if (roleStr == null || RoleType.ADMIN.name().equals(roleStr)) {
                 throw new ApplicationException(CustomerErrorCode.CUSTOMER_REFRESH_TOKEN_INVALID);
             }
 
             Long customerId = Long.parseLong(claims.getSubject());
+
+            if (!customerRepository.existsById(customerId)) {
+                throw new ApplicationException(CustomerErrorCode.CUSTOMER_REFRESH_TOKEN_INVALID);
+            }
 
             RoleType currentRole = familyMemberRepository.findRoleById(customerId);
             if (currentRole == null) {

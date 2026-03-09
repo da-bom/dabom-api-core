@@ -64,13 +64,7 @@ public class AdminServiceImpl implements AdminService {
     public TokenRefreshResult refreshToken(String refreshToken) {
         try {
             Claims claims = jwtTokenUtil.verifyRefreshToken(refreshToken);
-            String roleStr = claims.get("role", String.class);
-            if (roleStr == null) {
-                throw new ApplicationException(AdminErrorCode.ADMIN_REFRESH_TOKEN_INVALID);
-            }
-            RoleType role = RoleType.valueOf(roleStr);
-
-            if (role != RoleType.ADMIN) {
+            if (!RoleType.ADMIN.name().equals(claims.get("role", String.class))) {
                 throw new ApplicationException(AdminErrorCode.ADMIN_REFRESH_TOKEN_INVALID);
             }
 
