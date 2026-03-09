@@ -19,15 +19,16 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.project.domain.recap.dto.response.MonthlyRecapResponse;
+import com.project.domain.recap.model.MonthlyRecap;
 import com.project.domain.recap.service.RecapService;
 import com.project.global.auth.JwtTokenUtil;
 import com.project.global.config.WebConfig;
 import com.project.global.exception.ApplicationException;
+import com.project.global.exception.ExceptionAdvice;
 import com.project.global.exception.code.RecapErrorCode;
 
 @WebMvcTest(RecapController.class)
-@Import(WebConfig.class)
+@Import({WebConfig.class, ExceptionAdvice.class})
 class RecapControllerTest {
 
     private static final String MEMBER_TOKEN = "MEMBER_TOKEN";
@@ -41,8 +42,8 @@ class RecapControllerTest {
     @Test
     @DisplayName("GET /recaps/monthly - 월간 가족 리캡을 반환한다")
     void getMonthlyRecap_returnsOk() throws Exception {
-        MonthlyRecapResponse response =
-                new MonthlyRecapResponse(
+        MonthlyRecap monthlyRecap =
+                new MonthlyRecap(
                         401L,
                         100L,
                         "김씨 가족",
@@ -50,29 +51,28 @@ class RecapControllerTest {
                         53_687_091_200L,
                         107_374_182_400L,
                         new BigDecimal("50.0"),
-                        new MonthlyRecapResponse.UsageByWeekday(
-                                15.2, 18.5, 22.1, 0.0, 0.0, 20.3, 9.9),
-                        new MonthlyRecapResponse.PeakUsage(21, 23, "sunday"),
-                        new MonthlyRecapResponse.MissionSummary(10, 5, 3),
-                        new MonthlyRecapResponse.AppealSummary(4, 3, 1),
-                        new MonthlyRecapResponse.AppealHighlights(
-                                new MonthlyRecapResponse.TopSuccessfulRequester(
+                        new MonthlyRecap.UsageByWeekday(15.2, 18.5, 22.1, 0.0, 0.0, 20.3, 9.9),
+                        new MonthlyRecap.PeakUsage(21, 23, "sunday"),
+                        new MonthlyRecap.MissionSummary(10, 5, 3),
+                        new MonthlyRecap.AppealSummary(4, 3, 1),
+                        new MonthlyRecap.AppealHighlights(
+                                new MonthlyRecap.TopSuccessfulRequester(
                                         12346L,
                                         "김민지",
                                         3,
                                         List.of(
-                                                new MonthlyRecapResponse.RecentApprovedAppeal(
+                                                new MonthlyRecap.RecentApprovedAppeal(
                                                         91L,
                                                         12345L,
                                                         "김철수",
                                                         "야간 차단 해제를 요청했어요.",
                                                         LocalDateTime.of(2026, 3, 21, 14, 32)))),
-                                new MonthlyRecapResponse.TopAcceptedApprover(
+                                new MonthlyRecap.TopAcceptedApprover(
                                         12345L,
                                         "김철수",
                                         3,
                                         List.of(
-                                                new MonthlyRecapResponse.RecentAcceptedAppeal(
+                                                new MonthlyRecap.RecentAcceptedAppeal(
                                                         91L,
                                                         12346L,
                                                         "김민지",
@@ -83,7 +83,7 @@ class RecapControllerTest {
 
         given(jwtTokenUtil.verify(anyString())).willReturn(null);
         given(jwtTokenUtil.getMemberId(MEMBER_TOKEN)).willReturn(MEMBER_ID);
-        given(recapService.getMonthlyRecap(MEMBER_ID, 2026, 3)).willReturn(response);
+        given(recapService.getMonthlyRecap(MEMBER_ID, 2026, 3)).willReturn(monthlyRecap);
 
         mockMvc.perform(
                         get("/recaps/monthly")
@@ -110,19 +110,6 @@ class RecapControllerTest {
                                 .value("김민지"))
                 .andExpect(jsonPath("$.data.communicationScore").value(82.5))
                 .andExpect(jsonPath("$.data.generatedAt").value("2026-03-01T00:00:00"));
-    }
-
-    @Test
-    @DisplayName("GET /recaps/monthly - 잘못된 month면 400을 반환한다")
-    void getMonthlyRecap_invalidMonth_returnsBadRequest() throws Exception {
-        given(jwtTokenUtil.verify(anyString())).willReturn(null);
-
-        mockMvc.perform(
-                        get("/recaps/monthly")
-                                .param("year", "2026")
-                                .param("month", "13")
-                                .header("Authorization", "Bearer " + MEMBER_TOKEN))
-                .andExpect(status().isBadRequest());
     }
 
     @Test

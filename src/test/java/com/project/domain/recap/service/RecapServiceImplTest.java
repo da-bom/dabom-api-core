@@ -21,8 +21,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.project.domain.family.entity.Family;
 import com.project.domain.family.service.FamilyService;
-import com.project.domain.recap.dto.response.MonthlyRecapResponse;
 import com.project.domain.recap.entity.FamilyRecapMonthly;
+import com.project.domain.recap.model.MonthlyRecap;
 import com.project.domain.recap.repository.FamilyRecapMonthlyRepository;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.RecapErrorCode;
@@ -44,7 +44,7 @@ class RecapServiceImplTest {
     }
 
     @Test
-    @DisplayName("getMonthlyRecap - 월간 리캡 스냅샷을 응답 DTO로 매핑한다")
+    @DisplayName("getMonthlyRecap - 월간 리캡 스냅샷을 응답 모델로 매핑한다")
     void getMonthlyRecap_validSnapshot_returnsResponse() {
         Long customerId = 101L;
         Long familyId = 100L;
@@ -149,7 +149,7 @@ class RecapServiceImplTest {
                 .willReturn(Optional.of(recap));
         given(familyService.getFamilyById(familyId)).willReturn(family);
 
-        MonthlyRecapResponse response = recapService.getMonthlyRecap(customerId, 2026, 3);
+        MonthlyRecap response = recapService.getMonthlyRecap(customerId, 2026, 3);
 
         assertThat(response.recapId()).isEqualTo(401L);
         assertThat(response.familyId()).isEqualTo(familyId);
@@ -214,7 +214,7 @@ class RecapServiceImplTest {
                 .willReturn(Optional.of(recap));
         given(familyService.getFamilyById(familyId)).willReturn(family);
 
-        MonthlyRecapResponse response = recapService.getMonthlyRecap(customerId, 2026, 3);
+        MonthlyRecap response = recapService.getMonthlyRecap(customerId, 2026, 3);
 
         assertThat(response.usageByWeekday().monday()).isEqualTo(0.0);
         assertThat(response.peakUsage().startHour()).isNull();
@@ -247,5 +247,49 @@ class RecapServiceImplTest {
                         exception ->
                                 assertThat(((ApplicationException) exception).getCode())
                                         .isEqualTo(RecapErrorCode.RECAP_NOT_FOUND));
+    }
+
+    @Test
+    @DisplayName("getMonthlyRecap - JSON 파싱에 실패하면 리캡 전용 예외를 던진다")
+    void getMonthlyRecap_invalidJson_throwsRecapError() {
+        Long customerId = 101L;
+        Long familyId = 100L;
+        LocalDate reportMonth = LocalDate.of(2026, 3, 1);
+
+        FamilyRecapMonthly recap =
+                FamilyRecapMonthly.builder()
+                        .id(403L)
+                        .familyId(familyId)
+                        .reportMonth(reportMonth)
+                        .totalUsedBytes(10_000L)
+                        .totalQuotaBytes(20_000L)
+                        .usageRatePercent(new BigDecimal("50.0"))
+                        .usageByWeekday("{invalid-json}")
+                        .build();
+
+        Family family =
+                Family.builder()
+                        .id(familyId)
+                        .name("김씨 가족")
+                        .createdById(1L)
+                        .totalQuotaBytes(20_000L)
+                        .usedBytes(10_000L)
+                        .currentMonth(reportMonth)
+                        .build();
+
+        given(familyService.getFamilyIdByCustomerId(customerId)).willReturn(familyId);
+        given(
+                        familyRecapMonthlyRepository.findByFamilyIdAndReportMonthAndDeletedAtIsNull(
+                                familyId, reportMonth))
+                .willReturn(Optional.of(recap));
+        given(familyService.getFamilyById(familyId)).willReturn(family);
+
+        assertThatThrownBy(() -> recapService.getMonthlyRecap(customerId, 2026, 3))
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(
+                        exception ->
+                                assertThat(((ApplicationException) exception).getCode())
+                                        .isEqualTo(
+                                                RecapErrorCode.RECAP_JSON_DESERIALIZATION_FAILED));
     }
 }
