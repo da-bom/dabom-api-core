@@ -13,6 +13,7 @@ import org.springframework.data.jpa.repository.Query;
 import com.project.domain.mission.entity.MissionItem;
 import com.project.domain.mission.enums.MissionStatus;
 
+/** MissionItem DB 접근 전용 Repository */
 public interface MissionItemRepository extends JpaRepository<MissionItem, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query(

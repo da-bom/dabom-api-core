@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 
 import com.project.domain.mission.model.MissionRequestResult;
 
-/** 미션 완료 요청 응답 DTO다. */
+/** 미션 완료 요청 응답 DTO */
 public record MissionRequestResponse(
         Long requestId,
         MissionItemSimpleResponse missionItem,
