@@ -66,20 +66,11 @@ public class JwtTokenUtil {
 
     public Claims verify(String token) {
         try {
-            Claims claims =
-                    Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
-            validateExpiredToken(claims);
-            return claims;
+            return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
         } catch (ExpiredJwtException e) {
             throw new JwtException("유효기간이 만료된 토큰입니다");
         } catch (JwtException | IllegalArgumentException e) {
             throw new JwtException("토큰을 담지 않았습니다");
-        }
-    }
-
-    private void validateExpiredToken(Claims claims) {
-        if (claims.getExpiration().before(new Date())) {
-            throw new JwtException("유효기간이 만료된 토큰입니다");
         }
     }
 
