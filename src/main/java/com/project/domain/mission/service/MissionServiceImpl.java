@@ -60,9 +60,8 @@ public class MissionServiceImpl implements MissionService {
     private final CustomerRepository customerRepository;
     private final FamilyMemberRepository familyMemberRepository;
 
-    /** 권한 범위에 맞는 활성 미션 목록을 커서 기반으로 조회한다. */
-    @Override
     /** 역할 범위 내 활성 미션 중 PENDING 또는 요청 이력이 없는 미션만 조회한다. */
+    @Override
     public MissionListResult listMissions(AuthContext auth, String cursor, int size) {
 
         // 1. 요청 파라미터를 커서 기반 조회에 사용할 값으로 정규화한다.
