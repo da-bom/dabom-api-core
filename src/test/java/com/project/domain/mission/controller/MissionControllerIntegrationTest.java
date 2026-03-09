@@ -70,7 +70,6 @@ class MissionControllerIntegrationTest {
     @Autowired private FamilyRepository familyRepository;
     @Autowired private FamilyMemberRepository familyMemberRepository;
     @Autowired private MissionItemRepository missionItemRepository;
-    @Autowired private MissionRequestRepository missionRequestRepository;
     @Autowired private MissionLogRepository missionLogRepository;
     @Autowired private RewardTemplateRepository rewardTemplateRepository;
     @Autowired private RewardRepository rewardRepository;

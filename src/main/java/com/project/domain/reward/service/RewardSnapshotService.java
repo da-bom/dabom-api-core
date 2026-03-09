@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-/** 미션 생성 시점의 보상 템플릿 값을 복사해 Reward 스냅샷을 만든다. */
+/* 미션 생성 시점의 보상 템플릿 값을 복사해 Reward 스냅샷을 만든다. */
 public class RewardSnapshotService {
 
     private final RewardRepository rewardRepository;
