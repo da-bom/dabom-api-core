@@ -1,5 +1,7 @@
 package com.project.domain.mission.service;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -60,27 +62,29 @@ public class MissionServiceImpl implements MissionService {
 
     /** 권한 범위에 맞는 활성 미션 목록을 커서 기반으로 조회한다. */
     @Override
+    /** 역할 범위 내 활성 미션 중 PENDING 또는 요청 이력이 없는 미션만 조회한다. */
     public MissionListResult listMissions(AuthContext auth, String cursor, int size) {
-        // 1. 커서 입력을 정규화하고 조회 범위를 결정한다.
+
+        // 1. 요청 파라미터를 커서 기반 조회에 사용할 값으로 정규화한다.
         int pageSize = normalizeSize(size);
         Long cursorId = parseCursor(cursor);
 
-        // 2. 역할별 조회 범위에 맞는 미션을 가져온다.
-        List<MissionItem> missions = findActiveMissionItemsByRole(auth, cursorId, pageSize);
-        boolean hasNext = missions.size() > pageSize;
-        List<MissionItem> page = hasNext ? missions.subList(0, pageSize) : missions;
-        String nextCursor = hasNext ? String.valueOf(page.getLast().getId()) : null;
+        // 2. 목록 정책에 맞는 미션만 별도 수집해 페이지 조각을 만든다.
+        VisibleMissionSlice visibleMissionSlice = findVisibleMissionSlice(auth, cursorId, pageSize);
 
-        // 3. 응답 조합에 필요한 사용자명과 최신 요청 상태를 함께 로드한다.
-        Map<Long, String> customerNameMap = loadCustomerNameMap(page);
-        Map<Long, String> requestStatusMap = loadMissionRequestStatusMap(page);
-
+        // 3. 최종 페이지에 포함된 미션만 기준으로 사용자 이름을 조회해 응답을 조합한다.
+        Map<Long, String> customerNameMap = loadCustomerNameMap(visibleMissionSlice.missions());
         return new MissionListResult(
-                page.stream()
-                        .map(mission -> toMissionCard(mission, customerNameMap, requestStatusMap))
+                visibleMissionSlice.missions().stream()
+                        .map(
+                                mission ->
+                                        toMissionCard(
+                                                mission,
+                                                customerNameMap,
+                                                visibleMissionSlice.requestStatusMap()))
                         .toList(),
-                nextCursor,
-                hasNext);
+                visibleMissionSlice.nextCursor(),
+                visibleMissionSlice.hasNext());
     }
 
     /** 권한 범위에 맞는 미션 로그 목록을 커서 기반으로 조회한다. */
@@ -141,8 +145,7 @@ public class MissionServiceImpl implements MissionService {
 
         // 2. 템플릿을 조회한 뒤 현재 값을 복사한 Reward 스냅샷을 생성한다.
         Reward reward =
-                rewardSnapshotService.createFromTemplate(
-                        req.rewardTemplateId(), req.rewardValue());
+                rewardSnapshotService.createFromTemplate(req.rewardTemplateId(), req.rewardValue());
 
         // 생성된 Reward를 미션에 연결해 저장한다.
         MissionItem mission =
@@ -238,16 +241,72 @@ public class MissionServiceImpl implements MissionService {
 
     /** 역할에 따라 활성 미션 조회 범위를 분기한다. */
     private List<MissionItem> findActiveMissionItemsByRole(
-            AuthContext auth, Long cursorId, int pageSize) {
+            AuthContext auth, Long cursorId, int fetchSize) {
         if (auth.isOwner()) {
             return missionItemRepository.findByFamilyScope(
                     auth.familyId(),
                     MissionStatus.ACTIVE,
                     cursorId,
-                    PageRequest.of(0, pageSize + 1));
+                    PageRequest.of(0, fetchSize));
         }
         return missionItemRepository.findByTargetScope(
-                auth.customerId(), MissionStatus.ACTIVE, cursorId, PageRequest.of(0, pageSize + 1));
+                auth.customerId(), MissionStatus.ACTIVE, cursorId, PageRequest.of(0, fetchSize));
+    }
+
+    /** 목록 정책에 맞는 미션만 수집해 커서 페이지 조각으로 반환한다. */
+    private VisibleMissionSlice findVisibleMissionSlice(
+            AuthContext auth, Long cursorId, int pageSize) {
+        // 1. 활성 미션 자체는 커서 기준으로 읽고, 노출 가능한 미션만 별도 버퍼에 담는다.
+        List<MissionItem> visibleMissions = new ArrayList<>();
+        Map<Long, String> visibleRequestStatusMap = new HashMap<>();
+        Long nextFetchCursor = cursorId;
+        int fetchSize = pageSize + 1;
+        boolean sourceExhausted = false;
+
+        while (visibleMissions.size() < fetchSize && !sourceExhausted) {
+            // 2. 한 번 읽은 chunk에 대해 최신 요청 상태를 붙인 뒤 노출 여부를 판단한다.
+            List<MissionItem> chunk = findActiveMissionItemsByRole(auth, nextFetchCursor, fetchSize);
+            if (chunk.isEmpty()) {
+                break;
+            }
+
+            Map<Long, String> chunkRequestStatusMap = loadMissionRequestStatusMap(chunk);
+            for (MissionItem mission : chunk) {
+                String requestStatus = chunkRequestStatusMap.get(mission.getId());
+                // 3. 목록 노출 조건에 맞는 미션만 골라서 따로 담습니다
+                if (!isVisibleMissionRequestStatus(requestStatus)) {
+                    continue;
+                }
+                visibleMissions.add(mission);
+                if (requestStatus != null) {
+                    visibleRequestStatusMap.put(mission.getId(), requestStatus);
+                }
+                if (visibleMissions.size() == fetchSize) {
+                    break;
+                }
+            }
+
+            nextFetchCursor = chunk.getLast().getId();
+            sourceExhausted = chunk.size() < fetchSize;
+        }
+
+        // 4. pageSize + 1개 수집 결과를 바탕으로 다음 페이지 존재 여부를 계산한다.
+        boolean hasNext = visibleMissions.size() > pageSize;
+        List<MissionItem> page = hasNext ? visibleMissions.subList(0, pageSize) : visibleMissions;
+        Map<Long, String> pageRequestStatusMap =
+                page.stream()
+                        .filter(mission -> visibleRequestStatusMap.containsKey(mission.getId()))
+                        .collect(
+                                Collectors.toMap(
+                                        MissionItem::getId,
+                                        mission -> visibleRequestStatusMap.get(mission.getId())));
+        String nextCursor = hasNext ? String.valueOf(page.getLast().getId()) : null;
+        return new VisibleMissionSlice(page, pageRequestStatusMap, nextCursor, hasNext);
+    }
+
+    /** 목록에는 PENDING 상태이거나 요청 이력이 없는 미션만 노출한다. */
+    private boolean isVisibleMissionRequestStatus(String requestStatus) {
+        return requestStatus == null || MissionRequestStatus.PENDING.name().equals(requestStatus);
     }
 
     /** MissionItem 엔티티를 미션 카드 응답 모델로 변환한다. */
@@ -392,5 +451,12 @@ public class MissionServiceImpl implements MissionService {
         }
     }
 
-    /** Reward 엔티티를 API 응답용 보상 모델로 변환한다. */
+
+    /**  노출 미션 목록과 요청 상태, 다음 커서 정보를 담는다. */
+    private record VisibleMissionSlice(
+            List<MissionItem> missions,
+            Map<Long, String> requestStatusMap,
+            String nextCursor,
+            boolean hasNext) {}
+
 }
