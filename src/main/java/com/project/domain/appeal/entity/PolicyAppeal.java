@@ -8,18 +8,13 @@ import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 import com.project.domain.appeal.enums.AppealStatus;
 import com.project.domain.appeal.enums.AppealType;
-import com.project.domain.customer.entity.Customer;
-import com.project.domain.policy.entity.PolicyAssignment;
 import com.project.global.util.BaseEntity;
 import com.project.global.util.MapStringObjectConverter;
 
@@ -47,13 +42,11 @@ public class PolicyAppeal extends BaseEntity {
     @Builder.Default
     private AppealType type = AppealType.NORMAL;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "policy_assignment_id")
-    private PolicyAssignment policyAssignment;
+    @Column(name = "policy_assignment_id")
+    private Long policyAssignmentId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "requester_id", nullable = false)
-    private Customer requester;
+    @Column(name = "requester_id", nullable = false)
+    private Long requesterId;
 
     @Column(name = "request_reason", columnDefinition = "TEXT", nullable = false)
     private String requestReason;
@@ -70,9 +63,8 @@ public class PolicyAppeal extends BaseEntity {
     @Builder.Default
     private AppealStatus status = AppealStatus.PENDING;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "resolved_by_id")
-    private Customer resolvedBy;
+    @Column(name = "resolved_by_id")
+    private Long resolvedById;
 
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
@@ -80,33 +72,4 @@ public class PolicyAppeal extends BaseEntity {
     @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
 
-    @Override
-    public String toString() {
-        return "PolicyAppeal{"
-                + "id="
-                + id
-                + ", type="
-                + type
-                + ", requestReason='"
-                + requestReason
-                + '\''
-                + ", rejectReason='"
-                + rejectReason
-                + '\''
-                + ", desiredRules="
-                + desiredRules
-                + ", status="
-                + status
-                + ", resolvedAt="
-                + resolvedAt
-                + ", cancelledAt="
-                + cancelledAt
-                + ", hasPolicyAssignment="
-                + (policyAssignment != null)
-                + ", hasRequester="
-                + (requester != null)
-                + ", hasResolvedBy="
-                + (resolvedBy != null)
-                + '}';
-    }
 }

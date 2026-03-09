@@ -18,12 +18,10 @@ public interface PolicyAppealRepository extends JpaRepository<PolicyAppeal, Long
             """
             select pa
             from PolicyAppeal pa
-            join fetch pa.requester requester
-            left join fetch pa.policyAssignment policyAssignment
             where exists (
                 select 1
                 from FamilyMember fm
-                where fm.customerId = requester.id
+                where fm.customerId = pa.requesterId
                   and fm.familyId = :familyId
             )
               and (:status is null or pa.status = :status)
@@ -42,13 +40,11 @@ public interface PolicyAppealRepository extends JpaRepository<PolicyAppeal, Long
             """
             select pa
             from PolicyAppeal pa
-            join fetch pa.requester requester
-            left join fetch pa.policyAssignment policyAssignment
-            where requester.id = :requesterId
+            where pa.requesterId = :requesterId
               and exists (
                 select 1
                 from FamilyMember fm
-                where fm.customerId = requester.id
+                where fm.customerId = pa.requesterId
                   and fm.familyId = :familyId
             )
               and (:status is null or pa.status = :status)

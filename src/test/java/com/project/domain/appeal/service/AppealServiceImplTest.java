@@ -1,6 +1,7 @@
 package com.project.domain.appeal.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyIterable;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -23,29 +24,32 @@ import com.project.domain.appeal.model.AppealListResult;
 import com.project.domain.appeal.repository.PolicyAppealRepository;
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.enums.RoleType;
-import com.project.domain.policy.entity.PolicyAssignment;
+import com.project.domain.customer.repository.CustomerRepository;
 import com.project.global.auth.model.AuthContext;
 
 @ExtendWith(MockitoExtension.class)
 class AppealServiceImplTest {
 
     @Mock private PolicyAppealRepository policyAppealRepository;
+    @Mock private CustomerRepository customerRepository;
 
     private AppealServiceImpl appealService;
 
     @BeforeEach
     void setUp() {
-        appealService = new AppealServiceImpl(policyAppealRepository);
+        appealService = new AppealServiceImpl(policyAppealRepository, customerRepository);
     }
 
     @Test
     @DisplayName("OWNER는 가족 전체 이의제기를 조회한다")
     void getAppeals_whenOwner_thenReturnsFamilyAppeals() {
         AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
-        PolicyAppeal first = appeal(30L, 2L, "member-a", 100L, AppealStatus.PENDING);
-        PolicyAppeal second = appeal(29L, 3L, "member-b", 101L, AppealStatus.APPROVED);
+        PolicyAppeal first = appeal(30L, 2L, 100L, AppealStatus.PENDING);
+        PolicyAppeal second = appeal(29L, 3L, 101L, AppealStatus.APPROVED);
         given(policyAppealRepository.findAllByFamilyId(10L, null, null, PageRequest.of(0, 21)))
                 .willReturn(List.of(first, second));
+        given(customerRepository.findAllById(anyIterable()))
+                .willReturn(List.of(customer(2L, "member-a"), customer(3L, "member-b")));
 
         AppealListResult result = appealService.getAppeals(auth, null, null, 20);
 
@@ -60,11 +64,13 @@ class AppealServiceImplTest {
     @DisplayName("MEMBER는 본인 이의제기만 조회한다")
     void getAppeals_whenMember_thenQueriesByRequester() {
         AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
-        PolicyAppeal appeal = appeal(30L, 2L, "member-a", 100L, AppealStatus.PENDING);
+        PolicyAppeal appeal = appeal(30L, 2L, 100L, AppealStatus.PENDING);
         given(
                         policyAppealRepository.findByRequesterIdAndFamilyId(
                                 2L, 10L, AppealStatus.PENDING, null, PageRequest.of(0, 21)))
                 .willReturn(List.of(appeal));
+        given(customerRepository.findAllById(anyIterable()))
+                .willReturn(List.of(customer(2L, "member-a")));
 
         AppealListResult result = appealService.getAppeals(auth, AppealStatus.PENDING, null, 20);
 
@@ -81,11 +87,13 @@ class AppealServiceImplTest {
     void getAppeals_whenMoreThanSize_thenReturnsNextCursor() {
         AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
         given(policyAppealRepository.findAllByFamilyId(10L, null, 50L, PageRequest.of(0, 3)))
-                .willReturn(
+                        .willReturn(
                         List.of(
-                                appeal(40L, 2L, "member-a", 100L, AppealStatus.PENDING),
-                                appeal(39L, 2L, "member-a", 101L, AppealStatus.PENDING),
-                                appeal(38L, 2L, "member-a", 102L, AppealStatus.PENDING)));
+                                appeal(40L, 2L, 100L, AppealStatus.PENDING),
+                                appeal(39L, 2L, 101L, AppealStatus.PENDING),
+                                appeal(38L, 2L, 102L, AppealStatus.PENDING)));
+        given(customerRepository.findAllById(anyIterable()))
+                .willReturn(List.of(customer(2L, "member-a")));
 
         AppealListResult result = appealService.getAppeals(auth, null, 50L, 2);
 
@@ -95,36 +103,25 @@ class AppealServiceImplTest {
     }
 
     private PolicyAppeal appeal(
-            Long appealId,
-            Long requesterId,
-            String requesterName,
-            Long policyAssignmentId,
-            AppealStatus status) {
-        Customer requester = new Customer("01012345678", "hash", requesterName);
-        setField(requester, Customer.class, "id", requesterId);
-
-        PolicyAssignment assignment =
-                PolicyAssignment.builder()
-                        .id(policyAssignmentId)
-                        .policyId(500L)
-                        .familyId(10L)
-                        .targetCustomerId(requesterId)
-                        .rules("{\"limitBytes\":1024}")
-                        .isActive(true)
-                        .build();
-
+            Long appealId, Long requesterId, Long policyAssignmentId, AppealStatus status) {
         PolicyAppeal appeal =
                 PolicyAppeal.builder()
                         .id(appealId)
                         .type(AppealType.NORMAL)
-                        .policyAssignment(assignment)
-                        .requester(requester)
+                        .policyAssignmentId(policyAssignmentId)
+                        .requesterId(requesterId)
                         .requestReason("need change")
                         .desiredRules(Map.of("limitBytes", 1024L))
                         .status(status)
                         .build();
         setCreatedAt(appeal, LocalDateTime.of(2026, 3, 10, 10, 0));
         return appeal;
+    }
+
+    private Customer customer(Long customerId, String name) {
+        Customer customer = new Customer("01012345678", "hash", name);
+        setField(customer, Customer.class, "id", customerId);
+        return customer;
     }
 
     private void setCreatedAt(PolicyAppeal appeal, LocalDateTime createdAt) {

@@ -10,6 +10,9 @@ import com.project.global.exception.code.FamilyErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * customerId를 기반으로 여러 도메인에서 공통으로 사용할 인증 컨텍스트(AuthContext)를 생성합니다.
+ */
 @Component
 @RequiredArgsConstructor
 public class AuthContextService {
