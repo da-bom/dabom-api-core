@@ -2,11 +2,9 @@ package com.project.domain.customer.controller;
 
 import jakarta.validation.Valid;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.project.domain.customer.dto.request.CustomerRefreshRequest;
@@ -53,9 +51,9 @@ public class CustomerController {
     }
 
     @PostMapping("/logout")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "사용자 로그아웃", description = "사용자 로그아웃 처리합니다. (클라이언트 측 토큰 삭제)")
-    public void logout() {
+    public ApiResponse<Void> logout() {
         // 서버 측 처리 없음 — 클라이언트가 토큰을 삭제
+        return ApiResponse.success(null);
     }
 }

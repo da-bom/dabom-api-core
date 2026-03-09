@@ -92,6 +92,15 @@ public class JwtTokenUtil {
         return RoleType.valueOf(roleStr);
     }
 
+    public Claims verifyAccessToken(String token) {
+        Claims claims = verify(token);
+        String type = claims.get("type", String.class);
+        if (!"access".equals(type)) {
+            throw new JwtException("액세스 토큰이 아닙니다.");
+        }
+        return claims;
+    }
+
     public Claims verifyRefreshToken(String token) {
         Claims claims = verify(token);
         String type = claims.get("type", String.class);
