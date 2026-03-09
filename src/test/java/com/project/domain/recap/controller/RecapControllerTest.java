@@ -106,7 +106,7 @@ class RecapControllerTest {
                                 .value("김민지"))
                 .andExpect(
                         jsonPath(
-                                        "$.data.appealHighlights.topAcceptedApprover.recentAcceptedAppeals[0].requesterName")
+                                "$.data.appealHighlights.topAcceptedApprover.recentAcceptedAppeals[0].requesterName")
                                 .value("김민지"))
                 .andExpect(jsonPath("$.data.communicationScore").value(82.5))
                 .andExpect(jsonPath("$.data.generatedAt").value("2026-03-01T00:00:00"));
