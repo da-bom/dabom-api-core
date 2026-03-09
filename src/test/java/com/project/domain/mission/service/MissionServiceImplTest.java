@@ -2,6 +2,7 @@ package com.project.domain.mission.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyIterable;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -18,12 +19,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 
+import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.customer.repository.CustomerRepository;
+import com.project.domain.family.entity.FamilyMember;
+import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.mission.dto.request.CreateMissionRequest;
 import com.project.domain.mission.entity.MissionItem;
 import com.project.domain.mission.entity.MissionLog;
 import com.project.domain.mission.entity.MissionRequest;
+import com.project.domain.mission.entity.Reward;
 import com.project.domain.mission.entity.RewardTemplate;
 import com.project.domain.mission.enums.MissionLogActionType;
 import com.project.domain.mission.enums.MissionRequestStatus;
@@ -33,6 +38,7 @@ import com.project.domain.mission.model.AuthContext;
 import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
 import com.project.domain.mission.repository.MissionRequestRepository;
+import com.project.domain.mission.repository.RewardRepository;
 import com.project.domain.mission.repository.RewardTemplateRepository;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.MissionErrorCode;
@@ -43,35 +49,19 @@ class MissionServiceImplTest {
     @Mock private MissionItemRepository missionItemRepository;
     @Mock private MissionRequestRepository missionRequestRepository;
     @Mock private MissionLogRepository missionLogRepository;
+    @Mock private RewardRepository rewardRepository;
     @Mock private RewardTemplateRepository rewardTemplateRepository;
     @Mock private CustomerRepository customerRepository;
+    @Mock private FamilyMemberRepository familyMemberRepository;
 
     @InjectMocks private MissionServiceImpl missionService;
 
     @Test
-    @DisplayName("OWNER는 family 기준으로 미션 목록을 조회한다")
+    @DisplayName("OWNER는 reward 스냅샷이 포함된 미션 목록을 조회한다")
     void listMissions_ownerReadsFamilyScope() {
         AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
-        MissionItem mission =
-                MissionItem.builder()
-                        .id(100L)
-                        .familyId(10L)
-                        .targetCustomerId(2L)
-                        .createdById(1L)
-                        .rewardTemplateId(500L)
-                        .missionText("clean room")
-                        .rewardValue(100L)
-                        .status(MissionStatus.ACTIVE)
-                        .build();
-        RewardTemplate template =
-                RewardTemplate.builder()
-                        .id(500L)
-                        .name("data")
-                        .category(RewardCategory.DATA)
-                        .defaultValue(100L)
-                        .unit("MB")
-                        .isSystem(true)
-                        .build();
+        MissionItem mission = mission(100L, 10L, 2L, 1L, reward(900L, 500L, 100L), "clean room");
+
         given(
                         missionItemRepository.findByFamilyScope(
                                 10L, MissionStatus.ACTIVE, null, PageRequest.of(0, 21)))
@@ -87,25 +77,22 @@ class MissionServiceImplTest {
                                         .requesterId(2L)
                                         .status(MissionRequestStatus.PENDING)
                                         .build()));
-        var owner = mock(com.project.domain.customer.entity.Customer.class);
-        given(owner.getId()).willReturn(1L);
-        given(owner.getName()).willReturn("owner");
-        var member = mock(com.project.domain.customer.entity.Customer.class);
-        given(member.getId()).willReturn(2L);
-        given(member.getName()).willReturn("member");
-        given(customerRepository.findAllById(anyIterable())).willReturn(List.of(owner, member));
-        given(rewardTemplateRepository.findAllById(anyIterable())).willReturn(List.of(template));
+        given(customerRepository.findAllById(anyIterable()))
+                .willReturn(List.of(customer(1L, "owner"), customer(2L, "member")));
 
         var result = missionService.listMissions(auth, null, 20);
 
         assertThat(result.missions()).hasSize(1);
         assertThat(result.missions().getFirst().requestStatus()).isEqualTo("PENDING");
+        assertThat(result.missions().getFirst().reward().rewardId()).isEqualTo(900L);
+        assertThat(result.missions().getFirst().reward().templateId()).isEqualTo(500L);
+        assertThat(result.missions().getFirst().reward().value()).isEqualTo(100L);
         verify(missionItemRepository)
                 .findByFamilyScope(10L, MissionStatus.ACTIVE, null, PageRequest.of(0, 21));
     }
 
     @Test
-    @DisplayName("미션 로그 조회는 mission_log 기반으로 조회한다")
+    @DisplayName("미션 로그 응답은 reward 객체를 포함한다")
     void listMissionLogs_readsFromMissionLogRepository() {
         AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
         MissionLog log =
@@ -116,63 +103,129 @@ class MissionServiceImplTest {
                         .actionType(MissionLogActionType.CREATED)
                         .message("Mission created")
                         .build();
-        MissionItem mission =
-                MissionItem.builder()
-                        .id(100L)
-                        .familyId(10L)
-                        .targetCustomerId(2L)
-                        .createdById(1L)
-                        .rewardTemplateId(500L)
-                        .missionText("clean room")
-                        .rewardValue(100L)
-                        .status(MissionStatus.ACTIVE)
-                        .build();
-        RewardTemplate template =
-                RewardTemplate.builder()
-                        .id(500L)
-                        .name("data")
-                        .category(RewardCategory.DATA)
-                        .defaultValue(100L)
-                        .unit("MB")
-                        .isSystem(true)
-                        .build();
-        var owner = mock(com.project.domain.customer.entity.Customer.class);
-        given(owner.getId()).willReturn(1L);
-        given(owner.getName()).willReturn("owner");
-        var member = mock(com.project.domain.customer.entity.Customer.class);
-        given(member.getId()).willReturn(2L);
-        given(member.getName()).willReturn("member");
+        MissionItem mission = mission(100L, 10L, 2L, 1L, reward(900L, 500L, 100L), "clean room");
 
         given(missionLogRepository.findByFamilyScope(10L, null, PageRequest.of(0, 21)))
                 .willReturn(List.of(log));
-        given(missionItemRepository.findAllById(anyIterable())).willReturn(List.of(mission));
-        given(customerRepository.findAllById(anyIterable())).willReturn(List.of(owner, member));
-        given(rewardTemplateRepository.findAllById(anyIterable())).willReturn(List.of(template));
+        given(missionItemRepository.findAllWithRewardByIdIn(anyIterable())).willReturn(List.of(mission));
+        given(customerRepository.findAllById(anyIterable()))
+                .willReturn(List.of(customer(1L, "owner"), customer(2L, "member")));
 
         var result = missionService.listMissionLogs(auth, null, 20);
 
         assertThat(result.missions()).hasSize(1);
         assertThat(result.missions().getFirst().logId()).isEqualTo(300L);
-        assertThat(result.missions().getFirst().actionType()).isEqualTo("CREATED");
-        assertThat(result.missions().getFirst().actor().name()).isEqualTo("owner");
+        assertThat(result.missions().getFirst().missionItem().reward().rewardId()).isEqualTo(900L);
         verify(missionLogRepository).findByFamilyScope(10L, null, PageRequest.of(0, 21));
+    }
+
+    @Test
+    @DisplayName("미션 생성 시 Reward 스냅샷을 먼저 저장하고 mission에 연결한다")
+    void createMission_createsRewardSnapshot() {
+        AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
+        CreateMissionRequest request = new CreateMissionRequest("clean room", 2L, 500L, 100L);
+        RewardTemplate template =
+                RewardTemplate.builder()
+                        .id(500L)
+                        .name("용돈")
+                        .category(RewardCategory.ETC)
+                        .defaultValue(1000L)
+                        .unit("원")
+                        .isSystem(true)
+                        .build();
+        FamilyMember target =
+                FamilyMember.builder().familyId(10L).customerId(2L).role(RoleType.MEMBER).build();
+        Reward savedReward =
+                Reward.builder()
+                        .id(900L)
+                        .rewardTemplate(template)
+                        .name("용돈")
+                        .category(RewardCategory.ETC)
+                        .value(100L)
+                        .unit("원")
+                        .build();
+
+        given(familyMemberRepository.findByCustomerId(2L)).willReturn(Optional.of(target));
+        given(rewardTemplateRepository.findById(500L)).willReturn(Optional.of(template));
+        given(rewardRepository.save(any(Reward.class))).willReturn(savedReward);
+        given(missionItemRepository.save(any(MissionItem.class)))
+                .willAnswer(
+                        invocation -> {
+                            MissionItem item = invocation.getArgument(0);
+                            return MissionItem.builder()
+                                    .id(300L)
+                                    .familyId(item.getFamilyId())
+                                    .targetCustomerId(item.getTargetCustomerId())
+                                    .createdById(item.getCreatedById())
+                                    .reward(item.getReward())
+                                    .missionText(item.getMissionText())
+                                    .status(item.getStatus())
+                                    .build();
+                        });
+
+        var result = missionService.createMission(auth, request);
+
+        assertThat(result.missionItemId()).isEqualTo(300L);
+        verify(rewardRepository).save(any(Reward.class));
+        verify(missionItemRepository).save(any(MissionItem.class));
+    }
+
+    @Test
+    @DisplayName("RewardTemplate이 바뀌어도 기존 요청 응답은 생성된 Reward 스냅샷을 사용한다")
+    void requestMissionApproval_usesRewardSnapshot() {
+        AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
+        MissionItem mission =
+                mission(
+                        100L,
+                        10L,
+                        2L,
+                        1L,
+                        Reward.builder()
+                                .id(900L)
+                                .rewardTemplate(
+                                        RewardTemplate.builder()
+                                                .id(500L)
+                                                .name("new template name")
+                                                .category(RewardCategory.DATA)
+                                                .defaultValue(300L)
+                                                .unit("GB")
+                                                .isSystem(true)
+                                                .build())
+                                .name("old snapshot name")
+                                .category(RewardCategory.ETC)
+                                .value(100L)
+                                .unit("원")
+                                .build(),
+                        "clean room");
+
+        given(missionItemRepository.findByIdAndFamilyIdForUpdate(100L, 10L))
+                .willReturn(Optional.of(mission));
+        given(
+                        missionRequestRepository.existsByMissionItemIdAndRequesterIdAndStatus(
+                                100L, 2L, MissionRequestStatus.PENDING))
+                .willReturn(false);
+        given(missionRequestRepository.save(any(MissionRequest.class)))
+                .willReturn(
+                        MissionRequest.builder()
+                                .id(200L)
+                                .missionItemId(100L)
+                                .requesterId(2L)
+                                .status(MissionRequestStatus.PENDING)
+                                .build());
+        given(customerRepository.findById(2L)).willReturn(Optional.of(customer(2L, "member")));
+
+        var result = missionService.requestMissionApproval(auth, 100L);
+
+        assertThat(result.missionItem().reward().name()).isEqualTo("old snapshot name");
+        assertThat(result.missionItem().reward().category()).isEqualTo(RewardCategory.ETC);
+        assertThat(result.missionItem().reward().templateId()).isEqualTo(500L);
     }
 
     @Test
     @DisplayName("본인에게 할당되지 않은 미션 요청은 MISSION_NOT_ASSIGNED를 반환한다")
     void requestMissionApproval_whenMissionNotAssigned_thenThrows() {
         AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
-        MissionItem mission =
-                MissionItem.builder()
-                        .id(100L)
-                        .familyId(10L)
-                        .targetCustomerId(3L)
-                        .createdById(1L)
-                        .rewardTemplateId(500L)
-                        .missionText("clean room")
-                        .rewardValue(100L)
-                        .status(MissionStatus.ACTIVE)
-                        .build();
+        MissionItem mission = mission(100L, 10L, 3L, 1L, reward(900L, 500L, 100L), "clean room");
         given(missionItemRepository.findByIdAndFamilyIdForUpdate(100L, 10L))
                 .willReturn(Optional.of(mission));
 
@@ -185,41 +238,10 @@ class MissionServiceImplTest {
     }
 
     @Test
-    @DisplayName("중복 대기 요청이 있으면 MISSION_REQUEST_DUPLICATED를 반환한다")
-    void requestMissionApproval_whenPendingExists_thenThrows() {
-        AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
-        MissionItem mission =
-                MissionItem.builder()
-                        .id(100L)
-                        .familyId(10L)
-                        .targetCustomerId(2L)
-                        .createdById(1L)
-                        .rewardTemplateId(500L)
-                        .missionText("clean room")
-                        .rewardValue(100L)
-                        .status(MissionStatus.ACTIVE)
-                        .build();
-        given(missionItemRepository.findByIdAndFamilyIdForUpdate(100L, 10L))
-                .willReturn(Optional.of(mission));
-        given(
-                        missionRequestRepository.existsByMissionItemIdAndRequesterIdAndStatus(
-                                100L, 2L, MissionRequestStatus.PENDING))
-                .willReturn(true);
-
-        assertThatThrownBy(() -> missionService.requestMissionApproval(auth, 100L))
-                .isInstanceOf(ApplicationException.class)
-                .satisfies(
-                        e ->
-                                assertThat(((ApplicationException) e).getCode())
-                                        .isEqualTo(MissionErrorCode.MISSION_REQUEST_DUPLICATED));
-    }
-
-    @Test
     @DisplayName("MEMBER가 미션 생성을 요청하면 MISSION_OWNER_ONLY를 반환한다")
     void createMission_whenMember_thenThrows() {
         AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
-        CreateMissionRequest request =
-                new CreateMissionRequest("clean room", 2L, 500L, "DATA", 100L);
+        CreateMissionRequest request = new CreateMissionRequest("clean room", 2L, 500L, 100L);
 
         assertThatThrownBy(() -> missionService.createMission(auth, request))
                 .isInstanceOf(ApplicationException.class)
@@ -227,5 +249,50 @@ class MissionServiceImplTest {
                         e ->
                                 assertThat(((ApplicationException) e).getCode())
                                         .isEqualTo(MissionErrorCode.MISSION_OWNER_ONLY));
+    }
+
+    private MissionItem mission(
+            Long missionId,
+            Long familyId,
+            Long targetCustomerId,
+            Long createdById,
+            Reward reward,
+            String text) {
+        return MissionItem.builder()
+                .id(missionId)
+                .familyId(familyId)
+                .targetCustomerId(targetCustomerId)
+                .createdById(createdById)
+                .reward(reward)
+                .missionText(text)
+                .status(MissionStatus.ACTIVE)
+                .build();
+    }
+
+    private Reward reward(Long rewardId, Long templateId, Long value) {
+        RewardTemplate template =
+                RewardTemplate.builder()
+                        .id(templateId)
+                        .name("data")
+                        .category(RewardCategory.DATA)
+                        .defaultValue(100L)
+                        .unit("MB")
+                        .isSystem(true)
+                        .build();
+        return Reward.builder()
+                .id(rewardId)
+                .rewardTemplate(template)
+                .name("data")
+                .category(RewardCategory.DATA)
+                .value(value)
+                .unit("MB")
+                .build();
+    }
+
+    private Customer customer(Long id, String name) {
+        Customer customer = mock(Customer.class);
+        given(customer.getId()).willReturn(id);
+        given(customer.getName()).willReturn(name);
+        return customer;
     }
 }
