@@ -87,7 +87,7 @@ class AppealServiceImplTest {
     void getAppeals_whenMoreThanSize_thenReturnsNextCursor() {
         AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
         given(policyAppealRepository.findAllByFamilyId(10L, null, 50L, PageRequest.of(0, 3)))
-                        .willReturn(
+                .willReturn(
                         List.of(
                                 appeal(40L, 2L, 100L, AppealStatus.PENDING),
                                 appeal(39L, 2L, 101L, AppealStatus.PENDING),
