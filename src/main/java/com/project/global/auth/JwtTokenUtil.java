@@ -84,11 +84,11 @@ public class JwtTokenUtil {
     }
 
     public Long getMemberId(String token) {
-        return Long.parseLong(verify(token).getSubject());
+        return Long.parseLong(verifyAccessToken(token).getSubject());
     }
 
     public RoleType getRole(String token) {
-        String roleStr = verify(token).get("role", String.class);
+        String roleStr = verifyAccessToken(token).get("role", String.class);
         return RoleType.valueOf(roleStr);
     }
 
