@@ -264,30 +264,52 @@ public class MissionServiceImpl implements MissionService {
             List<MissionItem> chunk =
                     findActiveMissionItemsByRole(auth, nextFetchCursor, fetchSize);
             if (chunk.isEmpty()) {
-                break;
+                sourceExhausted = true;
+            } else {
+                // 3. 목록 노출 조건에 맞는 미션만 골라서 따로 담습니다
+                collectVisibleMissions(chunk, fetchSize, visibleMissions, visibleRequestStatusMap);
+
+                nextFetchCursor = chunk.getLast().getId();
+                sourceExhausted = chunk.size() < fetchSize;
+            }
+        }
+
+        // 4. pageSize + 1개 수집 결과를 바탕으로 다음 페이지 존재 여부를 계산한다.
+        return toVisibleMissionSlice(pageSize, visibleMissions, visibleRequestStatusMap);
+    }
+
+    /** 목록에는 PENDING 상태이거나 요청 이력이 없는 미션만 노출한다. */
+    private boolean isVisibleMissionRequestStatus(String requestStatus) {
+        return requestStatus == null || MissionRequestStatus.PENDING.name().equals(requestStatus);
+    }
+
+    /** 한 번 조회한 chunk에서 목록 노출 조건을 만족하는 미션만 누적한다. */
+    private void collectVisibleMissions(
+            List<MissionItem> chunk,
+            int fetchSize,
+            List<MissionItem> visibleMissions,
+            Map<Long, String> visibleRequestStatusMap) {
+        Map<Long, String> chunkRequestStatusMap = loadMissionRequestStatusMap(chunk);
+        for (MissionItem mission : chunk) {
+            if (visibleMissions.size() == fetchSize) {
+                return;
             }
 
-            Map<Long, String> chunkRequestStatusMap = loadMissionRequestStatusMap(chunk);
-            for (MissionItem mission : chunk) {
-                String requestStatus = chunkRequestStatusMap.get(mission.getId());
-                // 3. 목록 노출 조건에 맞는 미션만 골라서 따로 담습니다
-                if (!isVisibleMissionRequestStatus(requestStatus)) {
-                    continue;
-                }
+            String requestStatus = chunkRequestStatusMap.get(mission.getId());
+            if (isVisibleMissionRequestStatus(requestStatus)) {
                 visibleMissions.add(mission);
                 if (requestStatus != null) {
                     visibleRequestStatusMap.put(mission.getId(), requestStatus);
                 }
-                if (visibleMissions.size() == fetchSize) {
-                    break;
-                }
             }
-
-            nextFetchCursor = chunk.getLast().getId();
-            sourceExhausted = chunk.size() < fetchSize;
         }
+    }
 
-        // 4. pageSize + 1개 수집 결과를 바탕으로 다음 페이지 존재 여부를 계산한다.
+    /** 누적된 미션 목록을 pageSize 기준의 커서 페이지 조각으로 변환한다. */
+    private VisibleMissionSlice toVisibleMissionSlice(
+            int pageSize,
+            List<MissionItem> visibleMissions,
+            Map<Long, String> visibleRequestStatusMap) {
         boolean hasNext = visibleMissions.size() > pageSize;
         List<MissionItem> page = hasNext ? visibleMissions.subList(0, pageSize) : visibleMissions;
         Map<Long, String> pageRequestStatusMap =
@@ -301,12 +323,6 @@ public class MissionServiceImpl implements MissionService {
         return new VisibleMissionSlice(page, pageRequestStatusMap, nextCursor, hasNext);
     }
 
-    /** 목록에는 PENDING 상태이거나 요청 이력이 없는 미션만 노출한다. */
-    private boolean isVisibleMissionRequestStatus(String requestStatus) {
-        return requestStatus == null || MissionRequestStatus.PENDING.name().equals(requestStatus);
-    }
-
-    /** MissionItem 엔티티를 미션 카드 응답 모델로 변환한다. */
     private MissionListResult.MissionCard toMissionCard(
             MissionItem mission,
             Map<Long, String> customerNameMap,
