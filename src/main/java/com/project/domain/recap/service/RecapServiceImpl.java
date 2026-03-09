@@ -40,6 +40,10 @@ public class RecapServiceImpl implements RecapService {
 
         Family family = familyService.getFamilyById(familyId);
 
+        return toMonthlyRecapModel(recap, family);
+    }
+
+    private MonthlyRecap toMonthlyRecapModel(FamilyRecapMonthly recap, Family family) {
         return new MonthlyRecap(
                 recap.getId(),
                 recap.getFamilyId(),
