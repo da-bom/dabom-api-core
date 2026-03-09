@@ -15,6 +15,7 @@ import com.project.domain.customer.dto.response.SignInResponse;
 import com.project.domain.customer.dto.response.SignUpResponse;
 import com.project.domain.customer.service.SignInService;
 import com.project.global.api.response.ApiResponse;
+import com.project.global.auth.TokenRefreshResult;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -47,7 +48,10 @@ public class CustomerController {
     @Operation(summary = "사용자 토큰 갱신", description = "리프레시 토큰으로 새 액세스 토큰을 발급합니다.")
     public ApiResponse<CustomerRefreshResponse> refreshToken(
             @Valid @RequestBody CustomerRefreshRequest request) {
-        return ApiResponse.success(signInService.refreshToken(request.refreshToken()));
+        TokenRefreshResult result = signInService.refreshToken(request.refreshToken());
+        return ApiResponse.success(
+                new CustomerRefreshResponse(
+                        result.accessToken(), result.refreshToken(), result.expiresIn()));
     }
 
     @PostMapping("/logout")

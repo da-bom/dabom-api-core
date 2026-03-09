@@ -12,10 +12,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.project.domain.admin.dto.response.AdminRefreshResponse;
 import com.project.domain.admin.repository.AdminRepository;
 import com.project.domain.customer.enums.RoleType;
 import com.project.global.auth.JwtTokenUtil;
+import com.project.global.auth.TokenRefreshResult;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.AdminErrorCode;
 
@@ -39,17 +39,16 @@ class AdminServiceImplTest {
         given(claims.getSubject()).willReturn("1");
 
         given(jwtTokenUtil.verifyRefreshToken("valid-refresh-token")).willReturn(claims);
-        given(jwtTokenUtil.createToken(1L, RoleType.ADMIN)).willReturn("new-access");
-        given(jwtTokenUtil.createRefreshToken(1L, RoleType.ADMIN)).willReturn("new-refresh");
-        given(jwtTokenUtil.getRefreshTokenExpirationMillis()).willReturn(1800000L);
+        given(jwtTokenUtil.reissueTokens(1L, RoleType.ADMIN))
+                .willReturn(new TokenRefreshResult("new-access", "new-refresh", 1800L));
 
         // when
-        AdminRefreshResponse response = adminService.refreshToken("valid-refresh-token");
+        TokenRefreshResult result = adminService.refreshToken("valid-refresh-token");
 
         // then
-        assertThat(response.accessToken()).isEqualTo("new-access");
-        assertThat(response.refreshToken()).isEqualTo("new-refresh");
-        assertThat(response.expiresIn()).isEqualTo(1800L);
+        assertThat(result.accessToken()).isEqualTo("new-access");
+        assertThat(result.refreshToken()).isEqualTo("new-refresh");
+        assertThat(result.expiresIn()).isEqualTo(1800L);
     }
 
     @Test

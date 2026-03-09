@@ -3,7 +3,6 @@ package com.project.domain.admin.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.project.domain.admin.dto.response.AdminRefreshResponse;
 import com.project.domain.admin.entity.Admin;
 import com.project.domain.admin.repository.AdminRepository;
 import com.project.domain.customer.dto.response.SignInResponse;
@@ -11,6 +10,7 @@ import com.project.domain.customer.dto.response.SignUpResponse;
 import com.project.domain.customer.enums.RoleType;
 import com.project.global.auth.JwtTokenUtil;
 import com.project.global.auth.PasswordHash;
+import com.project.global.auth.TokenRefreshResult;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.AdminErrorCode;
 import com.project.global.exception.code.CustomerErrorCode;
@@ -60,7 +60,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public AdminRefreshResponse refreshToken(String refreshToken) {
+    public TokenRefreshResult refreshToken(String refreshToken) {
         try {
             Claims claims = jwtTokenUtil.verifyRefreshToken(refreshToken);
             RoleType role = RoleType.valueOf(claims.get("role", String.class));
@@ -70,12 +70,7 @@ public class AdminServiceImpl implements AdminService {
             }
 
             Long adminId = Long.parseLong(claims.getSubject());
-
-            String newAccessToken = jwtTokenUtil.createToken(adminId, RoleType.ADMIN);
-            String newRefreshToken = jwtTokenUtil.createRefreshToken(adminId, RoleType.ADMIN);
-            long expiresIn = jwtTokenUtil.getRefreshTokenExpirationMillis() / 1000;
-
-            return new AdminRefreshResponse(newAccessToken, newRefreshToken, expiresIn);
+            return jwtTokenUtil.reissueTokens(adminId, RoleType.ADMIN);
         } catch (JwtException | IllegalArgumentException e) {
             throw new ApplicationException(AdminErrorCode.ADMIN_REFRESH_TOKEN_INVALID);
         }

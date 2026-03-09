@@ -110,6 +110,13 @@ public class JwtTokenUtil {
         return claims;
     }
 
+    public TokenRefreshResult reissueTokens(Long memberId, RoleType role) {
+        String accessToken = createToken(memberId, role);
+        String refreshToken = createRefreshToken(memberId, role);
+        long expiresIn = refreshExpirationMillis / 1000;
+        return new TokenRefreshResult(accessToken, refreshToken, expiresIn);
+    }
+
     public long getRefreshTokenExpirationMillis() {
         return refreshExpirationMillis;
     }

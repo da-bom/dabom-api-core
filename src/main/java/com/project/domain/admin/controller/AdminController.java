@@ -14,6 +14,7 @@ import com.project.domain.admin.service.AdminService;
 import com.project.domain.customer.dto.response.SignInResponse;
 import com.project.domain.customer.dto.response.SignUpResponse;
 import com.project.global.api.response.ApiResponse;
+import com.project.global.auth.TokenRefreshResult;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -48,7 +49,10 @@ public class AdminController {
     @Operation(summary = "관리자 토큰 갱신", description = "리프레시 토큰으로 새 액세스 토큰을 발급합니다.")
     public ApiResponse<AdminRefreshResponse> refreshToken(
             @Valid @RequestBody AdminRefreshRequest request) {
-        return ApiResponse.success(adminService.refreshToken(request.refreshToken()));
+        TokenRefreshResult result = adminService.refreshToken(request.refreshToken());
+        return ApiResponse.success(
+                new AdminRefreshResponse(
+                        result.accessToken(), result.refreshToken(), result.expiresIn()));
     }
 
     @PostMapping("/logout")

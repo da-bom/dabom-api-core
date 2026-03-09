@@ -12,11 +12,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.project.domain.customer.dto.response.CustomerRefreshResponse;
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.customer.repository.CustomerRepository;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.global.auth.JwtTokenUtil;
+import com.project.global.auth.TokenRefreshResult;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.CustomerErrorCode;
 
@@ -41,17 +41,16 @@ class SignInServiceImplTest {
         given(claims.getSubject()).willReturn("10");
 
         given(jwtTokenUtil.verifyRefreshToken("owner-refresh-token")).willReturn(claims);
-        given(jwtTokenUtil.createToken(10L, RoleType.OWNER)).willReturn("new-access");
-        given(jwtTokenUtil.createRefreshToken(10L, RoleType.OWNER)).willReturn("new-refresh");
-        given(jwtTokenUtil.getRefreshTokenExpirationMillis()).willReturn(1800000L);
+        given(jwtTokenUtil.reissueTokens(10L, RoleType.OWNER))
+                .willReturn(new TokenRefreshResult("new-access", "new-refresh", 1800L));
 
         // when
-        CustomerRefreshResponse response = signInService.refreshToken("owner-refresh-token");
+        TokenRefreshResult result = signInService.refreshToken("owner-refresh-token");
 
         // then
-        assertThat(response.accessToken()).isEqualTo("new-access");
-        assertThat(response.refreshToken()).isEqualTo("new-refresh");
-        assertThat(response.expiresIn()).isEqualTo(1800L);
+        assertThat(result.accessToken()).isEqualTo("new-access");
+        assertThat(result.refreshToken()).isEqualTo("new-refresh");
+        assertThat(result.expiresIn()).isEqualTo(1800L);
     }
 
     @Test
@@ -63,17 +62,16 @@ class SignInServiceImplTest {
         given(claims.getSubject()).willReturn("20");
 
         given(jwtTokenUtil.verifyRefreshToken("member-refresh-token")).willReturn(claims);
-        given(jwtTokenUtil.createToken(20L, RoleType.MEMBER)).willReturn("new-access");
-        given(jwtTokenUtil.createRefreshToken(20L, RoleType.MEMBER)).willReturn("new-refresh");
-        given(jwtTokenUtil.getRefreshTokenExpirationMillis()).willReturn(1800000L);
+        given(jwtTokenUtil.reissueTokens(20L, RoleType.MEMBER))
+                .willReturn(new TokenRefreshResult("new-access", "new-refresh", 1800L));
 
         // when
-        CustomerRefreshResponse response = signInService.refreshToken("member-refresh-token");
+        TokenRefreshResult result = signInService.refreshToken("member-refresh-token");
 
         // then
-        assertThat(response.accessToken()).isEqualTo("new-access");
-        assertThat(response.refreshToken()).isEqualTo("new-refresh");
-        assertThat(response.expiresIn()).isEqualTo(1800L);
+        assertThat(result.accessToken()).isEqualTo("new-access");
+        assertThat(result.refreshToken()).isEqualTo("new-refresh");
+        assertThat(result.expiresIn()).isEqualTo(1800L);
     }
 
     @Test
