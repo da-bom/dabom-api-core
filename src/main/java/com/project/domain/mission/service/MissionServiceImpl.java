@@ -244,10 +244,7 @@ public class MissionServiceImpl implements MissionService {
             AuthContext auth, Long cursorId, int fetchSize) {
         if (auth.isOwner()) {
             return missionItemRepository.findByFamilyScope(
-                    auth.familyId(),
-                    MissionStatus.ACTIVE,
-                    cursorId,
-                    PageRequest.of(0, fetchSize));
+                    auth.familyId(), MissionStatus.ACTIVE, cursorId, PageRequest.of(0, fetchSize));
         }
         return missionItemRepository.findByTargetScope(
                 auth.customerId(), MissionStatus.ACTIVE, cursorId, PageRequest.of(0, fetchSize));
@@ -265,7 +262,8 @@ public class MissionServiceImpl implements MissionService {
 
         while (visibleMissions.size() < fetchSize && !sourceExhausted) {
             // 2. 한 번 읽은 chunk에 대해 최신 요청 상태를 붙인 뒤 노출 여부를 판단한다.
-            List<MissionItem> chunk = findActiveMissionItemsByRole(auth, nextFetchCursor, fetchSize);
+            List<MissionItem> chunk =
+                    findActiveMissionItemsByRole(auth, nextFetchCursor, fetchSize);
             if (chunk.isEmpty()) {
                 break;
             }
@@ -451,12 +449,10 @@ public class MissionServiceImpl implements MissionService {
         }
     }
 
-
-    /**  노출 미션 목록과 요청 상태, 다음 커서 정보를 담는다. */
+    /** 노출 미션 목록과 요청 상태, 다음 커서 정보를 담는다. */
     private record VisibleMissionSlice(
             List<MissionItem> missions,
             Map<Long, String> requestStatusMap,
             String nextCursor,
             boolean hasNext) {}
-
 }
