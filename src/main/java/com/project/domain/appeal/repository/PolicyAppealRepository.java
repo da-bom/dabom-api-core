@@ -1,6 +1,8 @@
 package com.project.domain.appeal.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,6 +14,8 @@ import com.project.domain.appeal.enums.AppealStatus;
 
 /** 이의제기 목록 조회 저장소 */
 public interface PolicyAppealRepository extends JpaRepository<PolicyAppeal, Long> {
+
+    Optional<PolicyAppeal> findByIdAndDeletedAtIsNull(Long id);
 
     /** 가족 기준 이의제기 목록 조회 */
     @Query(
@@ -58,4 +62,22 @@ public interface PolicyAppealRepository extends JpaRepository<PolicyAppeal, Long
             @Param("status") AppealStatus status,
             @Param("cursorId") Long cursorId,
             Pageable pageable);
+
+    /** 긴급 요청 월별 승인 이력 조회 */
+    @Query(
+            """
+            select pa
+            from PolicyAppeal pa
+            where pa.requesterId = :requesterId
+              and pa.type = :type
+              and pa.status = :status
+              and pa.createdAt between :from and :to
+              and pa.deletedAt is null
+            """)
+    List<PolicyAppeal> findByRequesterIdAndTypeAndStatusAndCreatedAtBetween(
+            @Param("requesterId") Long requesterId,
+            @Param("type") com.project.domain.appeal.enums.AppealType type,
+            @Param("status") AppealStatus status,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to);
 }

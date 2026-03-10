@@ -12,6 +12,8 @@ import com.project.domain.policy.entity.PolicyAssignment;
 import com.project.domain.policy.enums.PolicyType;
 
 public interface PolicyAssignmentRepository extends JpaRepository<PolicyAssignment, Long> {
+    Optional<PolicyAssignment> findByIdAndDeletedAtIsNull(Long id);
+
     @Query(
             "SELECT p FROM PolicyAssignment p WHERE p.familyId = :familyId AND p.deletedAt"
                     + " IS NULL")
