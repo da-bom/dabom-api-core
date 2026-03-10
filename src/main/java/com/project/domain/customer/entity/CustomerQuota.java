@@ -71,4 +71,8 @@ public class CustomerQuota extends BaseEntity {
         this.isBlocked = isBlocked;
         this.blockReason = blockReason;
     }
+
+    public void addMonthlyLimitBytes(long additionalBytes) {
+        this.monthlyLimitBytes += additionalBytes;
+    }
 }
