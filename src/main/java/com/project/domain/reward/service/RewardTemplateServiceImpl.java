@@ -61,7 +61,7 @@ public class RewardTemplateServiceImpl implements RewardTemplateService {
 
     private RewardTemplate findTemplateOrThrow(Long id) {
         return rewardTemplateRepository
-                .findById(id)
+                .findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(
                         () -> new ApplicationException(RewardErrorCode.REWARD_TEMPLATE_NOT_FOUND));
     }
