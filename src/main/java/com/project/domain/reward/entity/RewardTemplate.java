@@ -60,4 +60,21 @@ public class RewardTemplate extends BaseEntity {
         this.unit = unit;
         this.isSystem = isSystem;
     }
+
+    public void update(
+            String name,
+            RewardCategory category,
+            Long defaultValue,
+            String unit,
+            boolean isSystem) {
+        this.name = name;
+        this.category = category;
+        this.defaultValue = defaultValue;
+        this.unit = unit;
+        this.isSystem = isSystem;
+    }
+
+    public void delete() {
+        softDelete();
+    }
 }
