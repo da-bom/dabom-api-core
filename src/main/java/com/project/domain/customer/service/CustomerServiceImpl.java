@@ -14,14 +14,18 @@ import com.project.domain.family.entity.FamilyMember;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.global.auth.JwtTokenUtil;
 import com.project.global.auth.PasswordHash;
+import com.project.global.auth.TokenRefreshResult;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.CustomerErrorCode;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class SignInServiceImpl implements SignInService {
+public class CustomerServiceImpl implements CustomerService {
 
     private final CustomerRepository customerRepository;
     private final FamilyMemberRepository familyMemberRepository;
@@ -67,5 +71,32 @@ public class SignInServiceImpl implements SignInService {
         familyMemberRepository.save(familyMember);
 
         return new SignUpResponse(customer.getId());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TokenRefreshResult refreshToken(String refreshToken) {
+        try {
+            Claims claims = jwtTokenUtil.verifyRefreshToken(refreshToken);
+            String roleStr = claims.get("role", String.class);
+            if (roleStr == null || RoleType.ADMIN.name().equals(roleStr)) {
+                throw new ApplicationException(CustomerErrorCode.CUSTOMER_REFRESH_TOKEN_INVALID);
+            }
+
+            Long customerId = Long.parseLong(claims.getSubject());
+
+            if (!customerRepository.existsById(customerId)) {
+                throw new ApplicationException(CustomerErrorCode.CUSTOMER_REFRESH_TOKEN_INVALID);
+            }
+
+            RoleType currentRole = familyMemberRepository.findRoleById(customerId);
+            if (currentRole == null) {
+                throw new ApplicationException(CustomerErrorCode.CUSTOMER_REFRESH_TOKEN_INVALID);
+            }
+
+            return jwtTokenUtil.reissueTokens(customerId, currentRole);
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new ApplicationException(CustomerErrorCode.CUSTOMER_REFRESH_TOKEN_INVALID);
+        }
     }
 }

@@ -10,9 +10,13 @@ import com.project.domain.customer.dto.response.SignUpResponse;
 import com.project.domain.customer.enums.RoleType;
 import com.project.global.auth.JwtTokenUtil;
 import com.project.global.auth.PasswordHash;
+import com.project.global.auth.TokenRefreshResult;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.AdminErrorCode;
 import com.project.global.exception.code.CustomerErrorCode;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -53,5 +57,26 @@ public class AdminServiceImpl implements AdminService {
         adminRepository.save(admin);
 
         return new SignUpResponse(admin.getId());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TokenRefreshResult refreshToken(String refreshToken) {
+        try {
+            Claims claims = jwtTokenUtil.verifyRefreshToken(refreshToken);
+            if (!RoleType.ADMIN.name().equals(claims.get("role", String.class))) {
+                throw new ApplicationException(AdminErrorCode.ADMIN_REFRESH_TOKEN_INVALID);
+            }
+
+            Long adminId = Long.parseLong(claims.getSubject());
+
+            if (!adminRepository.existsById(adminId)) {
+                throw new ApplicationException(AdminErrorCode.ADMIN_REFRESH_TOKEN_INVALID);
+            }
+
+            return jwtTokenUtil.reissueTokens(adminId, RoleType.ADMIN);
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new ApplicationException(AdminErrorCode.ADMIN_REFRESH_TOKEN_INVALID);
+        }
     }
 }
