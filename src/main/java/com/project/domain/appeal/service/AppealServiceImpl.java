@@ -105,6 +105,11 @@ public class AppealServiceImpl implements AppealService {
         PolicyAppeal appeal = findAppealOrThrow(appealId);
         validateFamilyAccess(auth.familyId(), appeal);
 
+        // MEMBER에 대해서는 반드시 “본인 소유 appeal인지”까지 확인
+        if (!auth.isOwner() && !appeal.getRequesterId().equals(auth.customerId())) {
+            throw new ApplicationException(AppealErrorCode.APPEAL_FORBIDDEN);
+        }
+
         // 2. 댓글 size를 보정하고 커서 기반으로 댓글을 조회한다.
         int pageSize = normalizeSize(size);
         List<PolicyAppealComment> comments =
@@ -167,7 +172,10 @@ public class AppealServiceImpl implements AppealService {
             throw new ApplicationException(AppealErrorCode.APPEAL_FORBIDDEN);
         }
 
-        // 3. NORMAL/PENDING 상태의 이의제기를 저장한다.
+        // 3. 같은 정책에 대해 같은 요청자의 진행 중 이의제기가 이미 있는지 확인한다.
+        validateNoPendingAppeal(policyAssignment.getId(), auth.customerId());
+
+        // 4. NORMAL/PENDING 상태의 이의제기를 저장한다.
         PolicyAppeal appeal =
                 policyAppealRepository.save(
                         PolicyAppeal.builder()
@@ -179,7 +187,7 @@ public class AppealServiceImpl implements AppealService {
                                 .status(AppealStatus.PENDING)
                                 .build());
 
-        // 4. 생성 결과를 응답 모델로 반환한다.
+        // 5. 생성 결과를 응답 모델로 반환한다.
         return new AppealCreateResult(
                 appeal.getId(),
                 appeal.getPolicyAssignmentId(),
@@ -300,6 +308,20 @@ public class AppealServiceImpl implements AppealService {
     private void validateMemberOnly(AuthContext auth) {
         if (!RoleType.MEMBER.equals(auth.role())) {
             throw new ApplicationException(AppealErrorCode.APPEAL_FORBIDDEN);
+        }
+    }
+
+    /** 진행 중 이의제기 중복 여부 검증 */
+    private void validateNoPendingAppeal(Long policyAssignmentId, Long requesterId) {
+        boolean alreadyPending =
+                policyAppealRepository
+                        .existsByPolicyAssignmentIdAndRequesterIdAndTypeAndStatusAndDeletedAtIsNull(
+                                policyAssignmentId,
+                                requesterId,
+                                AppealType.NORMAL,
+                                AppealStatus.PENDING);
+        if (alreadyPending) {
+            throw new ApplicationException(AppealErrorCode.APPEAL_ALREADY_PENDING);
         }
     }
 
