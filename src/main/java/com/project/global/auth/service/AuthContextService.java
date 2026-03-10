@@ -1,23 +1,22 @@
-package com.project.domain.mission.service;
+package com.project.global.auth.service;
 
 import org.springframework.stereotype.Component;
 
 import com.project.domain.family.entity.FamilyMember;
 import com.project.domain.family.repository.FamilyMemberRepository;
-import com.project.domain.mission.model.AuthContext;
+import com.project.global.auth.model.AuthContext;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.FamilyErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
-/** customerId 기준으로 미션 도메인용 AuthContext를 구성한다. */
+/** customerId를 기반으로 여러 도메인에서 공통으로 사용할 인증 컨텍스트(AuthContext)를 생성합니다. */
 @Component
 @RequiredArgsConstructor
-public class MissionAuthService {
+public class AuthContextService {
 
     private final FamilyMemberRepository familyMemberRepository;
 
-    /** 요청 사용자 정보를 family/role과 함께 AuthContext로 변환한다. */
     public AuthContext resolve(Long customerId) {
         FamilyMember member =
                 familyMemberRepository

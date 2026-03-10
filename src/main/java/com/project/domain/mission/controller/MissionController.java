@@ -19,16 +19,16 @@ import com.project.domain.mission.dto.response.CreateMissionResponse;
 import com.project.domain.mission.dto.response.MissionListResponse;
 import com.project.domain.mission.dto.response.MissionLogListResponse;
 import com.project.domain.mission.dto.response.MissionRequestResponse;
-import com.project.domain.mission.model.AuthContext;
 import com.project.domain.mission.model.CreateMissionResult;
 import com.project.domain.mission.model.MissionListResult;
 import com.project.domain.mission.model.MissionLogListResult;
 import com.project.domain.mission.model.MissionRequestResult;
-import com.project.domain.mission.service.MissionAuthService;
 import com.project.domain.mission.service.MissionService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.CustomerId;
 import com.project.global.auth.aop.OwnerOnly;
+import com.project.global.auth.model.AuthContext;
+import com.project.global.auth.service.AuthContextService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -45,7 +45,7 @@ import lombok.RequiredArgsConstructor;
 public class MissionController {
 
     private final MissionService missionService;
-    private final MissionAuthService missionAuthService;
+    private final AuthContextService authContextService;
 
     /** 역할별 미션 목록을 조회한다. */
     @GetMapping
@@ -54,7 +54,7 @@ public class MissionController {
             @Parameter(hidden = true) @CustomerId Long customerId,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
-        AuthContext auth = missionAuthService.resolve(customerId);
+        AuthContext auth = authContextService.resolve(customerId);
         MissionListResult result = missionService.listMissions(auth, cursor, size);
         return ApiResponse.success(MissionListResponse.from(result));
     }
@@ -66,7 +66,7 @@ public class MissionController {
             @Parameter(hidden = true) @CustomerId Long customerId,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
-        AuthContext auth = missionAuthService.resolve(customerId);
+        AuthContext auth = authContextService.resolve(customerId);
         MissionLogListResult result = missionService.listMissionLogs(auth, cursor, size);
         return ApiResponse.success(MissionLogListResponse.from(result));
     }
@@ -78,7 +78,7 @@ public class MissionController {
     public ApiResponse<CreateMissionResponse> createMission(
             @Parameter(hidden = true) @CustomerId Long customerId,
             @RequestBody @Valid CreateMissionRequest request) {
-        AuthContext auth = missionAuthService.resolve(customerId);
+        AuthContext auth = authContextService.resolve(customerId);
         CreateMissionResult result = missionService.createMission(auth, request);
         return ApiResponse.created(CreateMissionResponse.from(result));
     }
@@ -89,7 +89,7 @@ public class MissionController {
     @Operation(summary = "미션 취소")
     public ApiResponse<Void> cancelMission(
             @Parameter(hidden = true) @CustomerId Long customerId, @PathVariable Long missionId) {
-        AuthContext auth = missionAuthService.resolve(customerId);
+        AuthContext auth = authContextService.resolve(customerId);
         missionService.cancelMission(auth, missionId);
         return ApiResponse.success(null);
     }
@@ -99,7 +99,7 @@ public class MissionController {
     @Operation(summary = "미션 완료 요청")
     public ApiResponse<MissionRequestResponse> requestMissionApproval(
             @Parameter(hidden = true) @CustomerId Long customerId, @PathVariable Long missionId) {
-        AuthContext auth = missionAuthService.resolve(customerId);
+        AuthContext auth = authContextService.resolve(customerId);
         MissionRequestResult result = missionService.requestMissionApproval(auth, missionId);
         return ApiResponse.success(MissionRequestResponse.from(result));
     }

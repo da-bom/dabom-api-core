@@ -13,8 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.project.domain.mission.model.AuthContext;
-import com.project.domain.mission.service.MissionAuthService;
 import com.project.domain.reward.dto.request.RespondRewardRequest;
 import com.project.domain.reward.dto.response.ReceivedRewardListResponse;
 import com.project.domain.reward.dto.response.RewardRespondResponse;
@@ -24,6 +22,8 @@ import com.project.domain.reward.service.RewardService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.CustomerId;
 import com.project.global.auth.aop.OwnerOnly;
+import com.project.global.auth.model.AuthContext;
+import com.project.global.auth.service.AuthContextService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -40,7 +40,7 @@ import lombok.RequiredArgsConstructor;
 public class RewardController {
 
     private final RewardService rewardService;
-    private final MissionAuthService missionAuthService;
+    private final AuthContextService authContextService;
 
     /** OWNER가 보상 요청을 승인/거절한다. */
     @OwnerOnly
@@ -50,7 +50,7 @@ public class RewardController {
             @Parameter(hidden = true) @CustomerId Long customerId,
             @PathVariable Long requestId,
             @RequestBody @Valid RespondRewardRequest request) {
-        AuthContext auth = missionAuthService.resolve(customerId);
+        AuthContext auth = authContextService.resolve(customerId);
         RewardRespondResult result = rewardService.respondRewardRequest(auth, requestId, request);
         return ApiResponse.success(RewardRespondResponse.from(result));
     }
@@ -62,7 +62,7 @@ public class RewardController {
             @Parameter(hidden = true) @CustomerId Long customerId,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
-        AuthContext auth = missionAuthService.resolve(customerId);
+        AuthContext auth = authContextService.resolve(customerId);
         ReceivedRewardListResult result = rewardService.listReceivedRewards(auth, cursor, size);
         return ApiResponse.success(ReceivedRewardListResponse.from(result));
     }

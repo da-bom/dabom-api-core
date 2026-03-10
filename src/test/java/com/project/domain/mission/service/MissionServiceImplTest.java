@@ -31,7 +31,6 @@ import com.project.domain.mission.entity.MissionRequest;
 import com.project.domain.mission.enums.MissionLogActionType;
 import com.project.domain.mission.enums.MissionRequestStatus;
 import com.project.domain.mission.enums.MissionStatus;
-import com.project.domain.mission.model.AuthContext;
 import com.project.domain.mission.model.MissionListResult;
 import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
@@ -40,6 +39,7 @@ import com.project.domain.reward.entity.Reward;
 import com.project.domain.reward.entity.RewardTemplate;
 import com.project.domain.reward.enums.RewardCategory;
 import com.project.domain.reward.service.RewardSnapshotService;
+import com.project.global.auth.model.AuthContext;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.MissionErrorCode;
 
