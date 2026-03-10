@@ -196,6 +196,11 @@ class AppealServiceImplTest {
 
         given(policyAssignmentRepository.findByIdAndDeletedAtIsNull(100L))
                 .willReturn(java.util.Optional.of(assignment));
+        given(
+                        policyAppealRepository
+                                .existsByPolicyAssignmentIdAndRequesterIdAndTypeAndStatusAndDeletedAtIsNull(
+                                        100L, 2L, AppealType.NORMAL, AppealStatus.PENDING))
+                .willReturn(false);
         given(policyAppealRepository.save(any(PolicyAppeal.class))).willReturn(saved);
 
         AppealCreateResult result = appealService.createAppeal(auth, request);
@@ -216,6 +221,28 @@ class AppealServiceImplTest {
                 .isInstanceOf(ApplicationException.class)
                 .extracting(ex -> ((ApplicationException) ex).getCode())
                 .isEqualTo(AppealErrorCode.APPEAL_FORBIDDEN);
+    }
+
+    @Test
+    @DisplayName("같은 정책에 대한 진행 중 이의제기가 있으면 생성할 수 없다")
+    void createAppeal_whenPendingAppealExists_thenThrowsConflict() {
+        AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
+        AppealCreateRequest request =
+                new AppealCreateRequest(100L, "규칙 변경 요청", Map.of("limitBytes", 2048L));
+        PolicyAssignment assignment = policyAssignment(100L, 50L, 10L, 2L);
+
+        given(policyAssignmentRepository.findByIdAndDeletedAtIsNull(100L))
+                .willReturn(java.util.Optional.of(assignment));
+        given(
+                        policyAppealRepository
+                                .existsByPolicyAssignmentIdAndRequesterIdAndTypeAndStatusAndDeletedAtIsNull(
+                                        100L, 2L, AppealType.NORMAL, AppealStatus.PENDING))
+                .willReturn(true);
+
+        assertThatThrownBy(() -> appealService.createAppeal(auth, request))
+                .isInstanceOf(ApplicationException.class)
+                .extracting(ex -> ((ApplicationException) ex).getCode())
+                .isEqualTo(AppealErrorCode.APPEAL_ALREADY_PENDING);
     }
 
     @Test
