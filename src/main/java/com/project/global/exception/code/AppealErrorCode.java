@@ -22,8 +22,7 @@ public enum AppealErrorCode implements BaseErrorCode {
     APPEAL_NOT_CANCELLABLE(HttpStatus.CONFLICT, "APPEAL_009", "취소할 수 없는 상태입니다."),
     APPEAL_EMERGENCY_CANCEL_NOT_ALLOWED(
             HttpStatus.BAD_REQUEST, "APPEAL_010", "EMERGENCY 타입은 취소할 수 없습니다."),
-    APPEAL_ALREADY_PENDING(
-            HttpStatus.CONFLICT, "APPEAL_011", "같은 정책에 대해 진행 중인 이의제기가 이미 존재합니다.");
+    APPEAL_ALREADY_PENDING(HttpStatus.CONFLICT, "APPEAL_011", "같은 정책에 대해 진행 중인 이의제기가 이미 존재합니다.");
 
     private final HttpStatus httpStatus;
     private final String customCode;
