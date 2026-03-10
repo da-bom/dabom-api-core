@@ -56,6 +56,9 @@ public class RewardTemplateServiceImpl implements RewardTemplateService {
     @Transactional
     public void deleteTemplate(Long id) {
         RewardTemplate template = findTemplateOrThrow(id);
+        if (template.isSystem()) {
+            throw new ApplicationException(RewardErrorCode.REWARD_TEMPLATE_SYSTEM_DELETE);
+        }
         template.delete();
     }
 
