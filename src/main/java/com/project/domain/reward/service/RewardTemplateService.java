@@ -9,9 +9,9 @@ public interface RewardTemplateService {
 
     List<RewardTemplate> getAllTemplates();
 
-    RewardTemplate createTemplate(RewardTemplateRequest.Create request);
+    RewardTemplate createTemplate(RewardTemplateRequest.Upsert request);
 
-    RewardTemplate updateTemplate(Long id, RewardTemplateRequest.Update request);
+    RewardTemplate updateTemplate(Long id, RewardTemplateRequest.Upsert request);
 
     void deleteTemplate(Long id);
 }

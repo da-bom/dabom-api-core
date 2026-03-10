@@ -6,14 +6,7 @@ import com.project.domain.reward.enums.RewardCategory;
 
 public class RewardTemplateRequest {
 
-    public record Create(
-            @NotNull String name,
-            @NotNull RewardCategory category,
-            @NotNull Long defaultValue,
-            @NotNull String unit,
-            @NotNull Boolean isSystem) {}
-
-    public record Update(
+    public record Upsert(
             @NotNull String name,
             @NotNull RewardCategory category,
             @NotNull Long defaultValue,

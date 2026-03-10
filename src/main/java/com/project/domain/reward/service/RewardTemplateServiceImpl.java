@@ -27,7 +27,7 @@ public class RewardTemplateServiceImpl implements RewardTemplateService {
 
     @Override
     @Transactional
-    public RewardTemplate createTemplate(RewardTemplateRequest.Create request) {
+    public RewardTemplate createTemplate(RewardTemplateRequest.Upsert request) {
         RewardTemplate template =
                 RewardTemplate.builder()
                         .name(request.name())
@@ -41,7 +41,7 @@ public class RewardTemplateServiceImpl implements RewardTemplateService {
 
     @Override
     @Transactional
-    public RewardTemplate updateTemplate(Long id, RewardTemplateRequest.Update request) {
+    public RewardTemplate updateTemplate(Long id, RewardTemplateRequest.Upsert request) {
         RewardTemplate template = findTemplateOrThrow(id);
         template.update(
                 request.name(),
