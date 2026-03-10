@@ -24,6 +24,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class JwtTokenUtil {
 
+    private static final String TOKEN_TYPE_ACCESS = "access";
+    private static final String TOKEN_TYPE_REFRESH = "refresh";
+
     @Value("${spring.jwt.token.access-expiration-time}")
     private Long accessExpirationMillis;
 
@@ -41,11 +44,12 @@ public class JwtTokenUtil {
     }
 
     public String createToken(Long memberId, RoleType role) {
-        return generateToken(memberId.toString(), role, accessExpirationMillis, "access");
+        return generateToken(memberId.toString(), role, accessExpirationMillis, TOKEN_TYPE_ACCESS);
     }
 
     public String createRefreshToken(Long memberId, RoleType role) {
-        return generateToken(memberId.toString(), role, refreshExpirationMillis, "refresh");
+        return generateToken(
+                memberId.toString(), role, refreshExpirationMillis, TOKEN_TYPE_REFRESH);
     }
 
     private String generateToken(String subject, RoleType role, Long expirationTime, String type) {
@@ -55,6 +59,7 @@ public class JwtTokenUtil {
             return Jwts.builder()
                     .setSubject(subject)
                     .claim("role", role.name())
+                    .claim("type", type)
                     .setExpiration(expiration)
                     .signWith(key)
                     .compact();
@@ -65,33 +70,49 @@ public class JwtTokenUtil {
 
     public Claims verify(String token) {
         try {
-            Claims claims =
-                    Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
-            validateExpiredToken(claims);
-            return claims;
+            return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
         } catch (ExpiredJwtException e) {
             throw new JwtException("유효기간이 만료된 토큰입니다");
         } catch (JwtException | IllegalArgumentException e) {
-            throw new JwtException("토큰을 담지 않았습니다");
-        }
-    }
-
-    private void validateExpiredToken(Claims claims) {
-        if (claims.getExpiration().before(new Date())) {
-            throw new JwtException("유효기간이 만료된 토큰입니다");
+            throw new JwtException("유효하지 않은 토큰입니다");
         }
     }
 
     public Long getMemberId(String token) {
-        return Long.parseLong(verify(token).getSubject());
+        try {
+            return Long.parseLong(verifyAccessToken(token).getSubject());
+        } catch (NumberFormatException e) {
+            throw new JwtException("유효하지 않은 토큰 subject입니다");
+        }
     }
 
     public RoleType getRole(String token) {
-        String roleStr = verify(token).get("role", String.class);
+        String roleStr = verifyAccessToken(token).get("role", String.class);
         return RoleType.valueOf(roleStr);
     }
 
-    public long getRefreshTokenExpirationMillis() {
-        return refreshExpirationMillis;
+    public Claims verifyAccessToken(String token) {
+        Claims claims = verify(token);
+        String type = claims.get("type", String.class);
+        if (!TOKEN_TYPE_ACCESS.equals(type)) {
+            throw new JwtException("액세스 토큰이 아닙니다.");
+        }
+        return claims;
+    }
+
+    public Claims verifyRefreshToken(String token) {
+        Claims claims = verify(token);
+        String type = claims.get("type", String.class);
+        if (!TOKEN_TYPE_REFRESH.equals(type)) {
+            throw new JwtException("리프레시 토큰이 아닙니다.");
+        }
+        return claims;
+    }
+
+    public TokenRefreshResult reissueTokens(Long memberId, RoleType role) {
+        String accessToken = createToken(memberId, role);
+        String refreshToken = createRefreshToken(memberId, role);
+        long expiresIn = accessExpirationMillis / 1000;
+        return new TokenRefreshResult(accessToken, refreshToken, expiresIn);
     }
 }
