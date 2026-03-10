@@ -1,7 +1,5 @@
 package com.project.domain.appeal.entity;
 
-import java.time.LocalDateTime;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -41,9 +39,5 @@ public class PolicyAppealComment extends BaseEntity {
 
     public void delete() {
         softDelete();
-    }
-
-    public LocalDateTime getDeletedAtValue() {
-        return getDeletedAt();
     }
 }

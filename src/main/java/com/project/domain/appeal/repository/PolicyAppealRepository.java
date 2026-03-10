@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import com.project.domain.appeal.enums.AppealType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -12,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.project.domain.appeal.entity.PolicyAppeal;
 import com.project.domain.appeal.enums.AppealStatus;
+import com.project.domain.appeal.enums.AppealType;
 
 /** 이의제기 목록 조회 저장소 */
 public interface PolicyAppealRepository extends JpaRepository<PolicyAppeal, Long> {
