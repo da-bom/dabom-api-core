@@ -1,5 +1,6 @@
 package com.project.domain.appeal.service;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -57,6 +58,7 @@ public class AppealServiceImpl implements AppealService {
     private static final long MIN_EMERGENCY_BYTES = 104_857_600L;
     private static final long MAX_EMERGENCY_BYTES = 314_572_800L;
 
+    private final Clock clock;
     private final PolicyAppealRepository policyAppealRepository;
     private final PolicyAppealCommentRepository policyAppealCommentRepository;
     private final CustomerRepository customerRepository;
@@ -168,7 +170,8 @@ public class AppealServiceImpl implements AppealService {
                                 () ->
                                         new ApplicationException(
                                                 PolicyErrorCode.POLICY_ASSIGNMENT_NOT_FOUND));
-        if (!policyAssignment.getFamilyId().equals(auth.familyId())) {
+        // 2-1. 같은 가족 소속인지 + 로그인한 사용자 본인의 policyAssigment인지 체크
+        if (!policyAssignment.getFamilyId().equals(auth.familyId()) || !policyAssignment.getTargetCustomerId().equals(auth.customerId())) {
             throw new ApplicationException(AppealErrorCode.APPEAL_FORBIDDEN);
         }
 
@@ -206,8 +209,8 @@ public class AppealServiceImpl implements AppealService {
         validateEmergencyBytes(request.additionalBytes());
 
         // 2. 현재 월에 승인된 긴급 요청이 이미 있는지 확인한다.
-        LocalDateTime monthStart = YearMonth.now().atDay(1).atStartOfDay();
-        LocalDateTime monthEnd = YearMonth.now().atEndOfMonth().atTime(23, 59, 59);
+        LocalDateTime monthStart = YearMonth.now(clock).atDay(1).atStartOfDay();
+        LocalDateTime monthEnd = YearMonth.now(clock).atEndOfMonth().atTime(23, 59, 59);
         boolean alreadyApproved =
                 !policyAppealRepository
                         .findByRequesterIdAndTypeAndStatusAndCreatedAtBetween(
@@ -227,7 +230,7 @@ public class AppealServiceImpl implements AppealService {
                         .findByFamilyIdAndCustomerIdAndCurrentMonthAndDeletedAtIsNull(
                                 auth.familyId(),
                                 auth.customerId(),
-                                LocalDate.now().withDayOfMonth(1))
+                                LocalDate.now(clock).withDayOfMonth(1))
                         .orElseThrow(
                                 () ->
                                         new ApplicationException(
