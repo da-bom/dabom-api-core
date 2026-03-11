@@ -87,9 +87,7 @@ public class MissionServiceImpl implements MissionService {
                 visibleMissionSlice.hasNext());
     }
 
-    /** 미션 이벤트 로그를 조회한다.
-     * 이 메서드는 MissionLog 기준 조회이며, 요청 처리 상태 이력은 포함하지 않는다.
-     */
+    /** 미션 이벤트 로그를 조회한다. 이 메서드는 MissionLog 기준 조회이며, 요청 처리 상태 이력은 포함하지 않는다. */
     @Override
     public MissionLogListResult listMissionLogs(AuthContext auth, String cursor, int size) {
         // 1. 커서 입력을 정규화한다.
@@ -126,9 +124,7 @@ public class MissionServiceImpl implements MissionService {
         return new MissionLogListResult(items, nextCursor, hasNext);
     }
 
-    /** 미션 완료 요청 이력을 조회한다.
-     * 응답의 각 항목은 MissionRequest 1건이며, status는 최신 처리 상태를 의미한다.
-     */
+    /** 미션 완료 요청 이력을 조회한다. 응답의 각 항목은 MissionRequest 1건이며, status는 최신 처리 상태를 의미한다. */
     @Override
     public MissionRequestHistoryListResult listMissionRequestHistory(
             AuthContext auth, String cursor, int size) {
@@ -159,16 +155,22 @@ public class MissionServiceImpl implements MissionService {
                 page.stream()
                         .flatMap(
                                 request ->
-                                        Stream.of(request.getRequesterId(), request.getResolvedById()))
+                                        Stream.of(
+                                                request.getRequesterId(),
+                                                request.getResolvedById()))
                         .filter(Objects::nonNull)
                         .collect(Collectors.toSet());
-        Map<Long, String> customerNameMap = customerRepository.findAllById(customerIds).stream()
-                .collect(Collectors.toMap(Customer::getId, Customer::getName));
+        Map<Long, String> customerNameMap =
+                customerRepository.findAllById(customerIds).stream()
+                        .collect(Collectors.toMap(Customer::getId, Customer::getName));
 
         // 4. MissionRequest를 요청 이력 응답 모델로 조합한다.
         List<MissionRequestHistoryListResult.MissionRequestHistoryItem> items =
                 page.stream()
-                        .map(request -> toMissionRequestHistoryItem(request, missionMap, customerNameMap))
+                        .map(
+                                request ->
+                                        toMissionRequestHistoryItem(
+                                                request, missionMap, customerNameMap))
                         .toList();
         return new MissionRequestHistoryListResult(items, nextCursor, hasNext);
     }

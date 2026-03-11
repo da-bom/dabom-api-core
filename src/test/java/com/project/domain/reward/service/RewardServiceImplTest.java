@@ -142,12 +142,11 @@ class RewardServiceImplTest {
                         .resolvedAt(LocalDateTime.now(FIXED_CLOCK))
                         .build();
         given(
-                        missionRequestRepository
-                                .findByRequesterIdAndStatusOrderByIdDesc(
-                                        org.mockito.ArgumentMatchers.eq(2L),
-                                        org.mockito.ArgumentMatchers.eq(MissionRequestStatus.APPROVED),
-                                        org.mockito.ArgumentMatchers.isNull(),
-                                        org.mockito.ArgumentMatchers.any()))
+                        missionRequestRepository.findByRequesterIdAndStatusOrderByIdDesc(
+                                org.mockito.ArgumentMatchers.eq(2L),
+                                org.mockito.ArgumentMatchers.eq(MissionRequestStatus.APPROVED),
+                                org.mockito.ArgumentMatchers.isNull(),
+                                org.mockito.ArgumentMatchers.any()))
                 .willReturn(List.of(approvedRequest));
         given(missionItemRepository.findAllWithRewardByIdIn(anyIterable()))
                 .willReturn(List.of(mission(200L, 10L, reward(900L, 500L))));

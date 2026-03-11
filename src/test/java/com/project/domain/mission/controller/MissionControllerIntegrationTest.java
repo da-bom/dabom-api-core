@@ -361,7 +361,8 @@ class MissionControllerIntegrationTest {
                         .path("requests")
                         .get(0);
         assertThat(item.path("status").asText()).isEqualTo("PENDING");
-        assertThat(item.path("missionItem").path("missionItemId").asLong()).isEqualTo(mission.getId());
+        assertThat(item.path("missionItem").path("missionItemId").asLong())
+                .isEqualTo(mission.getId());
         assertThat(item.path("requestedBy").path("customerId").asLong()).isEqualTo(member.getId());
     }
 

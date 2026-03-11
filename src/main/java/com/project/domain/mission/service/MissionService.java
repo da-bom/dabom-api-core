@@ -14,7 +14,8 @@ public interface MissionService {
 
     MissionLogListResult listMissionLogs(AuthContext auth, String cursor, int size);
 
-    MissionRequestHistoryListResult listMissionRequestHistory(AuthContext auth, String cursor, int size);
+    MissionRequestHistoryListResult listMissionRequestHistory(
+            AuthContext auth, String cursor, int size);
 
     CreateMissionResult createMission(AuthContext auth, CreateMissionRequest req);
 

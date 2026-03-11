@@ -4,9 +4,7 @@ import java.time.LocalDateTime;
 
 import com.project.domain.mission.model.MissionRequestHistoryListResult;
 
-/** 미션 완료 요청 이력 응답 DTO.
- * status는 MissionRequest.status 값(PENDING, APPROVED, REJECTED)을 그대로 사용한다.
- */
+/** 미션 완료 요청 이력 응답 DTO. status는 MissionRequest.status 값(PENDING, APPROVED, REJECTED)을 그대로 사용한다. */
 public record MissionRequestHistoryItemResponse(
         Long requestId,
         String status,

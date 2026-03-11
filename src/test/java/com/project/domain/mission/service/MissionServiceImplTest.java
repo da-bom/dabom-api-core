@@ -184,7 +184,9 @@ class MissionServiceImplTest {
                         .rejectReason("photo missing")
                         .build();
 
-        given(missionRequestRepository.findByFamilyIdOrderByIdDesc(10L, null, PageRequest.of(0, 21)))
+        given(
+                        missionRequestRepository.findByFamilyIdOrderByIdDesc(
+                                10L, null, PageRequest.of(0, 21)))
                 .willReturn(List.of(request));
         given(missionItemRepository.findAllWithRewardByIdIn(anyIterable()))
                 .willReturn(List.of(mission));
