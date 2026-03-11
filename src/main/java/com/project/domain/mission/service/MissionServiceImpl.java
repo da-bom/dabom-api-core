@@ -87,7 +87,6 @@ public class MissionServiceImpl implements MissionService {
                 visibleMissionSlice.hasNext());
     }
 
-    /** 권한 범위에 맞는 미션 로그 목록을 커서 기반으로 조회한다. */
     /** 미션 이벤트 로그를 조회한다.
      * 이 메서드는 MissionLog 기준 조회이며, 요청 처리 상태 이력은 포함하지 않는다.
      */
