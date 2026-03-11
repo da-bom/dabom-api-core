@@ -269,10 +269,16 @@ public class AppealServiceImpl implements AppealService {
                                 .authorId(auth.customerId())
                                 .comment(request.comment())
                                 .build());
+        String authorName =
+                customerRepository
+                        .findById(auth.customerId())
+                        .map(Customer::getName)
+                        .orElse(UNKNOWN_NAME);
         return new AppealCommentResult(
                 comment.getId(),
                 comment.getAppealId(),
                 comment.getAuthorId(),
+                authorName,
                 comment.getComment(),
                 comment.getCreatedAt());
     }

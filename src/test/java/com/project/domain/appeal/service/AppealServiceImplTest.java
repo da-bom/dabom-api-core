@@ -370,12 +370,14 @@ class AppealServiceImplTest {
                                         .customerId(1L)
                                         .role(RoleType.OWNER)
                                         .build()));
+        given(customerRepository.findById(1L)).willReturn(java.util.Optional.of(customer(1L, "owner")));
         given(policyAppealCommentRepository.save(any(PolicyAppealComment.class))).willReturn(saved);
 
         var result = appealService.createComment(auth, 30L, new AppealCommentRequest("확인 후 처리할게요"));
 
         assertThat(result.commentId()).isEqualTo(50L);
         assertThat(result.authorId()).isEqualTo(1L);
+        assertThat(result.authorName()).isEqualTo("owner");
         assertThat(result.comment()).isEqualTo("확인 후 처리할게요");
     }
 
