@@ -1,7 +1,9 @@
 # 실시간 가족 데이터 통합 관리 시스템 - ERD 설계서
 
-> **문서 버전**: v21.0
+> **문서 버전**: v21.3
 > **변경 이력**:
+> - v21.3 - MISSION_LOG `action_type` ENUM 재정의: 역할 분리 원칙 적용 — 요청 처리 결과는 `mission_request.status`가 담당, 미션 상태 변화 타임라인은 `mission_log.action_type`이 담당. `MISSION_APPROVED`·`MISSION_REJECTED` 제거 (→ `mission_request.status=APPROVED/REJECTED`로 추적), `MISSION_CANCELLED` 추가. 최종 ENUM: `MISSION_CREATED`, `MISSION_REQUESTED`, `MISSION_COMPLETED`, `MISSION_CANCELLED`.
+> - v21.2 - POLICY_APPEAL 긴급 요청 동시성 문제 해결: `emergency_grant_month` 컬럼 추가 (DATE, NULL). EMERGENCY 타입일 때 해당 월 1일 값 저장, NORMAL은 NULL. `uk_appeal_emergency_month` UNIQUE 제약 (`requester_id`, `emergency_grant_month`)으로 DB 레벨 월 1회 중복 방지. 기존 `idx_appeal_emergency_monthly` 인덱스는 조회 최적화용으로 유지.
 > - v21.1 - BaseEntity 일관성 확보: 전체 21개 엔티티에 created_at/updated_at/deleted_at 3개 필드 통일. 이력성/불변 테이블 deleted_at 예외 조항 변경 (BaseEntity 상속에 따라 컬럼 존재, 운영상 미사용). 13개 테이블에서 총 19개 누락 컬럼 추가.
 > - v21.0 - Figma 디자인 반영: REWARD_TEMPLATE에서 default_value·unit 컬럼 제거, thumbnail_url 추가.
 >   REWARD에서 template_default_value·value·unit 컬럼 제거, thumbnail_url 추가.
@@ -270,6 +272,7 @@ erDiagram
         text reject_reason "NULL, 거절 사유 (REJECTED 시)"
         json desired_rules "NULL, 원하는 정책 값 JSON (EMERGENCY: additionalBytes)"
         enum status "PENDING | APPROVED | REJECTED | CANCELLED"
+        date emergency_grant_month "NULL, EMERGENCY 시 해당 월 1일 (UK)"
         bigint resolved_by_id FK "NULL → customer.id (EMERGENCY는 NULL=시스템)"
         datetime resolved_at "NULL, 처리 시각"
         datetime cancelled_at "NULL, 취소 시각"
@@ -292,7 +295,7 @@ erDiagram
         bigint id PK "AUTO_INCREMENT"
         bigint mission_item_id FK "NOT NULL → mission_item.id"
         bigint actor_id FK "NULL → customer.id, 수행자(NULL=시스템)"
-        enum action_type "MISSION_CREATED | MISSION_REQUESTED | MISSION_APPROVED | MISSION_REJECTED | MISSION_COMPLETED"
+        enum action_type "MISSION_CREATED | MISSION_REQUESTED | MISSION_COMPLETED | MISSION_CANCELLED"
         varchar message "NOT NULL VARCHAR(500), 로그 메시지"
         datetime created_at "DEFAULT CURRENT_TIMESTAMP"
         datetime updated_at "DEFAULT CURRENT_TIMESTAMP"
@@ -534,6 +537,7 @@ erDiagram
         text reject_reason "NULL"
         json desired_rules "NULL"
         enum status "PENDING | APPROVED | REJECTED | CANCELLED"
+        date emergency_grant_month "NULL, EMERGENCY 시 해당 월 1일 (UK)"
         bigint resolved_by_id FK "NULL (EMERGENCY=시스템)"
         datetime resolved_at
         datetime cancelled_at "NULL"
@@ -646,7 +650,7 @@ erDiagram
         bigint id PK
         bigint mission_item_id FK
         bigint actor_id FK "NULL = 시스템"
-        enum action_type "MISSION_CREATED | MISSION_REQUESTED | MISSION_APPROVED | MISSION_REJECTED | MISSION_COMPLETED"
+        enum action_type "MISSION_CREATED | MISSION_REQUESTED | MISSION_COMPLETED | MISSION_CANCELLED"
         varchar message
         datetime created_at
         datetime updated_at
@@ -1261,7 +1265,7 @@ CUSTOMER와 FAMILY 간 N:M 관계를 해소하는 매핑 테이블.
 
 **데이터 생명주기**:
 - **생성**: 부모(OWNER)가 미션 생성(`POST /missions`) — `status=ACTIVE`, REWARD 인스턴스 동시 생성
-- **조회**: 미션 카드 목록(`GET /missions`), 미션 로그(`GET /missions/logs`)
+- **조회**: 미션 카드 목록(`GET /missions`), 미션 상태 로그(`GET /missions/logs`), 요청 이력(`GET /missions/requests`)
 - **상태 전이**: `ACTIVE` → `COMPLETED`(보상 승인 시) 또는 `CANCELLED`(삭제 시)
 - **삭제**: `DELETE /missions/{id}` → `status=CANCELLED`
 
@@ -1316,7 +1320,7 @@ MISSION_ITEM → COMPLETED
 
 **데이터 생명주기**:
 - **생성**: 자녀가 보상 요청(`POST /rewards/requests`) — `MISSION_ITEM.status=ACTIVE`인 경우만 가능
-- **조회**: 미션 로그(`GET /missions/logs`)에 포함
+- **조회**: 미션 요청 이력(`GET /missions/requests`)에 포함
 - **수정**: 부모가 승인/거절(`PUT /rewards/requests/{id}/respond`) — 승인 시 MISSION_ITEM도 COMPLETED로 변경
 - **삭제**: 삭제하지 않음 (이력 보존)
 
@@ -1423,7 +1427,7 @@ MISSION_ITEM → COMPLETED
 - `policy_assignment_id`: NORMAL 시 NOT NULL (어떤 정책에 대한 이의인지), EMERGENCY 시 NULL (특정 정책 대상 아님)
 - `resolved_by_id`: NORMAL 시 처리자(부모), EMERGENCY 시 NULL (시스템 자동 승인)
 - `desired_rules`: EMERGENCY 시 `{"additionalBytes": 209715200}` 형태
-- EMERGENCY는 월 1회 제한 (idx_appeal_emergency_monthly 인덱스로 중복 체크)
+- EMERGENCY는 월 1회 제한 (`uk_appeal_emergency_month` UNIQUE 제약으로 DB 레벨 동시성 안전 중복 방지, `emergency_grant_month`에 해당 월 1일 저장, NORMAL은 NULL이므로 UNIQUE 제약 무관)
 - EMERGENCY 허용 범위: 100~300MB (104,857,600 ~ 314,572,800 bytes)
 - 무제한 쿼터 사용자(monthly_limit_bytes=NULL)는 EMERGENCY 요청 불가
 - 승인(APPROVED) 시 부모가 해당 정책 수정/해제를 별도로 수행 (appeal 자체가 정책을 자동 변경하지 않음)
@@ -1441,6 +1445,7 @@ MISSION_ITEM → COMPLETED
 | `reject_reason` | TEXT | NULL | 거절 사유 (REJECTED 시 부모가 작성) |
 | `desired_rules` | JSON | NULL | 원하는 정책 값 (EMERGENCY: `{"additionalBytes": N}`) |
 | `status` | ENUM | NOT NULL, DEFAULT 'PENDING' | 처리 상태 |
+| `emergency_grant_month` | DATE | NULL | EMERGENCY 시 해당 월 1일 (NORMAL은 NULL). UNIQUE 제약으로 월 1회 중복 방지 |
 | `resolved_by_id` | BIGINT | NULL, FK → customer.id | 처리자 (부모, EMERGENCY는 NULL=시스템) |
 | `resolved_at` | DATETIME | NULL | 처리 시각 |
 | `cancelled_at` | DATETIME | NULL | 취소 시각 (CANCELLED 시 기록) |
@@ -1467,7 +1472,8 @@ MISSION_ITEM → COMPLETED
 **인덱스**:
 - `idx_appeal_assignment` : `policy_assignment_id` (정책 적용별 이의제기 조회)
 - `idx_appeal_requester` : `requester_id` (요청자별 이의제기 조회)
-- `idx_appeal_emergency_monthly` : (`requester_id`, `type`, `status`, `created_at`) (월별 긴급 요청 중복 체크)
+- `idx_appeal_emergency_monthly` : (`requester_id`, `type`, `status`, `created_at`) (월별 긴급 요청 조회 최적화)
+- `uk_appeal_emergency_month` : UNIQUE (`requester_id`, `emergency_grant_month`) (월 1회 긴급 요청 동시성 안전 중복 방지, NULL은 UNIQUE 제약 미적용)
 
 ---
 
@@ -1505,7 +1511,7 @@ MISSION_ITEM → COMPLETED
 **설계 의도**: 미션 생성부터 완료/취소까지의 모든 이벤트를 타임라인 순서로 기록. 불변(Immutable) 로그로 Soft Delete 없음.
 
 **데이터 생명주기**:
-- **생성**: 미션 관련 이벤트 발생 시 자동 기록 (생성, 요청, 승인/거절, 완료)
+- **생성**: 미션 관련 이벤트 발생 시 자동 기록 (생성, 요청, 완료, 취소)
 - **조회**: 미션 상세 조회 시 타임라인으로 표시, 미션 로그(`GET /missions/logs`)
 - **수정/삭제**: 불변(Immutable) — 로그는 수정/삭제하지 않음
 
@@ -1526,9 +1532,10 @@ MISSION_ITEM → COMPLETED
 | --- | --- |
 | `MISSION_CREATED` | 미션 생성 (부모) |
 | `MISSION_REQUESTED` | 보상 요청 (자녀) |
-| `MISSION_APPROVED` | 보상 승인 (부모) |
-| `MISSION_REJECTED` | 보상 거절 (부모) |
-| `MISSION_COMPLETED` | 미션 완료 처리 (시스템) |
+| `MISSION_COMPLETED` | 미션 완료 처리 — 보상 승인 시 시스템이 상태 전이 (actor_id=NULL) |
+| `MISSION_CANCELLED` | 미션 삭제/취소 (부모) |
+
+> **역할 분리**: 요청의 처리 결과(승인/거절)는 `mission_request.status`(APPROVED/REJECTED)가 담당하고, `mission_log`는 미션 자체의 상태 변화만 기록합니다. 보상 거절(REJECTED)은 미션 상태 변화가 아니므로 로그에 기록하지 않습니다.
 
 **인덱스**:
 - `idx_mission_log_item` : (`mission_item_id`, `created_at`) (미션별 타임라인 조회)
@@ -1781,7 +1788,7 @@ POLICY_APPEAL.resolved_by_id → CUSTOMER.id  (처리자 = 부모, NULL 허용)
 | `mission_request` | `status` | `PENDING`, `APPROVED`, `REJECTED` |
 | `policy_appeal` | `type` | `NORMAL`, `EMERGENCY` |
 | `policy_appeal` | `status` | `PENDING`, `APPROVED`, `REJECTED`, `CANCELLED` |
-| `mission_log` | `action_type` | `MISSION_CREATED`, `MISSION_REQUESTED`, `MISSION_APPROVED`, `MISSION_REJECTED`, `MISSION_COMPLETED` |
+| `mission_log` | `action_type` | `MISSION_CREATED`, `MISSION_REQUESTED`, `MISSION_COMPLETED`, `MISSION_CANCELLED` |
 | `reward_grant` | `status` | `ISSUED`, `USED`, `EXPIRED` |
 
 ---
@@ -1823,6 +1830,8 @@ POLICY_APPEAL.resolved_by_id → CUSTOMER.id  (처리자 = 부모, NULL 허용)
 | `family_recap_weekly` | `idx_recap_weekly_family_week` | (`family_id`, `week_start_date` DESC) | 가족별 주간 리캡 조회 |
 | `policy_appeal` | `idx_appeal_assignment` | `policy_assignment_id` | 정책 적용별 이의제기 조회 |
 | `policy_appeal` | `idx_appeal_requester` | `requester_id` | 요청자별 이의제기 조회 |
+| `policy_appeal` | `idx_appeal_emergency_monthly` | (`requester_id`, `type`, `status`, `created_at`) | 월별 긴급 요청 조회 최적화 |
+| `policy_appeal` | `uk_appeal_emergency_month` | UNIQUE (`requester_id`, `emergency_grant_month`) | 월 1회 긴급 요청 동시성 안전 중복 방지 |
 | `policy_appeal_comment` | `idx_appeal_comment_appeal` | (`appeal_id`, `created_at`) | 이의제기별 댓글 목록 |
 | `policy_appeal_comment` | `idx_appeal_comment_author` | `author_id` | 작성자별 댓글 조회 |
 | `mission_log` | `idx_mission_log_item` | (`mission_item_id`, `created_at`) | 미션별 타임라인 조회 |
@@ -1894,7 +1903,8 @@ flowchart LR
 | `GET /policies` | MySQL | `policy` |
 | `GET /families/reports/usage` | MySQL | `usage_record` (집계 쿼리) |
 | `GET /missions` | MySQL | `mission_item`, `reward` |
-| `GET /missions/logs` | MySQL | `mission_item`, `mission_request`, `mission_log` |
+| `GET /missions/logs` | MySQL | `mission_item`, `mission_log` |
+| `GET /missions/requests` | MySQL | `mission_item`, `mission_request`, `reward` |
 | `GET /rewards/templates` | MySQL | `reward_template` |
 | `GET /recaps/monthly` | MySQL | `family_recap_monthly` |
 | `GET /admin/audit/logs` | MySQL | `audit_log` |

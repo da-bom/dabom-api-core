@@ -1,5 +1,7 @@
 -- 생성기 전용: 전체 테이블 DROP (Flyway에서는 사용하지 않음)
--- 역 의존성 순서
+-- FK 제약 무시로 순서 무관하게 안전한 DROP 보장
+
+SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS `family_recap_monthly`;
 DROP TABLE IF EXISTS `family_recap_weekly`;
@@ -22,3 +24,8 @@ DROP TABLE IF EXISTS `invite`;
 DROP TABLE IF EXISTS `audit_log`;
 DROP TABLE IF EXISTS `admin`;
 DROP TABLE IF EXISTS `customer`;
+
+-- Flyway 메타데이터 (생성기 재실행 시 클린 리셋)
+DROP TABLE IF EXISTS `flyway_schema_history`;
+
+SET FOREIGN_KEY_CHECKS = 1;

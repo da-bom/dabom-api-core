@@ -39,9 +39,9 @@ class RewardTemplateServiceImplTest {
                         RewardTemplate.builder()
                                 .name("데이터 1GB")
                                 .category(RewardCategory.DATA)
-                                .defaultValue(1024L)
-                                .unit("MB")
+                                .price(5000)
                                 .isSystem(false)
+                                .isActive(true)
                                 .build());
         given(rewardTemplateRepository.findAllByDeletedAtIsNull()).willReturn(templates);
 
@@ -58,9 +58,8 @@ class RewardTemplateServiceImplTest {
     @DisplayName("createTemplate - 새로운 템플릿을 생성하고 저장한다")
     void createTemplate_validRequest_savesAndReturnsTemplate() {
         // given
-        RewardTemplateRequest.Upsert request =
-                new RewardTemplateRequest.Upsert(
-                        "기프티콘 5000원", RewardCategory.GIFTICON, 5000L, "원", false);
+        RewardTemplateRequest.Create request =
+                new RewardTemplateRequest.Create("기프티콘 5000원", RewardCategory.GIFTICON, null, 5000);
         given(rewardTemplateRepository.save(any(RewardTemplate.class)))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
@@ -70,8 +69,8 @@ class RewardTemplateServiceImplTest {
         // then
         assertThat(result.getName()).isEqualTo("기프티콘 5000원");
         assertThat(result.getCategory()).isEqualTo(RewardCategory.GIFTICON);
-        assertThat(result.getDefaultValue()).isEqualTo(5000L);
-        assertThat(result.getUnit()).isEqualTo("원");
+        assertThat(result.getPrice()).isEqualTo(5000);
+        assertThat(result.isActive()).isTrue();
         verify(rewardTemplateRepository).save(any(RewardTemplate.class));
     }
 
@@ -84,24 +83,24 @@ class RewardTemplateServiceImplTest {
                 RewardTemplate.builder()
                         .name("기존 템플릿")
                         .category(RewardCategory.DATA)
-                        .defaultValue(100L)
-                        .unit("MB")
+                        .price(3000)
                         .isSystem(false)
+                        .isActive(true)
                         .build();
         given(rewardTemplateRepository.findByIdAndDeletedAtIsNull(id))
                 .willReturn(Optional.of(existing));
 
-        RewardTemplateRequest.Upsert request =
-                new RewardTemplateRequest.Upsert("수정된 템플릿", RewardCategory.TIME, 200L, "분", false);
+        RewardTemplateRequest.Update request =
+                new RewardTemplateRequest.Update("수정된 템플릿", "/img/new.jpg", 5000, true);
 
         // when
         RewardTemplate result = rewardTemplateService.updateTemplate(id, request);
 
         // then
         assertThat(result.getName()).isEqualTo("수정된 템플릿");
-        assertThat(result.getCategory()).isEqualTo(RewardCategory.TIME);
-        assertThat(result.getDefaultValue()).isEqualTo(200L);
-        assertThat(result.getUnit()).isEqualTo("분");
+        assertThat(result.getThumbnailUrl()).isEqualTo("/img/new.jpg");
+        assertThat(result.getPrice()).isEqualTo(5000);
+        assertThat(result.isActive()).isTrue();
     }
 
     @Test
@@ -112,10 +111,10 @@ class RewardTemplateServiceImplTest {
         RewardTemplate template =
                 RewardTemplate.builder()
                         .name("일반 템플릿")
-                        .category(RewardCategory.ETC)
-                        .defaultValue(100L)
-                        .unit("개")
+                        .category(RewardCategory.GIFTICON)
+                        .price(3000)
                         .isSystem(false)
+                        .isActive(true)
                         .build();
         given(rewardTemplateRepository.findByIdAndDeletedAtIsNull(id))
                 .willReturn(Optional.of(template));
@@ -136,9 +135,9 @@ class RewardTemplateServiceImplTest {
                 RewardTemplate.builder()
                         .name("시스템 템플릿")
                         .category(RewardCategory.DATA)
-                        .defaultValue(100L)
-                        .unit("MB")
+                        .price(5000)
                         .isSystem(true)
+                        .isActive(true)
                         .build();
         given(rewardTemplateRepository.findByIdAndDeletedAtIsNull(id))
                 .willReturn(Optional.of(systemTemplate));
@@ -159,8 +158,8 @@ class RewardTemplateServiceImplTest {
         Long id = 999L;
         given(rewardTemplateRepository.findByIdAndDeletedAtIsNull(id)).willReturn(Optional.empty());
 
-        RewardTemplateRequest.Upsert request =
-                new RewardTemplateRequest.Upsert("템플릿", RewardCategory.DATA, 100L, "MB", false);
+        RewardTemplateRequest.Update request =
+                new RewardTemplateRequest.Update("템플릿", null, 3000, true);
 
         // when & then
         assertThatThrownBy(() -> rewardTemplateService.updateTemplate(id, request))

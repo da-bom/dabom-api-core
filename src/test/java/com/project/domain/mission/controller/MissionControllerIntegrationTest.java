@@ -38,10 +38,13 @@ import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.family.repository.FamilyRepository;
 import com.project.domain.mission.entity.MissionItem;
 import com.project.domain.mission.entity.MissionLog;
+import com.project.domain.mission.entity.MissionRequest;
 import com.project.domain.mission.enums.MissionLogActionType;
+import com.project.domain.mission.enums.MissionRequestStatus;
 import com.project.domain.mission.enums.MissionStatus;
 import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
+import com.project.domain.mission.repository.MissionRequestRepository;
 import com.project.domain.reward.entity.Reward;
 import com.project.domain.reward.entity.RewardTemplate;
 import com.project.domain.reward.enums.RewardCategory;
@@ -70,6 +73,7 @@ class MissionControllerIntegrationTest {
     @Autowired private FamilyMemberRepository familyMemberRepository;
     @Autowired private MissionItemRepository missionItemRepository;
     @Autowired private MissionLogRepository missionLogRepository;
+    @Autowired private MissionRequestRepository missionRequestRepository;
     @Autowired private RewardTemplateRepository rewardTemplateRepository;
     @Autowired private RewardRepository rewardRepository;
 
@@ -114,9 +118,9 @@ class MissionControllerIntegrationTest {
                         RewardTemplate.builder()
                                 .name("data reward")
                                 .category(RewardCategory.DATA)
-                                .defaultValue(200L)
-                                .unit("MB")
+                                .price(5000)
                                 .isSystem(true)
+                                .isActive(true)
                                 .build());
 
         Reward reward =
@@ -125,8 +129,7 @@ class MissionControllerIntegrationTest {
                                 .rewardTemplate(rewardTemplate)
                                 .name("data reward")
                                 .category(RewardCategory.DATA)
-                                .value(200L)
-                                .unit("MB")
+                                .thumbnailUrl("/rewards/data.jpg")
                                 .build());
 
         mission =
@@ -160,11 +163,7 @@ class MissionControllerIntegrationTest {
                                 "rewardTemplateId",
                                 rewardTemplate.getId(),
                                 "missionText",
-                                "wash dishes",
-                                "rewardValue",
-                                300,
-                                "rewardCategory",
-                                "DATA"));
+                                "wash dishes"));
 
         MvcResult createResult =
                 mockMvc.perform(
@@ -195,8 +194,7 @@ class MissionControllerIntegrationTest {
         assertRewardNode(
                 requestData.path("missionItem").path("reward"),
                 rewardTemplate.getId(),
-                "data reward",
-                200L);
+                "data reward");
 
         MvcResult missionListResult =
                 mockMvc.perform(
@@ -221,10 +219,7 @@ class MissionControllerIntegrationTest {
 
         JsonNode nonNullExistingMissionNode = Objects.requireNonNull(existingMissionNode);
         assertRewardNode(
-                nonNullExistingMissionNode.path("reward"),
-                rewardTemplate.getId(),
-                "data reward",
-                200L);
+                nonNullExistingMissionNode.path("reward"), rewardTemplate.getId(), "data reward");
 
         MvcResult logsResult =
                 mockMvc.perform(
@@ -240,46 +235,7 @@ class MissionControllerIntegrationTest {
                         .path("missions")
                         .get(0);
         assertRewardNode(
-                logNode.path("missionItem").path("reward"),
-                rewardTemplate.getId(),
-                "data reward",
-                200L);
-    }
-
-    @Test
-    @DisplayName("POST /missions 요청의 rewardCategory 필드는 무시된다")
-    void createMission_ignoresRewardCategoryField() throws Exception {
-        String createBody =
-                objectMapper.writeValueAsString(
-                        Map.of(
-                                "targetCustomerId",
-                                member.getId(),
-                                "rewardTemplateId",
-                                rewardTemplate.getId(),
-                                "missionText",
-                                "wash dishes",
-                                "rewardValue",
-                                300,
-                                "rewardCategory",
-                                "MONEY"));
-
-        MvcResult result =
-                mockMvc.perform(
-                                post("/missions")
-                                        .header("Authorization", "Bearer " + OWNER_TOKEN)
-                                        .contentType(MediaType.APPLICATION_JSON)
-                                        .content(createBody))
-                        .andExpect(status().isOk())
-                        .andReturn();
-
-        Long createdMissionId =
-                objectMapper
-                        .readTree(result.getResponse().getContentAsString())
-                        .path("data")
-                        .path("missionItemId")
-                        .asLong();
-        MissionItem createdMission = missionItemRepository.findById(createdMissionId).orElseThrow();
-        assertThat(createdMission.getReward().getCategory()).isEqualTo(RewardCategory.DATA);
+                logNode.path("missionItem").path("reward"), rewardTemplate.getId(), "data reward");
     }
 
     @Test
@@ -293,9 +249,7 @@ class MissionControllerIntegrationTest {
                                 "rewardTemplateId",
                                 rewardTemplate.getId(),
                                 "missionText",
-                                "wash dishes",
-                                "rewardValue",
-                                300));
+                                "wash dishes"));
 
         mockMvc.perform(
                         post("/missions")
@@ -314,8 +268,7 @@ class MissionControllerIntegrationTest {
                                 .rewardTemplate(rewardTemplate)
                                 .name("data reward")
                                 .category(RewardCategory.DATA)
-                                .value(250L)
-                                .unit("MB")
+                                .thumbnailUrl("/rewards/data.jpg")
                                 .build());
         missionItemRepository.save(
                 MissionItem.builder()
@@ -360,8 +313,8 @@ class MissionControllerIntegrationTest {
                 MissionLog.builder()
                         .missionItemId(mission.getId())
                         .actorId(owner.getId())
-                        .actionType(MissionLogActionType.APPROVED)
-                        .message("approved")
+                        .actionType(MissionLogActionType.COMPLETED)
+                        .message("completed")
                         .build());
 
         MvcResult logsResult =
@@ -383,11 +336,39 @@ class MissionControllerIntegrationTest {
                 .andExpect(status().isOk());
     }
 
-    private void assertRewardNode(
-            JsonNode rewardNode, long templateId, String expectedName, long expectedValue) {
+    @Test
+    @DisplayName("미션 요청 이력은 MissionRequest 기준으로 status를 반환한다")
+    void missionRequestHistoryReturnsMissionRequestStatus() throws Exception {
+        missionRequestRepository.save(
+                MissionRequest.builder()
+                        .missionItemId(mission.getId())
+                        .requesterId(member.getId())
+                        .status(MissionRequestStatus.PENDING)
+                        .build());
+
+        MvcResult result =
+                mockMvc.perform(
+                                get("/missions/history")
+                                        .header("Authorization", "Bearer " + OWNER_TOKEN)
+                                        .param("size", "20"))
+                        .andExpect(status().isOk())
+                        .andReturn();
+
+        JsonNode item =
+                objectMapper
+                        .readTree(result.getResponse().getContentAsString())
+                        .path("data")
+                        .path("requests")
+                        .get(0);
+        assertThat(item.path("status").asText()).isEqualTo("PENDING");
+        assertThat(item.path("missionItem").path("missionItemId").asLong())
+                .isEqualTo(mission.getId());
+        assertThat(item.path("requestedBy").path("customerId").asLong()).isEqualTo(member.getId());
+    }
+
+    private void assertRewardNode(JsonNode rewardNode, long templateId, String expectedName) {
         assertThat(rewardNode.has("rewardId")).isTrue();
         assertThat(rewardNode.path("templateId").asLong()).isEqualTo(templateId);
         assertThat(rewardNode.path("name").asText()).isEqualTo(expectedName);
-        assertThat(rewardNode.path("value").asLong()).isEqualTo(expectedValue);
     }
 }

@@ -52,7 +52,7 @@ public class AdminRewardTemplateController {
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "보상 템플릿 생성", description = "새로운 보상 템플릿을 생성합니다.")
     public ApiResponse<RewardTemplateResponse.Detail> createTemplate(
-            @Valid @RequestBody RewardTemplateRequest.Upsert request) {
+            @Valid @RequestBody RewardTemplateRequest.Create request) {
         RewardTemplate template = rewardTemplateService.createTemplate(request);
         return ApiResponse.created(RewardTemplateResponse.Detail.from(template));
     }
@@ -62,7 +62,7 @@ public class AdminRewardTemplateController {
     @Operation(summary = "보상 템플릿 수정", description = "보상 템플릿을 수정합니다.")
     @Parameter(name = "id", description = "보상 템플릿 ID", required = true)
     public ApiResponse<RewardTemplateResponse.Detail> updateTemplate(
-            @PathVariable Long id, @Valid @RequestBody RewardTemplateRequest.Upsert request) {
+            @PathVariable Long id, @Valid @RequestBody RewardTemplateRequest.Update request) {
         RewardTemplate template = rewardTemplateService.updateTemplate(id, request);
         return ApiResponse.success(RewardTemplateResponse.Detail.from(template));
     }

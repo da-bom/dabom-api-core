@@ -25,8 +25,11 @@ import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
 import com.project.domain.mission.repository.MissionRequestRepository;
 import com.project.domain.reward.dto.request.RespondRewardRequest;
+import com.project.domain.reward.entity.RewardGrant;
+import com.project.domain.reward.enums.RewardGrantStatus;
 import com.project.domain.reward.model.ReceivedRewardListResult;
 import com.project.domain.reward.model.RewardRespondResult;
+import com.project.domain.reward.repository.RewardGrantRepository;
 import com.project.domain.reward.support.RewardDtoMapper;
 import com.project.global.auth.model.AuthContext;
 import com.project.global.exception.ApplicationException;
@@ -49,6 +52,7 @@ public class RewardServiceImpl implements RewardService {
     private final MissionItemRepository missionItemRepository;
     private final MissionLogRepository missionLogRepository;
     private final CustomerRepository customerRepository;
+    private final RewardGrantRepository rewardGrantRepository;
 
     /** OWNER가 보상 요청을 승인하거나 거절한다. */
     @Override
@@ -88,18 +92,28 @@ public class RewardServiceImpl implements RewardService {
             appendLog(
                     mission.getId(),
                     auth.customerId(),
-                    MissionLogActionType.APPROVED,
-                    "Reward approved");
+                    MissionLogActionType.COMPLETED,
+                    "Mission completed");
+
+            Customer requester =
+                    customerRepository
+                            .findById(missionRequest.getRequesterId())
+                            .orElseThrow(
+                                    () ->
+                                            new ApplicationException(
+                                                    MissionErrorCode.MISSION_TARGET_INVALID));
+            rewardGrantRepository.save(
+                    RewardGrant.builder()
+                            .reward(mission.getReward())
+                            .customer(requester)
+                            .missionItem(mission)
+                            .status(RewardGrantStatus.ISSUED)
+                            .build());
         } else {
             if (req.rejectReason() == null || req.rejectReason().isBlank()) {
                 throw new ApplicationException(MissionErrorCode.MISSION_REJECT_REASON_REQUIRED);
             }
             missionRequest.reject(auth.customerId(), req.rejectReason(), LocalDateTime.now(clock));
-            appendLog(
-                    mission.getId(),
-                    auth.customerId(),
-                    MissionLogActionType.REJECTED,
-                    "Reward rejected");
         }
 
         // 3. 응답에는 MissionItem에 연결된 Reward 스냅샷을 포함한다.
@@ -131,8 +145,11 @@ public class RewardServiceImpl implements RewardService {
 
         // 2. 승인된 요청 목록과 연결된 미션, 승인자 정보를 함께 조회한다.
         List<MissionRequest> requests =
-                missionRequestRepository.findApprovedByTargetCustomerIdOrderByResolvedAtDesc(
-                        auth.customerId(), cursorId, PageRequest.of(0, pageSize + 1));
+                missionRequestRepository.findByRequesterIdAndStatusOrderByIdDesc(
+                        auth.customerId(),
+                        MissionRequestStatus.APPROVED,
+                        cursorId,
+                        PageRequest.of(0, pageSize + 1));
 
         boolean hasNext = requests.size() > pageSize;
         List<MissionRequest> page = hasNext ? requests.subList(0, pageSize) : requests;

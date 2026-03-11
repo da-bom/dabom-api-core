@@ -6,10 +6,15 @@ import com.project.domain.reward.enums.RewardCategory;
 
 public class RewardTemplateRequest {
 
-    public record Upsert(
+    public record Create(
             @NotNull String name,
             @NotNull RewardCategory category,
-            @NotNull Long defaultValue,
-            @NotNull String unit,
-            @NotNull Boolean isSystem) {}
+            String thumbnailUrl,
+            @NotNull Integer price) {}
+
+    public record Update(
+            @NotNull String name,
+            String thumbnailUrl,
+            @NotNull Integer price,
+            @NotNull Boolean isActive) {}
 }

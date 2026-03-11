@@ -28,6 +28,29 @@ public interface MissionRequestRepository extends JpaRepository<MissionRequest, 
             """
             select mr
             from MissionRequest mr
+            join MissionItem mi on mi.id = mr.missionItemId
+            where mi.familyId = :familyId
+              and (:cursorId is null or mr.id < :cursorId)
+            order by mr.id desc
+            """)
+    List<MissionRequest> findByFamilyIdOrderByIdDesc(
+            Long familyId, Long cursorId, Pageable pageable);
+
+    @Query(
+            """
+            select mr
+            from MissionRequest mr
+            where mr.requesterId = :requesterId
+              and (:cursorId is null or mr.id < :cursorId)
+            order by mr.id desc
+            """)
+    List<MissionRequest> findByRequesterIdOrderByIdDesc(
+            Long requesterId, Long cursorId, Pageable pageable);
+
+    @Query(
+            """
+            select mr
+            from MissionRequest mr
             where mr.missionItemId in :missionItemIds
             order by mr.createdAt desc, mr.id desc
             """)
@@ -38,11 +61,11 @@ public interface MissionRequestRepository extends JpaRepository<MissionRequest, 
             select mr
             from MissionRequest mr
             where mr.requesterId = :requesterId
-              and mr.status = MissionRequestStatus.APPROVED
+              and mr.status = :status
               and mr.resolvedAt is not null
               and (:cursorId is null or mr.id < :cursorId)
             order by mr.id desc
             """)
-    List<MissionRequest> findApprovedByTargetCustomerIdOrderByResolvedAtDesc(
-            Long requesterId, Long cursorId, Pageable pageable);
+    List<MissionRequest> findByRequesterIdAndStatusOrderByIdDesc(
+            Long requesterId, MissionRequestStatus status, Long cursorId, Pageable pageable);
 }

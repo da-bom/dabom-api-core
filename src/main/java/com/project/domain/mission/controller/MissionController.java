@@ -18,10 +18,12 @@ import com.project.domain.mission.dto.request.CreateMissionRequest;
 import com.project.domain.mission.dto.response.CreateMissionResponse;
 import com.project.domain.mission.dto.response.MissionListResponse;
 import com.project.domain.mission.dto.response.MissionLogListResponse;
+import com.project.domain.mission.dto.response.MissionRequestHistoryListResponse;
 import com.project.domain.mission.dto.response.MissionRequestResponse;
 import com.project.domain.mission.model.CreateMissionResult;
 import com.project.domain.mission.model.MissionListResult;
 import com.project.domain.mission.model.MissionLogListResult;
+import com.project.domain.mission.model.MissionRequestHistoryListResult;
 import com.project.domain.mission.model.MissionRequestResult;
 import com.project.domain.mission.service.MissionService;
 import com.project.global.api.response.ApiResponse;
@@ -69,6 +71,19 @@ public class MissionController {
         AuthContext auth = authContextService.resolve(customerId);
         MissionLogListResult result = missionService.listMissionLogs(auth, cursor, size);
         return ApiResponse.success(MissionLogListResponse.from(result));
+    }
+
+    /** 미션 완료 요청 이력을 MissionRequest 기준으로 조회한다. */
+    @GetMapping("/history")
+    @Operation(summary = "미션 요청 이력 조회")
+    public ApiResponse<MissionRequestHistoryListResponse> getMissionRequestHistory(
+            @Parameter(hidden = true) @CustomerId Long customerId,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+        AuthContext auth = authContextService.resolve(customerId);
+        MissionRequestHistoryListResult result =
+                missionService.listMissionRequestHistory(auth, cursor, size);
+        return ApiResponse.success(MissionRequestHistoryListResponse.from(result));
     }
 
     /** OWNER가 미션을 생성한다. */

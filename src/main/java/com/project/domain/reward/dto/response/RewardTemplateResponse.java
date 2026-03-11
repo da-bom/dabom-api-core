@@ -11,9 +11,10 @@ public class RewardTemplateResponse {
             Long id,
             String name,
             RewardCategory category,
-            Long defaultValue,
-            String unit,
+            String thumbnailUrl,
+            Integer price,
             boolean isSystem,
+            boolean isActive,
             LocalDateTime createdAt,
             LocalDateTime updatedAt) {
 
@@ -22,9 +23,10 @@ public class RewardTemplateResponse {
                     template.getId(),
                     template.getName(),
                     template.getCategory(),
-                    template.getDefaultValue(),
-                    template.getUnit(),
+                    template.getThumbnailUrl(),
+                    template.getPrice(),
                     template.isSystem(),
+                    template.isActive(),
                     template.getCreatedAt(),
                     template.getUpdatedAt());
         }
