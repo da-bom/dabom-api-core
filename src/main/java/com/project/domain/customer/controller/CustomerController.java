@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.project.domain.customer.dto.request.CustomerRefreshRequest;
@@ -70,10 +71,12 @@ public class CustomerController {
     @GetMapping("/mypage")
     @Operation(summary = "마이페이지 조회", description = "본인 이름, 가족 이름, 기본 정책 상세 내용을 반환합니다.")
     public ApiResponse<MyPageInfoResponse> getMyPageInfo(
-            @Parameter(hidden = true) @CustomerId Long customerId) {
+            @Parameter(hidden = true) @CustomerId Long customerId,
+            @RequestParam int year,
+            @RequestParam int month) {
         AuthContext authContext = authContextService.resolve(customerId);
 
-        MyPageInfo myPageInfo = customerService.getMyPageInfo(authContext);
+        MyPageInfo myPageInfo = customerService.getMyPageInfo(authContext, year, month);
 
         return ApiResponse.success(MyPageInfoResponse.from(myPageInfo));
     }

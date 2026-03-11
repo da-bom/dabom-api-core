@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
+import java.time.LocalDate;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -34,6 +35,7 @@ import com.project.global.auth.TokenRefreshResult;
 import com.project.global.auth.model.AuthContext;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.CustomerErrorCode;
+import com.project.global.exception.code.GlobalErrorCode;
 import com.project.global.exception.code.PolicyErrorCode;
 
 import io.jsonwebtoken.Claims;
@@ -224,7 +226,7 @@ class CustomerServiceImplTest {
                         .createdById(1L)
                         .totalQuotaBytes(10_000L)
                         .usedBytes(4_000L)
-                        .currentMonth(java.time.LocalDate.of(2026, 3, 1))
+                        .currentMonth(LocalDate.of(2026, 3, 1))
                         .build();
         CustomerQuota customerQuota =
                 CustomerQuota.builder()
@@ -232,7 +234,7 @@ class CustomerServiceImplTest {
                         .familyId(100L)
                         .monthlyLimitBytes(3_000L)
                         .monthlyUsedBytes(1_200L)
-                        .currentMonth(java.time.LocalDate.of(2026, 3, 1))
+                        .currentMonth(LocalDate.of(2026, 3, 1))
                         .isBlocked(true)
                         .blockReason("TIME_POLICY")
                         .build();
@@ -249,13 +251,17 @@ class CustomerServiceImplTest {
 
         given(customerRepository.findById(10L)).willReturn(Optional.of(customer));
         given(familyRepository.findById(100L)).willReturn(Optional.of(family));
-        given(customerQuotaRepository.findById(10L)).willReturn(Optional.of(customerQuota));
+        given(
+                        customerQuotaRepository
+                                .findByFamilyIdAndCustomerIdAndCurrentMonthAndDeletedAtIsNull(
+                                        100L, 10L, LocalDate.of(2026, 3, 1)))
+                .willReturn(Optional.of(customerQuota));
         given(policyAssignmentRepository.findByTargetAndType(100L, 10L, PolicyType.TIME_BLOCK))
                 .willReturn(Optional.of(policyAssignment));
         given(objectMapper.readTree(policyAssignment.getRules())).willReturn(timeBlockNode);
 
         // when
-        MyPageInfo result = customerService.getMyPageInfo(authContext);
+        MyPageInfo result = customerService.getMyPageInfo(authContext, 2026, 3);
 
         // then
         assertThat(result.name()).isEqualTo("철수");
@@ -281,7 +287,7 @@ class CustomerServiceImplTest {
                         .createdById(1L)
                         .totalQuotaBytes(10_000L)
                         .usedBytes(4_000L)
-                        .currentMonth(java.time.LocalDate.of(2026, 3, 1))
+                        .currentMonth(LocalDate.of(2026, 3, 1))
                         .build();
         CustomerQuota customerQuota =
                 CustomerQuota.builder()
@@ -289,19 +295,23 @@ class CustomerServiceImplTest {
                         .familyId(100L)
                         .monthlyLimitBytes(3_000L)
                         .monthlyUsedBytes(1_200L)
-                        .currentMonth(java.time.LocalDate.of(2026, 3, 1))
+                        .currentMonth(LocalDate.of(2026, 3, 1))
                         .isBlocked(false)
                         .blockReason(null)
                         .build();
 
         given(customerRepository.findById(10L)).willReturn(Optional.of(customer));
         given(familyRepository.findById(100L)).willReturn(Optional.of(family));
-        given(customerQuotaRepository.findById(10L)).willReturn(Optional.of(customerQuota));
+        given(
+                        customerQuotaRepository
+                                .findByFamilyIdAndCustomerIdAndCurrentMonthAndDeletedAtIsNull(
+                                        100L, 10L, LocalDate.of(2026, 3, 1)))
+                .willReturn(Optional.of(customerQuota));
         given(policyAssignmentRepository.findByTargetAndType(100L, 10L, PolicyType.TIME_BLOCK))
                 .willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> customerService.getMyPageInfo(authContext))
+        assertThatThrownBy(() -> customerService.getMyPageInfo(authContext, 2026, 3))
                 .isInstanceOf(ApplicationException.class)
                 .satisfies(
                         e ->
@@ -322,7 +332,7 @@ class CustomerServiceImplTest {
                         .createdById(1L)
                         .totalQuotaBytes(10_000L)
                         .usedBytes(4_000L)
-                        .currentMonth(java.time.LocalDate.of(2026, 3, 1))
+                        .currentMonth(LocalDate.of(2026, 3, 1))
                         .build();
         CustomerQuota customerQuota =
                 CustomerQuota.builder()
@@ -330,7 +340,7 @@ class CustomerServiceImplTest {
                         .familyId(100L)
                         .monthlyLimitBytes(3_000L)
                         .monthlyUsedBytes(1_200L)
-                        .currentMonth(java.time.LocalDate.of(2026, 3, 1))
+                        .currentMonth(LocalDate.of(2026, 3, 1))
                         .isBlocked(true)
                         .blockReason("TIME_POLICY")
                         .build();
@@ -346,19 +356,38 @@ class CustomerServiceImplTest {
 
         given(customerRepository.findById(10L)).willReturn(Optional.of(customer));
         given(familyRepository.findById(100L)).willReturn(Optional.of(family));
-        given(customerQuotaRepository.findById(10L)).willReturn(Optional.of(customerQuota));
+        given(
+                        customerQuotaRepository
+                                .findByFamilyIdAndCustomerIdAndCurrentMonthAndDeletedAtIsNull(
+                                        100L, 10L, LocalDate.of(2026, 3, 1)))
+                .willReturn(Optional.of(customerQuota));
         given(policyAssignmentRepository.findByTargetAndType(100L, 10L, PolicyType.TIME_BLOCK))
                 .willReturn(Optional.of(policyAssignment));
         given(objectMapper.readTree("invalid-json"))
                 .willThrow(new JsonProcessingException("bad json") {});
 
         // when & then
-        assertThatThrownBy(() -> customerService.getMyPageInfo(authContext))
+        assertThatThrownBy(() -> customerService.getMyPageInfo(authContext, 2026, 3))
                 .isInstanceOf(ApplicationException.class)
                 .satisfies(
                         e ->
                                 assertThat(((ApplicationException) e).getCode())
                                         .isEqualTo(
                                                 PolicyErrorCode.POLICY_RULES_SERIALIZATION_FAILED));
+    }
+
+    @Test
+    @DisplayName("getMyPageInfo - 월 값이 올바르지 않으면 예외를 던진다")
+    void getMyPageInfo_invalidMonth_throwsException() {
+        // given
+        AuthContext authContext = new AuthContext(10L, 100L, RoleType.MEMBER);
+
+        // when & then
+        assertThatThrownBy(() -> customerService.getMyPageInfo(authContext, 2026, 13))
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(
+                        e ->
+                                assertThat(((ApplicationException) e).getCode())
+                                        .isEqualTo(GlobalErrorCode.INVALID_INPUT_VALUE));
     }
 }

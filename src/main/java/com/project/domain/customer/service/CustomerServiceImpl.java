@@ -1,5 +1,8 @@
 package com.project.domain.customer.service;
 
+import java.time.DateTimeException;
+import java.time.LocalDate;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +31,7 @@ import com.project.global.auth.model.AuthContext;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.CustomerErrorCode;
 import com.project.global.exception.code.FamilyErrorCode;
+import com.project.global.exception.code.GlobalErrorCode;
 import com.project.global.exception.code.PolicyErrorCode;
 
 import io.jsonwebtoken.Claims;
@@ -117,7 +121,9 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public MyPageInfo getMyPageInfo(AuthContext authContext) {
+    @Transactional(readOnly = true)
+    public MyPageInfo getMyPageInfo(AuthContext authContext, int year, int month) {
+        LocalDate targetMonth = resolveTargetMonth(year, month);
 
         String name =
                 customerRepository
@@ -137,7 +143,8 @@ public class CustomerServiceImpl implements CustomerService {
 
         CustomerQuota customerQuota =
                 customerQuotaRepository
-                        .findById(authContext.customerId())
+                        .findByFamilyIdAndCustomerIdAndCurrentMonthAndDeletedAtIsNull(
+                                authContext.familyId(), authContext.customerId(), targetMonth)
                         .orElseThrow(
                                 () ->
                                         new ApplicationException(
@@ -174,5 +181,13 @@ public class CustomerServiceImpl implements CustomerService {
                 monthlyLimitBytes,
                 monthlyUsedBytes,
                 timeBlock);
+    }
+
+    private LocalDate resolveTargetMonth(int year, int month) {
+        try {
+            return LocalDate.of(year, month, 1);
+        } catch (DateTimeException e) {
+            throw new ApplicationException(GlobalErrorCode.INVALID_INPUT_VALUE);
+        }
     }
 }

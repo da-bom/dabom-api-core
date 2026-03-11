@@ -15,5 +15,5 @@ public interface CustomerService {
 
     TokenRefreshResult refreshToken(String refreshToken);
 
-    MyPageInfo getMyPageInfo(AuthContext authContext);
+    MyPageInfo getMyPageInfo(AuthContext authContext, int year, int month);
 }
