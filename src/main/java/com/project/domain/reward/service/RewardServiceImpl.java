@@ -145,8 +145,11 @@ public class RewardServiceImpl implements RewardService {
 
         // 2. 승인된 요청 목록과 연결된 미션, 승인자 정보를 함께 조회한다.
         List<MissionRequest> requests =
-                missionRequestRepository.findApprovedByTargetCustomerIdOrderByResolvedAtDesc(
-                        auth.customerId(), cursorId, PageRequest.of(0, pageSize + 1));
+                missionRequestRepository.findByRequesterIdAndStatusOrderByIdDesc(
+                        auth.customerId(),
+                        MissionRequestStatus.APPROVED,
+                        cursorId,
+                        PageRequest.of(0, pageSize + 1));
 
         boolean hasNext = requests.size() > pageSize;
         List<MissionRequest> page = hasNext ? requests.subList(0, pageSize) : requests;

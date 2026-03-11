@@ -143,8 +143,9 @@ class RewardServiceImplTest {
                         .build();
         given(
                         missionRequestRepository
-                                .findApprovedByTargetCustomerIdOrderByResolvedAtDesc(
+                                .findByRequesterIdAndStatusOrderByIdDesc(
                                         org.mockito.ArgumentMatchers.eq(2L),
+                                        org.mockito.ArgumentMatchers.eq(MissionRequestStatus.APPROVED),
                                         org.mockito.ArgumentMatchers.isNull(),
                                         org.mockito.ArgumentMatchers.any()))
                 .willReturn(List.of(approvedRequest));
