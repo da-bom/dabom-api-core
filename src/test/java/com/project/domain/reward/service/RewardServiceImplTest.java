@@ -6,6 +6,10 @@ import static org.mockito.ArgumentMatchers.anyIterable;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,6 +42,10 @@ import com.project.global.exception.code.MissionErrorCode;
 @ExtendWith(MockitoExtension.class)
 class RewardServiceImplTest {
 
+    private static final ZoneId ASIA_SEOUL = ZoneId.of("Asia/Seoul");
+    private static final Clock FIXED_CLOCK =
+            Clock.fixed(Instant.parse("2026-03-11T00:00:00Z"), ASIA_SEOUL);
+
     @Mock private MissionRequestRepository missionRequestRepository;
     @Mock private MissionItemRepository missionItemRepository;
     @Mock private MissionLogRepository missionLogRepository;
@@ -50,6 +58,7 @@ class RewardServiceImplTest {
     void setUp() {
         rewardService =
                 new RewardServiceImpl(
+                        FIXED_CLOCK,
                         missionRequestRepository,
                         missionItemRepository,
                         missionLogRepository,
@@ -122,7 +131,7 @@ class RewardServiceImplTest {
                         .requesterId(2L)
                         .status(MissionRequestStatus.APPROVED)
                         .resolvedById(1L)
-                        .resolvedAt(java.time.LocalDateTime.now())
+                        .resolvedAt(LocalDateTime.now(FIXED_CLOCK))
                         .build();
         given(
                         missionRequestRepository

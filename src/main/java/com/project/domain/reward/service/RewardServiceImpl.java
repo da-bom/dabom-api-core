@@ -1,5 +1,6 @@
 package com.project.domain.reward.service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +47,7 @@ public class RewardServiceImpl implements RewardService {
     private static final int MAX_CURSOR_SIZE = 100;
     private static final String UNKNOWN_NAME = "unknown";
 
+    private final Clock clock;
     private final MissionRequestRepository missionRequestRepository;
     private final MissionItemRepository missionItemRepository;
     private final MissionLogRepository missionLogRepository;
@@ -84,8 +86,9 @@ public class RewardServiceImpl implements RewardService {
             if (!mission.canComplete()) {
                 throw new ApplicationException(MissionErrorCode.MISSION_INVALID_STATUS_TRANSITION);
             }
-            missionRequest.approve(auth.customerId(), LocalDateTime.now());
-            mission.complete(LocalDateTime.now());
+            LocalDateTime now = LocalDateTime.now(clock);
+            missionRequest.approve(auth.customerId(), now);
+            mission.complete(now);
             appendLog(
                     mission.getId(),
                     auth.customerId(),
@@ -110,7 +113,7 @@ public class RewardServiceImpl implements RewardService {
             if (req.rejectReason() == null || req.rejectReason().isBlank()) {
                 throw new ApplicationException(MissionErrorCode.MISSION_REJECT_REASON_REQUIRED);
             }
-            missionRequest.reject(auth.customerId(), req.rejectReason(), LocalDateTime.now());
+            missionRequest.reject(auth.customerId(), req.rejectReason(), LocalDateTime.now(clock));
             appendLog(
                     mission.getId(),
                     auth.customerId(),

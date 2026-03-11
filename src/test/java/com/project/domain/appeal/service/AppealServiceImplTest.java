@@ -7,8 +7,11 @@ import static org.mockito.ArgumentMatchers.anyIterable;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
@@ -51,6 +54,10 @@ import com.project.global.exception.code.AppealErrorCode;
 @ExtendWith(MockitoExtension.class)
 class AppealServiceImplTest {
 
+    private static final ZoneId ASIA_SEOUL = ZoneId.of("Asia/Seoul");
+    private static final Clock FIXED_CLOCK =
+            Clock.fixed(Instant.parse("2026-03-11T00:00:00Z"), ASIA_SEOUL);
+
     @Mock private PolicyAppealRepository policyAppealRepository;
     @Mock private PolicyAppealCommentRepository policyAppealCommentRepository;
     @Mock private CustomerRepository customerRepository;
@@ -65,6 +72,7 @@ class AppealServiceImplTest {
     void setUp() {
         appealService =
                 new AppealServiceImpl(
+                        FIXED_CLOCK,
                         policyAppealRepository,
                         policyAppealCommentRepository,
                         customerRepository,
@@ -256,7 +264,7 @@ class AppealServiceImplTest {
                         .customerId(2L)
                         .monthlyLimitBytes(500_000_000L)
                         .monthlyUsedBytes(100L)
-                        .currentMonth(LocalDate.now().withDayOfMonth(1))
+                        .currentMonth(LocalDate.now(FIXED_CLOCK).withDayOfMonth(1))
                         .isBlocked(false)
                         .build();
         PolicyAppeal saved =
@@ -277,7 +285,7 @@ class AppealServiceImplTest {
         given(
                         customerQuotaRepository
                                 .findByFamilyIdAndCustomerIdAndCurrentMonthAndDeletedAtIsNull(
-                                        10L, 2L, LocalDate.now().withDayOfMonth(1)))
+                                        10L, 2L, LocalDate.now(FIXED_CLOCK).withDayOfMonth(1)))
                 .willReturn(java.util.Optional.of(customerQuota));
         given(policyAppealRepository.save(any(PolicyAppeal.class))).willReturn(saved);
 
