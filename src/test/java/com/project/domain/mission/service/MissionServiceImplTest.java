@@ -164,8 +164,42 @@ class MissionServiceImplTest {
 
         assertThat(result.missions()).hasSize(1);
         assertThat(result.missions().getFirst().logId()).isEqualTo(300L);
+        assertThat(result.missions().getFirst().actionType()).isEqualTo("CREATED");
         assertThat(result.missions().getFirst().missionItem().reward().rewardId()).isEqualTo(900L);
         verify(missionLogRepository).findByFamilyScope(10L, null, PageRequest.of(0, 21));
+    }
+
+    @Test
+    @DisplayName("미션 요청 이력 조회는 MissionRequest.status를 기준으로 응답한다")
+    void listMissionRequestHistory_readsMissionRequestHistory() {
+        AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
+        MissionItem mission = mission(100L, 10L, 2L, 1L, reward(900L, 500L), "clean room");
+        MissionRequest request =
+                MissionRequest.builder()
+                        .id(200L)
+                        .missionItemId(100L)
+                        .requesterId(2L)
+                        .status(MissionRequestStatus.REJECTED)
+                        .resolvedById(1L)
+                        .rejectReason("photo missing")
+                        .build();
+
+        given(missionRequestRepository.findByFamilyIdOrderByIdDesc(10L, null, PageRequest.of(0, 21)))
+                .willReturn(List.of(request));
+        given(missionItemRepository.findAllWithRewardByIdIn(anyIterable()))
+                .willReturn(List.of(mission));
+        Customer owner = customer(1L, "owner");
+        Customer member = customer(2L, "member");
+        given(customerRepository.findAllById(anyIterable())).willReturn(List.of(owner, member));
+
+        var result = missionService.listMissionRequestHistory(auth, null, 20);
+
+        assertThat(result.requests()).hasSize(1);
+        assertThat(result.requests().getFirst().requestId()).isEqualTo(200L);
+        assertThat(result.requests().getFirst().status()).isEqualTo("REJECTED");
+        assertThat(result.requests().getFirst().rejectReason()).isEqualTo("photo missing");
+        assertThat(result.requests().getFirst().requestedBy().name()).isEqualTo("member");
+        assertThat(result.requests().getFirst().respondedBy().name()).isEqualTo("owner");
     }
 
     @Test

@@ -2,9 +2,12 @@ package com.project.domain.reward.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyIterable;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -24,6 +27,7 @@ import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.customer.repository.CustomerRepository;
 import com.project.domain.mission.entity.MissionItem;
+import com.project.domain.mission.entity.MissionLog;
 import com.project.domain.mission.entity.MissionRequest;
 import com.project.domain.mission.enums.MissionRequestStatus;
 import com.project.domain.mission.enums.MissionStatus;
@@ -93,6 +97,7 @@ class RewardServiceImplTest {
         assertThat(result.status()).isEqualTo("APPROVED");
         assertThat(result.missionItem().status()).isEqualTo("COMPLETED");
         assertThat(result.missionItem().reward().rewardId()).isEqualTo(900L);
+        verify(missionLogRepository).save(any(MissionLog.class));
     }
 
     @Test
@@ -120,6 +125,7 @@ class RewardServiceImplTest {
         assertThat(result.status()).isEqualTo("REJECTED");
         assertThat(result.rejectReason()).isEqualTo("not enough evidence");
         assertThat(result.missionItem().reward().templateId()).isEqualTo(500L);
+        verify(missionLogRepository, never()).save(any(MissionLog.class));
     }
 
     @Test
