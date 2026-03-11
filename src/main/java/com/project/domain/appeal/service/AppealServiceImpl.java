@@ -9,16 +9,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.project.domain.appeal.dto.request.AppealCreateRequest;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.appeal.dto.request.AppealCommentRequest;
+import com.project.domain.appeal.dto.request.AppealCreateRequest;
 import com.project.domain.appeal.dto.request.AppealRespondRequest;
 import com.project.domain.appeal.dto.request.EmergencyQuotaRequest;
 import com.project.domain.appeal.entity.PolicyAppeal;
@@ -269,6 +268,8 @@ public class AppealServiceImpl implements AppealService {
                                 .authorId(auth.customerId())
                                 .comment(request.comment())
                                 .build());
+
+        // 4. 댓글 작성자 이름을 추가한다.
         String authorName =
                 customerRepository
                         .findById(auth.customerId())
@@ -479,7 +480,8 @@ public class AppealServiceImpl implements AppealService {
                                         new ApplicationException(
                                                 PolicyErrorCode.POLICY_ASSIGNMENT_NOT_FOUND));
         try {
-            assignment.update(objectMapper.writeValueAsString(appeal.getDesiredRules()), null, actorId);
+            assignment.update(
+                    objectMapper.writeValueAsString(appeal.getDesiredRules()), null, actorId);
         } catch (JsonProcessingException e) {
             throw new ApplicationException(AppealErrorCode.APPEAL_INVALID_DESIRED_RULES);
         }

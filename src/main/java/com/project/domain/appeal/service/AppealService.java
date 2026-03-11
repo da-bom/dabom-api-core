@@ -1,7 +1,7 @@
 package com.project.domain.appeal.service;
 
-import com.project.domain.appeal.dto.request.AppealCreateRequest;
 import com.project.domain.appeal.dto.request.AppealCommentRequest;
+import com.project.domain.appeal.dto.request.AppealCreateRequest;
 import com.project.domain.appeal.dto.request.AppealRespondRequest;
 import com.project.domain.appeal.dto.request.EmergencyQuotaRequest;
 import com.project.domain.appeal.enums.AppealStatus;
@@ -26,10 +26,12 @@ public interface AppealService {
     AppealCreateResult createAppeal(AuthContext auth, AppealCreateRequest request);
 
     /** 이의제기 승인/거절 */
-    AppealRespondResult respondAppeal(AuthContext auth, Long appealId, AppealRespondRequest request);
+    AppealRespondResult respondAppeal(
+            AuthContext auth, Long appealId, AppealRespondRequest request);
 
     /** 이의제기 댓글 작성 */
-    AppealCommentResult createComment(AuthContext auth, Long appealId, AppealCommentRequest request);
+    AppealCommentResult createComment(
+            AuthContext auth, Long appealId, AppealCommentRequest request);
 
     /** 이의제기 취소 */
     AppealCancelResult cancelAppeal(AuthContext auth, Long appealId);

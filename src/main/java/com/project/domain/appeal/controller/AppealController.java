@@ -14,8 +14,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.project.domain.appeal.dto.request.AppealCreateRequest;
 import com.project.domain.appeal.dto.request.AppealCommentRequest;
+import com.project.domain.appeal.dto.request.AppealCreateRequest;
 import com.project.domain.appeal.dto.request.AppealRespondRequest;
 import com.project.domain.appeal.dto.request.EmergencyQuotaRequest;
 import com.project.domain.appeal.dto.response.AppealCancelResponse;

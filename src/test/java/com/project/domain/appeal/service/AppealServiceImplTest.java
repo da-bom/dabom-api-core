@@ -15,9 +15,6 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,8 +24,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 
-import com.project.domain.appeal.dto.request.AppealCreateRequest;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.appeal.dto.request.AppealCommentRequest;
+import com.project.domain.appeal.dto.request.AppealCreateRequest;
 import com.project.domain.appeal.dto.request.AppealRespondRequest;
 import com.project.domain.appeal.dto.request.EmergencyQuotaRequest;
 import com.project.domain.appeal.entity.PolicyAppeal;
@@ -370,7 +369,8 @@ class AppealServiceImplTest {
                                         .customerId(1L)
                                         .role(RoleType.OWNER)
                                         .build()));
-        given(customerRepository.findById(1L)).willReturn(java.util.Optional.of(customer(1L, "owner")));
+        given(customerRepository.findById(1L))
+                .willReturn(java.util.Optional.of(customer(1L, "owner")));
         given(policyAppealCommentRepository.save(any(PolicyAppealComment.class))).willReturn(saved);
 
         var result = appealService.createComment(auth, 30L, new AppealCommentRequest("확인 후 처리할게요"));
