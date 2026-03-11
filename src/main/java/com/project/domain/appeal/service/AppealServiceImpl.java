@@ -2,14 +2,13 @@ package com.project.domain.appeal.service;
 
 import java.time.Clock;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.YearMonth;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -107,23 +106,23 @@ public class AppealServiceImpl implements AppealService {
         PolicyAppeal appeal = findAppealOrThrow(appealId);
         validateFamilyAccess(auth.familyId(), appeal);
 
-        // MEMBER에 대해서는 반드시 “본인 소유 appeal인지”까지 확인
+        // 2. MEMBER에 대해서는 반드시 본인 소유 appeal인지까지 확인한다.
         if (!auth.isOwner() && !appeal.getRequesterId().equals(auth.customerId())) {
             throw new ApplicationException(AppealErrorCode.APPEAL_FORBIDDEN);
         }
 
-        // 2. 댓글 size를 보정하고 커서 기반으로 댓글을 조회한다.
+        // 3. 댓글 size를 보정하고 커서 기반으로 댓글을 조회한다.
         int pageSize = normalizeSize(size);
         List<PolicyAppealComment> comments =
                 policyAppealCommentRepository.findByAppealIdAndIdLessThanOrderByIdDesc(
                         appealId, cursor, PageRequest.of(0, pageSize + 1));
 
-        // 3. pageSize + 1 조회 결과로 댓글 nextCursor와 hasNext를 계산한다.
+        // 4. pageSize + 1 조회 결과로 댓글 nextCursor와 hasNext를 계산한다.
         boolean hasNext = comments.size() > pageSize;
         List<PolicyAppealComment> page = hasNext ? comments.subList(0, pageSize) : comments;
         String nextCursor = hasNext ? String.valueOf(page.getLast().getId()) : null;
 
-        // 4. 요청자, 처리자, 댓글 작성자 이름과 정책 타입을 조회해 상세 응답으로 변환한다.
+        // 5. 요청자, 처리자, 댓글 작성자 이름과 정책 타입을 조회해 상세 응답으로 변환한다.
         Set<Long> customerIds = new HashSet<>();
         customerIds.add(appeal.getRequesterId());
         if (appeal.getResolvedById() != null) {
@@ -162,7 +161,7 @@ public class AppealServiceImpl implements AppealService {
         // 1. MEMBER 역할만 일반 이의제기를 생성할 수 있다.
         validateMemberOnly(auth);
 
-        // 2. 정책 할당이 존재하고 같은 가족 소속인지 확인한다.
+        // 2. 정책 할당이 존재하고 같은 가족 소속인지, 본인 대상인지 확인한다.
         PolicyAssignment policyAssignment =
                 policyAssignmentRepository
                         .findByIdAndDeletedAtIsNull(request.policyAssignmentId())
@@ -170,8 +169,8 @@ public class AppealServiceImpl implements AppealService {
                                 () ->
                                         new ApplicationException(
                                                 PolicyErrorCode.POLICY_ASSIGNMENT_NOT_FOUND));
-        // 2-1. 같은 가족 소속인지 + 로그인한 사용자 본인의 policyAssigment인지 체크
-        if (!policyAssignment.getFamilyId().equals(auth.familyId()) || !policyAssignment.getTargetCustomerId().equals(auth.customerId())) {
+        if (!policyAssignment.getFamilyId().equals(auth.familyId())
+                || !policyAssignment.getTargetCustomerId().equals(auth.customerId())) {
             throw new ApplicationException(AppealErrorCode.APPEAL_FORBIDDEN);
         }
 
@@ -208,47 +207,40 @@ public class AppealServiceImpl implements AppealService {
         validateMemberOnly(auth);
         validateEmergencyBytes(request.additionalBytes());
 
-        // 2. 현재 월에 승인된 긴급 요청이 이미 있는지 확인한다.
-        LocalDateTime monthStart = YearMonth.now(clock).atDay(1).atStartOfDay();
-        LocalDateTime monthEnd = YearMonth.now(clock).atEndOfMonth().atTime(23, 59, 59);
-        boolean alreadyApproved =
-                !policyAppealRepository
-                        .findByRequesterIdAndTypeAndStatusAndCreatedAtBetween(
-                                auth.customerId(),
-                                AppealType.EMERGENCY,
-                                AppealStatus.APPROVED,
-                                monthStart,
-                                monthEnd)
-                        .isEmpty();
-        if (alreadyApproved) {
-            throw new ApplicationException(AppealErrorCode.APPEAL_EMERGENCY_MONTHLY_LIMIT);
-        }
-
-        // 3. 당월 고객 쿼터를 조회하고 무제한 사용자 여부를 확인한다.
+        // 2. 당월 고객 쿼터를 조회하고 무제한 사용자 여부를 확인한다.
+        LocalDate currentMonth = LocalDate.now(clock).withDayOfMonth(1);
         CustomerQuota customerQuota =
                 customerQuotaRepository
                         .findByFamilyIdAndCustomerIdAndCurrentMonthAndDeletedAtIsNull(
-                                auth.familyId(),
-                                auth.customerId(),
-                                LocalDate.now(clock).withDayOfMonth(1))
+                                auth.familyId(), auth.customerId(), currentMonth)
                         .orElseThrow(
                                 () ->
                                         new ApplicationException(
                                                 CustomerErrorCode.CUSTOMER_NOT_FOUND));
+
         if (customerQuota.getMonthlyLimitBytes() == null) {
             throw new ApplicationException(AppealErrorCode.APPEAL_EMERGENCY_UNLIMITED);
         }
 
-        // 4. APPROVED 상태의 긴급 이의제기를 저장하고 월 한도를 즉시 증가시킨다.
-        PolicyAppeal appeal =
-                policyAppealRepository.save(
-                        PolicyAppeal.builder()
-                                .type(AppealType.EMERGENCY)
-                                .requesterId(auth.customerId())
-                                .requestReason(request.requestReason())
-                                .desiredRules(Map.of("additionalBytes", request.additionalBytes()))
-                                .status(AppealStatus.APPROVED)
-                                .build());
+        // 3. DB unique 제약으로 같은 사용자의 당월 긴급 승인을 단일화한다.
+        PolicyAppeal appeal;
+        try {
+            appeal =
+                    policyAppealRepository.saveAndFlush(
+                            PolicyAppeal.builder()
+                                    .type(AppealType.EMERGENCY)
+                                    .requesterId(auth.customerId())
+                                    .requestReason(request.requestReason())
+                                    .desiredRules(
+                                            Map.of("additionalBytes", request.additionalBytes()))
+                                    .status(AppealStatus.APPROVED)
+                                    .emergencyGrantMonth(currentMonth)
+                                    .build());
+        } catch (DataIntegrityViolationException e) {
+            throw new ApplicationException(AppealErrorCode.APPEAL_EMERGENCY_MONTHLY_LIMIT);
+        }
+
+        // 4. 승인 저장이 확정되면 월 한도를 즉시 증가시킨다.
         customerQuota.addMonthlyLimitBytes(request.additionalBytes());
 
         // 5. 긴급 쿼터 결과를 응답 모델로 반환한다.

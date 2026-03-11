@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 
 import com.project.domain.appeal.dto.request.AppealCreateRequest;
@@ -279,15 +280,11 @@ class AppealServiceImplTest {
         setCreatedAt(saved, LocalDateTime.of(2026, 3, 10, 12, 0));
 
         given(
-                        policyAppealRepository.findByRequesterIdAndTypeAndStatusAndCreatedAtBetween(
-                                any(), any(), any(), any(), any()))
-                .willReturn(List.of());
-        given(
                         customerQuotaRepository
                                 .findByFamilyIdAndCustomerIdAndCurrentMonthAndDeletedAtIsNull(
                                         10L, 2L, LocalDate.now(FIXED_CLOCK).withDayOfMonth(1)))
                 .willReturn(java.util.Optional.of(customerQuota));
-        given(policyAppealRepository.save(any(PolicyAppeal.class))).willReturn(saved);
+        given(policyAppealRepository.saveAndFlush(any(PolicyAppeal.class))).willReturn(saved);
 
         EmergencyQuotaResult result = appealService.requestEmergencyQuota(auth, request);
 
@@ -303,11 +300,23 @@ class AppealServiceImplTest {
     void requestEmergencyQuota_whenAlreadyApprovedThisMonth_thenThrowsLimit() {
         AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
         EmergencyQuotaRequest request = new EmergencyQuotaRequest("데이터가 부족합니다", 104_857_600L);
+        CustomerQuota customerQuota =
+                CustomerQuota.builder()
+                        .familyId(10L)
+                        .customerId(2L)
+                        .monthlyLimitBytes(500_000_000L)
+                        .monthlyUsedBytes(100L)
+                        .currentMonth(LocalDate.now(FIXED_CLOCK).withDayOfMonth(1))
+                        .isBlocked(false)
+                        .build();
 
         given(
-                        policyAppealRepository.findByRequesterIdAndTypeAndStatusAndCreatedAtBetween(
-                                any(), any(), any(), any(), any()))
-                .willReturn(List.of(appeal(70L, 2L, null, AppealStatus.APPROVED)));
+                        customerQuotaRepository
+                                .findByFamilyIdAndCustomerIdAndCurrentMonthAndDeletedAtIsNull(
+                                        10L, 2L, LocalDate.now(FIXED_CLOCK).withDayOfMonth(1)))
+                .willReturn(java.util.Optional.of(customerQuota));
+        given(policyAppealRepository.saveAndFlush(any(PolicyAppeal.class)))
+                .willThrow(new DataIntegrityViolationException("duplicate emergency grant month"));
 
         assertThatThrownBy(() -> appealService.requestEmergencyQuota(auth, request))
                 .isInstanceOf(ApplicationException.class)
