@@ -41,11 +41,8 @@ public class Reward extends BaseEntity {
     @Column(name = "category", nullable = false, length = 20)
     private RewardCategory category;
 
-    @Column(name = "`value`", nullable = false)
-    private Long value;
-
-    @Column(name = "unit", nullable = false, length = 20)
-    private String unit;
+    @Column(name = "thumbnail_url", length = 500)
+    private String thumbnailUrl;
 
     @Builder
     public Reward(
@@ -53,14 +50,12 @@ public class Reward extends BaseEntity {
             RewardTemplate rewardTemplate,
             String name,
             RewardCategory category,
-            Long value,
-            String unit) {
+            String thumbnailUrl) {
         this.id = id;
         this.rewardTemplate = rewardTemplate;
         this.name = name;
         this.category = category;
-        this.value = value;
-        this.unit = unit;
+        this.thumbnailUrl = thumbnailUrl;
     }
 
     @Override
@@ -73,10 +68,8 @@ public class Reward extends BaseEntity {
                 + '\''
                 + ", category="
                 + category
-                + ", value="
-                + value
-                + ", unit='"
-                + unit
+                + ", thumbnailUrl='"
+                + thumbnailUrl
                 + '\''
                 + '}';
     }

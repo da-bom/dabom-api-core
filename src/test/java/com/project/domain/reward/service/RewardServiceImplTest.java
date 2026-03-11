@@ -65,7 +65,7 @@ class RewardServiceImplTest {
                         .requesterId(2L)
                         .status(MissionRequestStatus.PENDING)
                         .build();
-        MissionItem mission = mission(200L, 10L, reward(900L, 500L, 100L));
+        MissionItem mission = mission(200L, 10L, reward(900L, 500L));
         given(missionRequestRepository.findByIdForUpdate(100L)).willReturn(Optional.of(request));
         given(missionItemRepository.findByIdAndFamilyIdForUpdate(200L, 10L))
                 .willReturn(Optional.of(mission));
@@ -92,7 +92,7 @@ class RewardServiceImplTest {
                         .requesterId(2L)
                         .status(MissionRequestStatus.PENDING)
                         .build();
-        MissionItem mission = mission(200L, 10L, reward(900L, 500L, 100L));
+        MissionItem mission = mission(200L, 10L, reward(900L, 500L));
         given(missionRequestRepository.findByIdForUpdate(100L)).willReturn(Optional.of(request));
         given(missionItemRepository.findByIdAndFamilyIdForUpdate(200L, 10L))
                 .willReturn(Optional.of(mission));
@@ -129,7 +129,7 @@ class RewardServiceImplTest {
                                         org.mockito.ArgumentMatchers.any()))
                 .willReturn(List.of(approvedRequest));
         given(missionItemRepository.findAllWithRewardByIdIn(anyIterable()))
-                .willReturn(List.of(mission(200L, 10L, reward(900L, 500L, 100L))));
+                .willReturn(List.of(mission(200L, 10L, reward(900L, 500L))));
         Customer owner = customer(1L, "owner");
         given(customerRepository.findAllById(anyIterable())).willReturn(List.of(owner));
 
@@ -165,23 +165,22 @@ class RewardServiceImplTest {
                 .build();
     }
 
-    private Reward reward(Long rewardId, Long templateId, Long value) {
+    private Reward reward(Long rewardId, Long templateId) {
         RewardTemplate template =
                 RewardTemplate.builder()
                         .id(templateId)
                         .name("data")
                         .category(RewardCategory.DATA)
-                        .defaultValue(100L)
-                        .unit("MB")
+                        .price(5000)
                         .isSystem(true)
+                        .isActive(true)
                         .build();
         return Reward.builder()
                 .id(rewardId)
                 .rewardTemplate(template)
                 .name("data")
                 .category(RewardCategory.DATA)
-                .value(value)
-                .unit("MB")
+                .thumbnailUrl("/rewards/data.jpg")
                 .build();
     }
 

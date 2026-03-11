@@ -114,9 +114,9 @@ class MissionControllerIntegrationTest {
                         RewardTemplate.builder()
                                 .name("data reward")
                                 .category(RewardCategory.DATA)
-                                .defaultValue(200L)
-                                .unit("MB")
+                                .price(5000)
                                 .isSystem(true)
+                                .isActive(true)
                                 .build());
 
         Reward reward =
@@ -125,8 +125,7 @@ class MissionControllerIntegrationTest {
                                 .rewardTemplate(rewardTemplate)
                                 .name("data reward")
                                 .category(RewardCategory.DATA)
-                                .value(200L)
-                                .unit("MB")
+                                .thumbnailUrl("/rewards/data.jpg")
                                 .build());
 
         mission =
@@ -160,11 +159,7 @@ class MissionControllerIntegrationTest {
                                 "rewardTemplateId",
                                 rewardTemplate.getId(),
                                 "missionText",
-                                "wash dishes",
-                                "rewardValue",
-                                300,
-                                "rewardCategory",
-                                "DATA"));
+                                "wash dishes"));
 
         MvcResult createResult =
                 mockMvc.perform(
@@ -195,8 +190,7 @@ class MissionControllerIntegrationTest {
         assertRewardNode(
                 requestData.path("missionItem").path("reward"),
                 rewardTemplate.getId(),
-                "data reward",
-                200L);
+                "data reward");
 
         MvcResult missionListResult =
                 mockMvc.perform(
@@ -223,8 +217,7 @@ class MissionControllerIntegrationTest {
         assertRewardNode(
                 nonNullExistingMissionNode.path("reward"),
                 rewardTemplate.getId(),
-                "data reward",
-                200L);
+                "data reward");
 
         MvcResult logsResult =
                 mockMvc.perform(
@@ -242,44 +235,7 @@ class MissionControllerIntegrationTest {
         assertRewardNode(
                 logNode.path("missionItem").path("reward"),
                 rewardTemplate.getId(),
-                "data reward",
-                200L);
-    }
-
-    @Test
-    @DisplayName("POST /missions 요청의 rewardCategory 필드는 무시된다")
-    void createMission_ignoresRewardCategoryField() throws Exception {
-        String createBody =
-                objectMapper.writeValueAsString(
-                        Map.of(
-                                "targetCustomerId",
-                                member.getId(),
-                                "rewardTemplateId",
-                                rewardTemplate.getId(),
-                                "missionText",
-                                "wash dishes",
-                                "rewardValue",
-                                300,
-                                "rewardCategory",
-                                "MONEY"));
-
-        MvcResult result =
-                mockMvc.perform(
-                                post("/missions")
-                                        .header("Authorization", "Bearer " + OWNER_TOKEN)
-                                        .contentType(MediaType.APPLICATION_JSON)
-                                        .content(createBody))
-                        .andExpect(status().isOk())
-                        .andReturn();
-
-        Long createdMissionId =
-                objectMapper
-                        .readTree(result.getResponse().getContentAsString())
-                        .path("data")
-                        .path("missionItemId")
-                        .asLong();
-        MissionItem createdMission = missionItemRepository.findById(createdMissionId).orElseThrow();
-        assertThat(createdMission.getReward().getCategory()).isEqualTo(RewardCategory.DATA);
+                "data reward");
     }
 
     @Test
@@ -293,9 +249,7 @@ class MissionControllerIntegrationTest {
                                 "rewardTemplateId",
                                 rewardTemplate.getId(),
                                 "missionText",
-                                "wash dishes",
-                                "rewardValue",
-                                300));
+                                "wash dishes"));
 
         mockMvc.perform(
                         post("/missions")
@@ -314,8 +268,7 @@ class MissionControllerIntegrationTest {
                                 .rewardTemplate(rewardTemplate)
                                 .name("data reward")
                                 .category(RewardCategory.DATA)
-                                .value(250L)
-                                .unit("MB")
+                                .thumbnailUrl("/rewards/data.jpg")
                                 .build());
         missionItemRepository.save(
                 MissionItem.builder()
@@ -383,11 +336,9 @@ class MissionControllerIntegrationTest {
                 .andExpect(status().isOk());
     }
 
-    private void assertRewardNode(
-            JsonNode rewardNode, long templateId, String expectedName, long expectedValue) {
+    private void assertRewardNode(JsonNode rewardNode, long templateId, String expectedName) {
         assertThat(rewardNode.has("rewardId")).isTrue();
         assertThat(rewardNode.path("templateId").asLong()).isEqualTo(templateId);
         assertThat(rewardNode.path("name").asText()).isEqualTo(expectedName);
-        assertThat(rewardNode.path("value").asLong()).isEqualTo(expectedValue);
     }
 }

@@ -59,7 +59,7 @@ class MissionServiceImplTest {
     @DisplayName("OWNER는 reward 스냅샷이 포함된 미션 목록을 조회한다")
     void listMissions_ownerReadsFamilyScope() {
         AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
-        MissionItem mission = mission(100L, 10L, 2L, 1L, reward(900L, 500L, 100L), "clean room");
+        MissionItem mission = mission(100L, 10L, 2L, 1L, reward(900L, 500L), "clean room");
 
         given(
                         missionItemRepository.findByFamilyScope(
@@ -86,7 +86,6 @@ class MissionServiceImplTest {
         assertThat(result.missions().getFirst().requestStatus()).isEqualTo("PENDING");
         assertThat(result.missions().getFirst().reward().rewardId()).isEqualTo(900L);
         assertThat(result.missions().getFirst().reward().templateId()).isEqualTo(500L);
-        assertThat(result.missions().getFirst().reward().value()).isEqualTo(100L);
         verify(missionItemRepository)
                 .findByFamilyScope(10L, MissionStatus.ACTIVE, null, PageRequest.of(0, 21));
     }
@@ -96,11 +95,11 @@ class MissionServiceImplTest {
     void listMissions_returnsOnlyPendingOrNoRequestStatus() {
         AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
         MissionItem pendingMission =
-                mission(100L, 10L, 2L, 1L, reward(900L, 500L, 100L), "pending mission");
+                mission(100L, 10L, 2L, 1L, reward(900L, 500L), "pending mission");
         MissionItem approvedMission =
-                mission(99L, 10L, 2L, 1L, reward(901L, 500L, 200L), "approved mission");
+                mission(99L, 10L, 2L, 1L, reward(901L, 500L), "approved mission");
         MissionItem noRequestMission =
-                mission(98L, 10L, 2L, 1L, reward(902L, 500L, 300L), "no request mission");
+                mission(98L, 10L, 2L, 1L, reward(902L, 500L), "no request mission");
 
         given(
                         missionItemRepository.findByFamilyScope(
@@ -151,7 +150,7 @@ class MissionServiceImplTest {
                         .actionType(MissionLogActionType.CREATED)
                         .message("Mission created")
                         .build();
-        MissionItem mission = mission(100L, 10L, 2L, 1L, reward(900L, 500L, 100L), "clean room");
+        MissionItem mission = mission(100L, 10L, 2L, 1L, reward(900L, 500L), "clean room");
 
         given(missionLogRepository.findByFamilyScope(10L, null, PageRequest.of(0, 21)))
                 .willReturn(List.of(log));
@@ -173,15 +172,15 @@ class MissionServiceImplTest {
     @DisplayName("미션 생성 시 Reward 스냅샷을 먼저 저장하고 mission에 연결한다")
     void createMission_createsRewardSnapshot() {
         AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
-        CreateMissionRequest request = new CreateMissionRequest("clean room", 2L, 500L, 100L);
+        CreateMissionRequest request = new CreateMissionRequest("clean room", 2L, 500L);
         RewardTemplate template =
                 RewardTemplate.builder()
                         .id(500L)
-                        .name("용돈")
-                        .category(RewardCategory.ETC)
-                        .defaultValue(1000L)
-                        .unit("원")
+                        .name("메가커피 아메리카노")
+                        .category(RewardCategory.GIFTICON)
+                        .price(4500)
                         .isSystem(true)
+                        .isActive(true)
                         .build();
         FamilyMember target =
                 FamilyMember.builder().familyId(10L).customerId(2L).role(RoleType.MEMBER).build();
@@ -189,14 +188,13 @@ class MissionServiceImplTest {
                 Reward.builder()
                         .id(900L)
                         .rewardTemplate(template)
-                        .name("용돈")
-                        .category(RewardCategory.ETC)
-                        .value(100L)
-                        .unit("원")
+                        .name("메가커피 아메리카노")
+                        .category(RewardCategory.GIFTICON)
+                        .thumbnailUrl("/rewards/mega-coffee.jpg")
                         .build();
 
         given(familyMemberRepository.findByCustomerId(2L)).willReturn(Optional.of(target));
-        given(rewardSnapshotService.createFromTemplate(500L, 100L)).willReturn(savedReward);
+        given(rewardSnapshotService.createFromTemplate(500L)).willReturn(savedReward);
         given(missionItemRepository.save(any(MissionItem.class)))
                 .willAnswer(
                         invocation -> {
@@ -215,7 +213,7 @@ class MissionServiceImplTest {
         var result = missionService.createMission(auth, request);
 
         assertThat(result.missionItemId()).isEqualTo(300L);
-        verify(rewardSnapshotService).createFromTemplate(500L, 100L);
+        verify(rewardSnapshotService).createFromTemplate(500L);
         verify(missionItemRepository).save(any(MissionItem.class));
     }
 
@@ -236,14 +234,13 @@ class MissionServiceImplTest {
                                                 .id(500L)
                                                 .name("new template name")
                                                 .category(RewardCategory.DATA)
-                                                .defaultValue(300L)
-                                                .unit("GB")
+                                                .price(5000)
                                                 .isSystem(true)
+                                                .isActive(true)
                                                 .build())
                                 .name("old snapshot name")
-                                .category(RewardCategory.ETC)
-                                .value(100L)
-                                .unit("원")
+                                .category(RewardCategory.GIFTICON)
+                                .thumbnailUrl("/rewards/old.jpg")
                                 .build(),
                         "clean room");
 
@@ -267,7 +264,7 @@ class MissionServiceImplTest {
         var result = missionService.requestMissionApproval(auth, 100L);
 
         assertThat(result.missionItem().reward().name()).isEqualTo("old snapshot name");
-        assertThat(result.missionItem().reward().category()).isEqualTo(RewardCategory.ETC);
+        assertThat(result.missionItem().reward().category()).isEqualTo(RewardCategory.GIFTICON);
         assertThat(result.missionItem().reward().templateId()).isEqualTo(500L);
     }
 
@@ -275,7 +272,7 @@ class MissionServiceImplTest {
     @DisplayName("본인에게 할당되지 않은 미션 요청은 MISSION_NOT_ASSIGNED를 반환한다")
     void requestMissionApproval_whenMissionNotAssigned_thenThrows() {
         AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
-        MissionItem mission = mission(100L, 10L, 3L, 1L, reward(900L, 500L, 100L), "clean room");
+        MissionItem mission = mission(100L, 10L, 3L, 1L, reward(900L, 500L), "clean room");
         given(missionItemRepository.findByIdAndFamilyIdForUpdate(100L, 10L))
                 .willReturn(Optional.of(mission));
 
@@ -291,7 +288,7 @@ class MissionServiceImplTest {
     @DisplayName("MEMBER가 미션 생성을 요청하면 MISSION_OWNER_ONLY를 반환한다")
     void createMission_whenMember_thenThrows() {
         AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
-        CreateMissionRequest request = new CreateMissionRequest("clean room", 2L, 500L, 100L);
+        CreateMissionRequest request = new CreateMissionRequest("clean room", 2L, 500L);
 
         assertThatThrownBy(() -> missionService.createMission(auth, request))
                 .isInstanceOf(ApplicationException.class)
@@ -319,23 +316,22 @@ class MissionServiceImplTest {
                 .build();
     }
 
-    private Reward reward(Long rewardId, Long templateId, Long value) {
+    private Reward reward(Long rewardId, Long templateId) {
         RewardTemplate template =
                 RewardTemplate.builder()
                         .id(templateId)
                         .name("data")
                         .category(RewardCategory.DATA)
-                        .defaultValue(100L)
-                        .unit("MB")
+                        .price(5000)
                         .isSystem(true)
+                        .isActive(true)
                         .build();
         return Reward.builder()
                 .id(rewardId)
                 .rewardTemplate(template)
                 .name("data")
                 .category(RewardCategory.DATA)
-                .value(value)
-                .unit("MB")
+                .thumbnailUrl("/rewards/data.jpg")
                 .build();
     }
 

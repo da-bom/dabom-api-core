@@ -114,9 +114,9 @@ class RewardControllerIntegrationTest {
                         RewardTemplate.builder()
                                 .name("data reward")
                                 .category(RewardCategory.DATA)
-                                .defaultValue(200L)
-                                .unit("MB")
+                                .price(5000)
                                 .isSystem(true)
+                                .isActive(true)
                                 .build());
 
         Reward reward =
@@ -125,8 +125,7 @@ class RewardControllerIntegrationTest {
                                 .rewardTemplate(rewardTemplate)
                                 .name("data reward")
                                 .category(RewardCategory.DATA)
-                                .value(200L)
-                                .unit("MB")
+                                .thumbnailUrl("/rewards/data.jpg")
                                 .build());
 
         mission =
@@ -181,8 +180,7 @@ class RewardControllerIntegrationTest {
         assertRewardNode(
                 respondData.path("missionItem").path("reward"),
                 rewardTemplate.getId(),
-                "data reward",
-                200L);
+                "data reward");
 
         MvcResult receivedResult =
                 mockMvc.perform(
@@ -200,8 +198,7 @@ class RewardControllerIntegrationTest {
         assertRewardNode(
                 receivedNode.path("missionItem").path("reward"),
                 rewardTemplate.getId(),
-                "data reward",
-                200L);
+                "data reward");
     }
 
     @Test
@@ -243,11 +240,9 @@ class RewardControllerIntegrationTest {
         assertThat(receivedData.path("rewards").get(0).path("missionItem").has("reward")).isTrue();
     }
 
-    private void assertRewardNode(
-            JsonNode rewardNode, long templateId, String expectedName, long expectedValue) {
+    private void assertRewardNode(JsonNode rewardNode, long templateId, String expectedName) {
         assertThat(rewardNode.has("rewardId")).isTrue();
         assertThat(rewardNode.path("templateId").asLong()).isEqualTo(templateId);
         assertThat(rewardNode.path("name").asText()).isEqualTo(expectedName);
-        assertThat(rewardNode.path("value").asLong()).isEqualTo(expectedValue);
     }
 }
