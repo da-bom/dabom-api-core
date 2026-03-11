@@ -1,5 +1,8 @@
 package com.project.domain.reward.controller;
 
+import com.project.domain.reward.entity.RewardGrant;
+import com.project.domain.reward.enums.RewardGrantSort;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -31,11 +34,12 @@ public class AdminRewardGrantController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) RewardGrantStatus status,
-            @RequestParam(defaultValue = "LATEST") String sort,
+            @RequestParam(defaultValue = "LATEST") RewardGrantSort sort,
             @RequestParam(required = false) Boolean unusedOnly,
             @RequestParam(required = false) String phoneNumber) {
-        return ApiResponse.success(
+        Page<RewardGrant> grants =
                 adminRewardGrantService.getGrants(
-                        page, size, status, sort, unusedOnly, phoneNumber));
+                        page, size, status, sort, unusedOnly, phoneNumber);
+        return ApiResponse.success(RewardGrantListResponse.from(grants));
     }
 }

@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.repository.CustomerRepository;
 import com.project.domain.mission.entity.MissionItem;
-import com.project.domain.mission.entity.MissionItem;
 import com.project.domain.mission.entity.MissionLog;
 import com.project.domain.mission.entity.MissionRequest;
 import com.project.domain.mission.enums.MissionLogActionType;
