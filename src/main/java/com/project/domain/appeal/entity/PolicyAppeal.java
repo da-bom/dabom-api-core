@@ -1,5 +1,6 @@
 package com.project.domain.appeal.entity;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -12,6 +13,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import com.project.domain.appeal.enums.AppealStatus;
 import com.project.domain.appeal.enums.AppealType;
@@ -26,7 +28,13 @@ import lombok.NoArgsConstructor;
 
 /** 이의제기 엔티티 */
 @Entity
-@Table(name = "policy_appeal")
+@Table(
+        name = "policy_appeal",
+        uniqueConstraints = {
+            @UniqueConstraint(
+                    name = "uk_policy_appeal_emergency_month",
+                    columnNames = {"requester_id", "emergency_grant_month"})
+        })
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -71,4 +79,7 @@ public class PolicyAppeal extends BaseEntity {
 
     @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
+
+    @Column(name = "emergency_grant_month")
+    private LocalDate emergencyGrantMonth;
 }
