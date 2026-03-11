@@ -27,28 +27,24 @@ public class RewardTemplateServiceImpl implements RewardTemplateService {
 
     @Override
     @Transactional
-    public RewardTemplate createTemplate(RewardTemplateRequest.Upsert request) {
+    public RewardTemplate createTemplate(RewardTemplateRequest.Create request) {
         RewardTemplate template =
                 RewardTemplate.builder()
                         .name(request.name())
                         .category(request.category())
-                        .defaultValue(request.defaultValue())
-                        .unit(request.unit())
-                        .isSystem(request.isSystem())
+                        .thumbnailUrl(request.thumbnailUrl())
+                        .price(request.price())
+                        .isSystem(false)
+                        .isActive(true)
                         .build();
         return rewardTemplateRepository.save(template);
     }
 
     @Override
     @Transactional
-    public RewardTemplate updateTemplate(Long id, RewardTemplateRequest.Upsert request) {
+    public RewardTemplate updateTemplate(Long id, RewardTemplateRequest.Update request) {
         RewardTemplate template = findTemplateOrThrow(id);
-        template.update(
-                request.name(),
-                request.category(),
-                request.defaultValue(),
-                request.unit(),
-                request.isSystem());
+        template.update(request.name(), request.thumbnailUrl(), request.price(), request.isActive());
         return template;
     }
 

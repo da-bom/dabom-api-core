@@ -36,42 +36,41 @@ public class RewardTemplate extends BaseEntity {
     @Column(name = "category", nullable = false, length = 20)
     private RewardCategory category;
 
-    @Column(name = "default_value", nullable = false)
-    private Long defaultValue;
+    @Column(name = "thumbnail_url", length = 500)
+    private String thumbnailUrl;
 
-    @Column(name = "unit", nullable = false, length = 20)
-    private String unit;
+    @Column(name = "price", nullable = false)
+    private Integer price;
 
     @Column(name = "is_system", nullable = false)
     private boolean isSystem;
+
+    @Column(name = "is_active", nullable = false)
+    private boolean isActive = true;
 
     @Builder
     public RewardTemplate(
             Long id,
             String name,
             RewardCategory category,
-            Long defaultValue,
-            String unit,
-            boolean isSystem) {
+            String thumbnailUrl,
+            Integer price,
+            boolean isSystem,
+            boolean isActive) {
         this.id = id;
         this.name = name;
         this.category = category;
-        this.defaultValue = defaultValue;
-        this.unit = unit;
+        this.thumbnailUrl = thumbnailUrl;
+        this.price = price;
         this.isSystem = isSystem;
+        this.isActive = isActive;
     }
 
-    public void update(
-            String name,
-            RewardCategory category,
-            Long defaultValue,
-            String unit,
-            boolean isSystem) {
+    public void update(String name, String thumbnailUrl, Integer price, boolean isActive) {
         this.name = name;
-        this.category = category;
-        this.defaultValue = defaultValue;
-        this.unit = unit;
-        this.isSystem = isSystem;
+        this.thumbnailUrl = thumbnailUrl;
+        this.price = price;
+        this.isActive = isActive;
     }
 
     public void delete() {
