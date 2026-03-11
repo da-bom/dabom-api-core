@@ -8,5 +8,4 @@ import jakarta.validation.constraints.Positive;
 public record CreateMissionRequest(
         @NotBlank String missionText,
         @NotNull @Positive Long targetCustomerId,
-        @NotNull @Positive Long rewardTemplateId,
-        @NotNull @Positive Long rewardValue) {}
+        @NotNull @Positive Long rewardTemplateId) {}

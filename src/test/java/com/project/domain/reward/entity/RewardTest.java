@@ -15,28 +15,26 @@ class RewardTest {
         RewardTemplate template =
                 RewardTemplate.builder()
                         .id(10L)
-                        .name("용돈")
-                        .category(RewardCategory.ETC)
-                        .defaultValue(1000L)
-                        .unit("원")
+                        .name("메가커피 아메리카노")
+                        .category(RewardCategory.GIFTICON)
+                        .price(4500)
                         .isSystem(true)
+                        .isActive(true)
                         .build();
 
         Reward reward =
                 Reward.builder()
                         .id(20L)
                         .rewardTemplate(template)
-                        .name("용돈")
-                        .category(RewardCategory.ETC)
-                        .value(5000L)
-                        .unit("원")
+                        .name("메가커피 아메리카노")
+                        .category(RewardCategory.GIFTICON)
+                        .thumbnailUrl("/rewards/mega-coffee.jpg")
                         .build();
 
         assertThat(reward.getId()).isEqualTo(20L);
         assertThat(reward.getRewardTemplate()).isSameAs(template);
-        assertThat(reward.getName()).isEqualTo("용돈");
-        assertThat(reward.getCategory()).isEqualTo(RewardCategory.ETC);
-        assertThat(reward.getValue()).isEqualTo(5000L);
-        assertThat(reward.getUnit()).isEqualTo("원");
+        assertThat(reward.getName()).isEqualTo("메가커피 아메리카노");
+        assertThat(reward.getCategory()).isEqualTo(RewardCategory.GIFTICON);
+        assertThat(reward.getThumbnailUrl()).isEqualTo("/rewards/mega-coffee.jpg");
     }
 }

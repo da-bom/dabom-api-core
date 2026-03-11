@@ -26,7 +26,6 @@ public record MissionListResult(List<MissionCard> missions, String nextCursor, b
             Long rewardId,
             String name,
             RewardCategory category,
-            Long value,
-            String unit,
+            String thumbnailUrl,
             Long templateId) {}
 }

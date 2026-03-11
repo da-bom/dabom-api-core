@@ -18,8 +18,7 @@ public final class RewardDtoMapper {
                 reward.getId(),
                 reward.getName(),
                 reward.getCategory(),
-                reward.getValue(),
-                reward.getUnit(),
+                reward.getThumbnailUrl(),
                 reward.getRewardTemplate().getId());
     }
 }

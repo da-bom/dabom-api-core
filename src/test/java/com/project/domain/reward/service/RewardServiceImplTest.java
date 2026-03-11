@@ -2,9 +2,12 @@ package com.project.domain.reward.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyIterable;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -24,6 +27,7 @@ import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.customer.repository.CustomerRepository;
 import com.project.domain.mission.entity.MissionItem;
+import com.project.domain.mission.entity.MissionLog;
 import com.project.domain.mission.entity.MissionRequest;
 import com.project.domain.mission.enums.MissionRequestStatus;
 import com.project.domain.mission.enums.MissionStatus;
@@ -34,6 +38,7 @@ import com.project.domain.reward.dto.request.RespondRewardRequest;
 import com.project.domain.reward.entity.Reward;
 import com.project.domain.reward.entity.RewardTemplate;
 import com.project.domain.reward.enums.RewardCategory;
+import com.project.domain.reward.repository.RewardGrantRepository;
 import com.project.global.auth.model.AuthContext;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.MissionErrorCode;
@@ -49,6 +54,7 @@ class RewardServiceImplTest {
     @Mock private MissionItemRepository missionItemRepository;
     @Mock private MissionLogRepository missionLogRepository;
     @Mock private CustomerRepository customerRepository;
+    @Mock private RewardGrantRepository rewardGrantRepository;
 
     private RewardServiceImpl rewardService;
 
@@ -60,7 +66,8 @@ class RewardServiceImplTest {
                         missionRequestRepository,
                         missionItemRepository,
                         missionLogRepository,
-                        customerRepository);
+                        customerRepository,
+                        rewardGrantRepository);
     }
 
     @Test
@@ -74,12 +81,14 @@ class RewardServiceImplTest {
                         .requesterId(2L)
                         .status(MissionRequestStatus.PENDING)
                         .build();
-        MissionItem mission = mission(200L, 10L, reward(900L, 500L, 100L));
+        MissionItem mission = mission(200L, 10L, reward(900L, 500L));
         given(missionRequestRepository.findByIdForUpdate(100L)).willReturn(Optional.of(request));
         given(missionItemRepository.findByIdAndFamilyIdForUpdate(200L, 10L))
                 .willReturn(Optional.of(mission));
         Customer owner = namedCustomer("owner");
         given(customerRepository.findById(1L)).willReturn(Optional.of(owner));
+        Customer requester = mock(Customer.class);
+        given(customerRepository.findById(2L)).willReturn(Optional.of(requester));
 
         var result =
                 rewardService.respondRewardRequest(
@@ -88,6 +97,7 @@ class RewardServiceImplTest {
         assertThat(result.status()).isEqualTo("APPROVED");
         assertThat(result.missionItem().status()).isEqualTo("COMPLETED");
         assertThat(result.missionItem().reward().rewardId()).isEqualTo(900L);
+        verify(missionLogRepository).save(any(MissionLog.class));
     }
 
     @Test
@@ -101,7 +111,7 @@ class RewardServiceImplTest {
                         .requesterId(2L)
                         .status(MissionRequestStatus.PENDING)
                         .build();
-        MissionItem mission = mission(200L, 10L, reward(900L, 500L, 100L));
+        MissionItem mission = mission(200L, 10L, reward(900L, 500L));
         given(missionRequestRepository.findByIdForUpdate(100L)).willReturn(Optional.of(request));
         given(missionItemRepository.findByIdAndFamilyIdForUpdate(200L, 10L))
                 .willReturn(Optional.of(mission));
@@ -115,6 +125,7 @@ class RewardServiceImplTest {
         assertThat(result.status()).isEqualTo("REJECTED");
         assertThat(result.rejectReason()).isEqualTo("not enough evidence");
         assertThat(result.missionItem().reward().templateId()).isEqualTo(500L);
+        verify(missionLogRepository, never()).save(any(MissionLog.class));
     }
 
     @Test
@@ -131,14 +142,14 @@ class RewardServiceImplTest {
                         .resolvedAt(LocalDateTime.now(FIXED_CLOCK))
                         .build();
         given(
-                        missionRequestRepository
-                                .findApprovedByTargetCustomerIdOrderByResolvedAtDesc(
-                                        org.mockito.ArgumentMatchers.eq(2L),
-                                        org.mockito.ArgumentMatchers.isNull(),
-                                        org.mockito.ArgumentMatchers.any()))
+                        missionRequestRepository.findByRequesterIdAndStatusOrderByIdDesc(
+                                org.mockito.ArgumentMatchers.eq(2L),
+                                org.mockito.ArgumentMatchers.eq(MissionRequestStatus.APPROVED),
+                                org.mockito.ArgumentMatchers.isNull(),
+                                org.mockito.ArgumentMatchers.any()))
                 .willReturn(List.of(approvedRequest));
         given(missionItemRepository.findAllWithRewardByIdIn(anyIterable()))
-                .willReturn(List.of(mission(200L, 10L, reward(900L, 500L, 100L))));
+                .willReturn(List.of(mission(200L, 10L, reward(900L, 500L))));
         Customer owner = customer(1L, "owner");
         given(customerRepository.findAllById(anyIterable())).willReturn(List.of(owner));
 
@@ -174,23 +185,22 @@ class RewardServiceImplTest {
                 .build();
     }
 
-    private Reward reward(Long rewardId, Long templateId, Long value) {
+    private Reward reward(Long rewardId, Long templateId) {
         RewardTemplate template =
                 RewardTemplate.builder()
                         .id(templateId)
                         .name("data")
                         .category(RewardCategory.DATA)
-                        .defaultValue(100L)
-                        .unit("MB")
+                        .price(5000)
                         .isSystem(true)
+                        .isActive(true)
                         .build();
         return Reward.builder()
                 .id(rewardId)
                 .rewardTemplate(template)
                 .name("data")
                 .category(RewardCategory.DATA)
-                .value(value)
-                .unit("MB")
+                .thumbnailUrl("/rewards/data.jpg")
                 .build();
     }
 

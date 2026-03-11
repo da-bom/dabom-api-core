@@ -21,8 +21,8 @@ public class RewardSnapshotService {
     private final RewardTemplateRepository rewardTemplateRepository;
 
     @Transactional
-    /* 템플릿 현재값과 요청 보상값으로 미션 전용 Reward를 생성한다. */
-    public Reward createFromTemplate(Long rewardTemplateId, Long rewardValue) {
+    /* 템플릿 현재값으로 미션 전용 Reward를 생성한다. */
+    public Reward createFromTemplate(Long rewardTemplateId) {
         RewardTemplate rewardTemplate =
                 rewardTemplateRepository
                         .findById(rewardTemplateId)
@@ -37,8 +37,7 @@ public class RewardSnapshotService {
                         .rewardTemplate(rewardTemplate)
                         .name(rewardTemplate.getName())
                         .category(rewardTemplate.getCategory())
-                        .value(rewardValue)
-                        .unit(rewardTemplate.getUnit())
+                        .thumbnailUrl(rewardTemplate.getThumbnailUrl())
                         .build());
     }
 }
