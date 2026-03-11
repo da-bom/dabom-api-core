@@ -82,4 +82,31 @@ public class PolicyAppeal extends BaseEntity {
 
     @Column(name = "emergency_grant_month")
     private LocalDate emergencyGrantMonth;
+
+    public boolean isPending() {
+        return AppealStatus.PENDING.equals(this.status);
+    }
+
+    public boolean isEmergency() {
+        return AppealType.EMERGENCY.equals(this.type);
+    }
+
+    public void approve(Long resolverId, LocalDateTime resolvedAt) {
+        this.status = AppealStatus.APPROVED;
+        this.rejectReason = null;
+        this.resolvedById = resolverId;
+        this.resolvedAt = resolvedAt == null ? LocalDateTime.now() : resolvedAt;
+    }
+
+    public void reject(Long resolverId, String rejectReason, LocalDateTime resolvedAt) {
+        this.status = AppealStatus.REJECTED;
+        this.rejectReason = rejectReason;
+        this.resolvedById = resolverId;
+        this.resolvedAt = resolvedAt == null ? LocalDateTime.now() : resolvedAt;
+    }
+
+    public void cancel(LocalDateTime cancelledAt) {
+        this.status = AppealStatus.CANCELLED;
+        this.cancelledAt = cancelledAt == null ? LocalDateTime.now() : cancelledAt;
+    }
 }

@@ -15,6 +15,9 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,6 +28,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 
 import com.project.domain.appeal.dto.request.AppealCreateRequest;
+import com.project.domain.appeal.dto.request.AppealCommentRequest;
+import com.project.domain.appeal.dto.request.AppealRespondRequest;
 import com.project.domain.appeal.dto.request.EmergencyQuotaRequest;
 import com.project.domain.appeal.entity.PolicyAppeal;
 import com.project.domain.appeal.entity.PolicyAppealComment;
@@ -33,6 +38,7 @@ import com.project.domain.appeal.enums.AppealType;
 import com.project.domain.appeal.model.AppealCreateResult;
 import com.project.domain.appeal.model.AppealDetailResult;
 import com.project.domain.appeal.model.AppealListResult;
+import com.project.domain.appeal.model.AppealRespondResult;
 import com.project.domain.appeal.model.EmergencyQuotaResult;
 import com.project.domain.appeal.repository.PolicyAppealCommentRepository;
 import com.project.domain.appeal.repository.PolicyAppealRepository;
@@ -66,6 +72,7 @@ class AppealServiceImplTest {
     @Mock private PolicyAssignmentRepository policyAssignmentRepository;
     @Mock private PolicyRepository policyRepository;
     @Mock private CustomerQuotaRepository customerQuotaRepository;
+    @Mock private ObjectMapper objectMapper;
 
     private AppealServiceImpl appealService;
 
@@ -80,7 +87,8 @@ class AppealServiceImplTest {
                         familyMemberRepository,
                         policyAssignmentRepository,
                         policyRepository,
-                        customerQuotaRepository);
+                        customerQuotaRepository,
+                        objectMapper);
     }
 
     @Test
@@ -252,6 +260,123 @@ class AppealServiceImplTest {
                 .isInstanceOf(ApplicationException.class)
                 .extracting(ex -> ((ApplicationException) ex).getCode())
                 .isEqualTo(AppealErrorCode.APPEAL_ALREADY_PENDING);
+    }
+
+    @Test
+    @DisplayName("OWNER는 PENDING 이의제기를 승인하고 desiredRules를 정책에 반영한다")
+    void respondAppeal_whenApproved_thenUpdatesStatusAndAssignmentRules()
+            throws JsonProcessingException {
+        AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
+        PolicyAppeal appeal = appeal(30L, 2L, 100L, AppealStatus.PENDING);
+        PolicyAssignment assignment = policyAssignment(100L, 50L, 10L, 2L);
+
+        given(policyAppealRepository.findByIdAndDeletedAtIsNull(30L))
+                .willReturn(java.util.Optional.of(appeal));
+        given(familyMemberRepository.findByCustomerId(2L))
+                .willReturn(
+                        java.util.Optional.of(
+                                FamilyMember.builder()
+                                        .familyId(10L)
+                                        .customerId(2L)
+                                        .role(RoleType.MEMBER)
+                                        .build()));
+        given(policyAssignmentRepository.findByIdAndDeletedAtIsNull(100L))
+                .willReturn(java.util.Optional.of(assignment));
+        given(objectMapper.writeValueAsString(appeal.getDesiredRules()))
+                .willReturn("{\"limitBytes\":1024}");
+
+        AppealRespondResult result =
+                appealService.respondAppeal(auth, 30L, new AppealRespondRequest("APPROVED", null));
+
+        assertThat(result.status()).isEqualTo(AppealStatus.APPROVED);
+        assertThat(result.resolvedById()).isEqualTo(1L);
+        assertThat(assignment.getRules()).isEqualTo("{\"limitBytes\":1024}");
+    }
+
+    @Test
+    @DisplayName("OWNER는 PENDING 이의제기를 거절하고 rejectReason을 기록한다")
+    void respondAppeal_whenRejected_thenStoresRejectReason() {
+        AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
+        PolicyAppeal appeal = appeal(30L, 2L, 100L, AppealStatus.PENDING);
+
+        given(policyAppealRepository.findByIdAndDeletedAtIsNull(30L))
+                .willReturn(java.util.Optional.of(appeal));
+        given(familyMemberRepository.findByCustomerId(2L))
+                .willReturn(
+                        java.util.Optional.of(
+                                FamilyMember.builder()
+                                        .familyId(10L)
+                                        .customerId(2L)
+                                        .role(RoleType.MEMBER)
+                                        .build()));
+
+        AppealRespondResult result =
+                appealService.respondAppeal(
+                        auth, 30L, new AppealRespondRequest("REJECTED", "rules are not clear"));
+
+        assertThat(result.status()).isEqualTo(AppealStatus.REJECTED);
+        assertThat(result.rejectReason()).isEqualTo("rules are not clear");
+        assertThat(result.resolvedById()).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("MEMBER는 본인 NORMAL PENDING 이의제기만 취소할 수 있다")
+    void cancelAppeal_whenOwnPendingNormal_thenCancels() {
+        AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
+        PolicyAppeal appeal = appeal(30L, 2L, 100L, AppealStatus.PENDING);
+        given(policyAppealRepository.findByIdAndDeletedAtIsNull(30L))
+                .willReturn(java.util.Optional.of(appeal));
+
+        var result = appealService.cancelAppeal(auth, 30L);
+
+        assertThat(result.appealId()).isEqualTo(30L);
+        assertThat(result.status()).isEqualTo(AppealStatus.CANCELLED);
+        assertThat(result.cancelledAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("가족 구성원은 이의제기에 댓글을 작성할 수 있다")
+    void createComment_whenFamilyMember_thenCreatesComment() {
+        AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
+        PolicyAppeal appeal = appeal(30L, 2L, 100L, AppealStatus.PENDING);
+        PolicyAppealComment saved =
+                PolicyAppealComment.builder()
+                        .id(50L)
+                        .appealId(30L)
+                        .authorId(1L)
+                        .comment("확인 후 처리할게요")
+                        .build();
+        setField(
+                saved,
+                saved.getClass().getSuperclass(),
+                "createdAt",
+                LocalDateTime.of(2026, 3, 10, 12, 0));
+
+        given(policyAppealRepository.findByIdAndDeletedAtIsNull(30L))
+                .willReturn(java.util.Optional.of(appeal));
+        given(familyMemberRepository.findByCustomerId(2L))
+                .willReturn(
+                        java.util.Optional.of(
+                                FamilyMember.builder()
+                                        .familyId(10L)
+                                        .customerId(2L)
+                                        .role(RoleType.MEMBER)
+                                        .build()));
+        given(familyMemberRepository.findByCustomerId(1L))
+                .willReturn(
+                        java.util.Optional.of(
+                                FamilyMember.builder()
+                                        .familyId(10L)
+                                        .customerId(1L)
+                                        .role(RoleType.OWNER)
+                                        .build()));
+        given(policyAppealCommentRepository.save(any(PolicyAppealComment.class))).willReturn(saved);
+
+        var result = appealService.createComment(auth, 30L, new AppealCommentRequest("확인 후 처리할게요"));
+
+        assertThat(result.commentId()).isEqualTo(50L);
+        assertThat(result.authorId()).isEqualTo(1L);
+        assertThat(result.comment()).isEqualTo("확인 후 처리할게요");
     }
 
     @Test

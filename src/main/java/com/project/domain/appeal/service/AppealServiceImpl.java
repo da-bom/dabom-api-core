@@ -2,11 +2,15 @@ package com.project.domain.appeal.service;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
@@ -14,14 +18,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.project.domain.appeal.dto.request.AppealCreateRequest;
+import com.project.domain.appeal.dto.request.AppealCommentRequest;
+import com.project.domain.appeal.dto.request.AppealRespondRequest;
 import com.project.domain.appeal.dto.request.EmergencyQuotaRequest;
 import com.project.domain.appeal.entity.PolicyAppeal;
 import com.project.domain.appeal.entity.PolicyAppealComment;
 import com.project.domain.appeal.enums.AppealStatus;
 import com.project.domain.appeal.enums.AppealType;
+import com.project.domain.appeal.model.AppealCancelResult;
+import com.project.domain.appeal.model.AppealCommentResult;
 import com.project.domain.appeal.model.AppealCreateResult;
 import com.project.domain.appeal.model.AppealDetailResult;
 import com.project.domain.appeal.model.AppealListResult;
+import com.project.domain.appeal.model.AppealRespondResult;
 import com.project.domain.appeal.model.EmergencyQuotaResult;
 import com.project.domain.appeal.repository.PolicyAppealCommentRepository;
 import com.project.domain.appeal.repository.PolicyAppealRepository;
@@ -65,6 +74,7 @@ public class AppealServiceImpl implements AppealService {
     private final PolicyAssignmentRepository policyAssignmentRepository;
     private final PolicyRepository policyRepository;
     private final CustomerQuotaRepository customerQuotaRepository;
+    private final ObjectMapper objectMapper;
 
     /** 이의제기 목록 조회 */
     @Override
@@ -196,6 +206,105 @@ public class AppealServiceImpl implements AppealService {
                 appeal.getStatus(),
                 appeal.getDesiredRules(),
                 appeal.getCreatedAt());
+    }
+
+    /** 이의제기 승인/거절 */
+    @Override
+    @Transactional
+    public AppealRespondResult respondAppeal(
+            AuthContext auth, Long appealId, AppealRespondRequest request) {
+        // 1. OWNER만 요청을 승인/거절할 수 있다.
+        validateOwnerOnly(auth);
+
+        // 2. 이의제기 존재 여부와 같은 가족 접근 가능 여부를 검증한다.
+        PolicyAppeal appeal = findAppealOrThrow(appealId);
+        validateFamilyAccess(auth.familyId(), appeal);
+
+        // 3. 아직 처리 가능한 PENDING 상태인지 확인한다.
+        if (!appeal.isPending()) {
+            throw new ApplicationException(AppealErrorCode.APPEAL_ALREADY_RESOLVED);
+        }
+
+        // 4. action 값을 승인/거절 중 하나로 파싱한다.
+        AppealStatus action = parseRespondAction(request.action());
+        LocalDateTime now = LocalDateTime.now(clock);
+
+        // 5. APPROVED면 승인 처리하고 desiredRules가 있으면 정책 규칙에도 반영한다.
+        if (AppealStatus.APPROVED.equals(action)) {
+            appeal.approve(auth.customerId(), now);
+            applyDesiredRulesIfPresent(appeal, auth.customerId());
+        } else {
+            // 6. REJECTED면 거절 사유를 검증한 뒤 거절 처리한다.
+            if (request.rejectReason() == null || request.rejectReason().isBlank()) {
+                throw new ApplicationException(AppealErrorCode.APPEAL_INVALID_DESIRED_RULES);
+            }
+            appeal.reject(auth.customerId(), request.rejectReason(), now);
+        }
+
+        return new AppealRespondResult(
+                appeal.getId(),
+                appeal.getStatus(),
+                appeal.getRejectReason(),
+                appeal.getResolvedById(),
+                appeal.getResolvedAt());
+    }
+
+    /** 이의제기 댓글 작성 */
+    @Override
+    @Transactional
+    public AppealCommentResult createComment(
+            AuthContext auth, Long appealId, AppealCommentRequest request) {
+        // 1. 이의제기 존재 여부와 같은 가족 접근 가능 여부를 검증한다.
+        PolicyAppeal appeal = findAppealOrThrow(appealId);
+        validateFamilyAccess(auth.familyId(), appeal);
+
+        // 2. OWNER와 MEMBER 모두 댓글 작성 가능하되, 가족 소속 구성원만 허용한다.
+        validateFamilyMemberExists(auth.customerId(), auth.familyId());
+
+        // 3. 댓글을 저장하고 응답 모델로 반환한다.
+        PolicyAppealComment comment =
+                policyAppealCommentRepository.save(
+                        PolicyAppealComment.builder()
+                                .appealId(appealId)
+                                .authorId(auth.customerId())
+                                .comment(request.comment())
+                                .build());
+        return new AppealCommentResult(
+                comment.getId(),
+                comment.getAppealId(),
+                comment.getAuthorId(),
+                comment.getComment(),
+                comment.getCreatedAt());
+    }
+
+    /** 이의제기 취소 */
+    @Override
+    @Transactional
+    public AppealCancelResult cancelAppeal(AuthContext auth, Long appealId) {
+        // 1. MEMBER만 본인 이의제기를 취소할 수 있다.
+        validateMemberOnly(auth);
+
+        // 2. 이의제기 존재 여부를 확인한다.
+        PolicyAppeal appeal = findAppealOrThrow(appealId);
+
+        // 3. 본인 생성 건인지 확인한다.
+        if (!appeal.getRequesterId().equals(auth.customerId())) {
+            throw new ApplicationException(AppealErrorCode.APPEAL_CANCEL_FORBIDDEN);
+        }
+
+        // 4. EMERGENCY 타입은 취소할 수 없다.
+        if (appeal.isEmergency()) {
+            throw new ApplicationException(AppealErrorCode.APPEAL_EMERGENCY_CANCEL_NOT_ALLOWED);
+        }
+
+        // 5. 아직 처리 전인 PENDING 상태만 취소할 수 있다.
+        if (!appeal.isPending()) {
+            throw new ApplicationException(AppealErrorCode.APPEAL_NOT_CANCELLABLE);
+        }
+
+        // 6. 취소 상태와 시각을 기록한다.
+        appeal.cancel(LocalDateTime.now(clock));
+        return new AppealCancelResult(appeal.getId(), appeal.getStatus(), appeal.getCancelledAt());
     }
 
     /** 긴급 쿼터 요청 */
@@ -347,6 +456,59 @@ public class AppealServiceImpl implements AppealService {
                         .orElseThrow(
                                 () -> new ApplicationException(PolicyErrorCode.POLICY_NOT_FOUND));
         return policy.getPolicyType();
+    }
+
+    private void applyDesiredRulesIfPresent(PolicyAppeal appeal, Long actorId) {
+        if (appeal.getDesiredRules() == null || appeal.getDesiredRules().isEmpty()) {
+            return;
+        }
+        if (appeal.getPolicyAssignmentId() == null) {
+            return;
+        }
+        PolicyAssignment assignment =
+                policyAssignmentRepository
+                        .findByIdAndDeletedAtIsNull(appeal.getPolicyAssignmentId())
+                        .orElseThrow(
+                                () ->
+                                        new ApplicationException(
+                                                PolicyErrorCode.POLICY_ASSIGNMENT_NOT_FOUND));
+        try {
+            assignment.update(objectMapper.writeValueAsString(appeal.getDesiredRules()), null, actorId);
+        } catch (JsonProcessingException e) {
+            throw new ApplicationException(AppealErrorCode.APPEAL_INVALID_DESIRED_RULES);
+        }
+    }
+
+    private void validateOwnerOnly(AuthContext auth) {
+        if (!auth.isOwner()) {
+            throw new ApplicationException(AppealErrorCode.APPEAL_FORBIDDEN);
+        }
+    }
+
+    private void validateFamilyMemberExists(Long customerId, Long familyId) {
+        FamilyMember member =
+                familyMemberRepository
+                        .findByCustomerId(customerId)
+                        .orElseThrow(
+                                () -> new ApplicationException(AppealErrorCode.APPEAL_FORBIDDEN));
+        if (!member.getFamilyId().equals(familyId)) {
+            throw new ApplicationException(AppealErrorCode.APPEAL_FORBIDDEN);
+        }
+    }
+
+    private AppealStatus parseRespondAction(String action) {
+        if (action == null || action.isBlank()) {
+            throw new ApplicationException(AppealErrorCode.APPEAL_ALREADY_RESOLVED);
+        }
+        try {
+            AppealStatus parsed = AppealStatus.valueOf(action.toUpperCase());
+            if (AppealStatus.APPROVED.equals(parsed) || AppealStatus.REJECTED.equals(parsed)) {
+                return parsed;
+            }
+            throw new ApplicationException(AppealErrorCode.APPEAL_ALREADY_RESOLVED);
+        } catch (IllegalArgumentException e) {
+            throw new ApplicationException(AppealErrorCode.APPEAL_ALREADY_RESOLVED);
+        }
     }
 
     /** 요청자 ID 목록 추출 */
