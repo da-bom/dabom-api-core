@@ -1,11 +1,17 @@
 package com.project.domain.appeal.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyIterable;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
@@ -15,29 +21,66 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 
+import com.project.domain.appeal.dto.request.AppealCreateRequest;
+import com.project.domain.appeal.dto.request.EmergencyQuotaRequest;
 import com.project.domain.appeal.entity.PolicyAppeal;
+import com.project.domain.appeal.entity.PolicyAppealComment;
 import com.project.domain.appeal.enums.AppealStatus;
 import com.project.domain.appeal.enums.AppealType;
+import com.project.domain.appeal.model.AppealCreateResult;
+import com.project.domain.appeal.model.AppealDetailResult;
 import com.project.domain.appeal.model.AppealListResult;
+import com.project.domain.appeal.model.EmergencyQuotaResult;
+import com.project.domain.appeal.repository.PolicyAppealCommentRepository;
 import com.project.domain.appeal.repository.PolicyAppealRepository;
 import com.project.domain.customer.entity.Customer;
+import com.project.domain.customer.entity.CustomerQuota;
 import com.project.domain.customer.enums.RoleType;
+import com.project.domain.customer.repository.CustomerQuotaRepository;
 import com.project.domain.customer.repository.CustomerRepository;
+import com.project.domain.family.entity.FamilyMember;
+import com.project.domain.family.repository.FamilyMemberRepository;
+import com.project.domain.policy.entity.Policy;
+import com.project.domain.policy.entity.PolicyAssignment;
+import com.project.domain.policy.enums.PolicyType;
+import com.project.domain.policy.repository.PolicyAssignmentRepository;
+import com.project.domain.policy.repository.PolicyRepository;
 import com.project.global.auth.model.AuthContext;
+import com.project.global.exception.ApplicationException;
+import com.project.global.exception.code.AppealErrorCode;
 
 @ExtendWith(MockitoExtension.class)
 class AppealServiceImplTest {
 
+    private static final ZoneId ASIA_SEOUL = ZoneId.of("Asia/Seoul");
+    private static final Clock FIXED_CLOCK =
+            Clock.fixed(Instant.parse("2026-03-11T00:00:00Z"), ASIA_SEOUL);
+
     @Mock private PolicyAppealRepository policyAppealRepository;
+    @Mock private PolicyAppealCommentRepository policyAppealCommentRepository;
     @Mock private CustomerRepository customerRepository;
+    @Mock private FamilyMemberRepository familyMemberRepository;
+    @Mock private PolicyAssignmentRepository policyAssignmentRepository;
+    @Mock private PolicyRepository policyRepository;
+    @Mock private CustomerQuotaRepository customerQuotaRepository;
 
     private AppealServiceImpl appealService;
 
     @BeforeEach
     void setUp() {
-        appealService = new AppealServiceImpl(policyAppealRepository, customerRepository);
+        appealService =
+                new AppealServiceImpl(
+                        FIXED_CLOCK,
+                        policyAppealRepository,
+                        policyAppealCommentRepository,
+                        customerRepository,
+                        familyMemberRepository,
+                        policyAssignmentRepository,
+                        policyRepository,
+                        customerQuotaRepository);
     }
 
     @Test
@@ -102,12 +145,191 @@ class AppealServiceImplTest {
         assertThat(result.nextCursor()).isEqualTo("39");
     }
 
+    @Test
+    @DisplayName("상세 조회는 같은 가족의 댓글 커서 페이지와 정책 타입을 반환한다")
+    void getAppealDetail_whenSameFamily_thenReturnsDetail() {
+        AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
+        PolicyAppeal appeal = appeal(30L, 2L, 100L, AppealStatus.PENDING);
+        PolicyAppealComment firstComment = comment(20L, 2L, "첫 댓글");
+        PolicyAppealComment secondComment = comment(19L, 1L, "둘째 댓글");
+        PolicyAppealComment thirdComment = comment(18L, 2L, "셋째 댓글");
+
+        given(policyAppealRepository.findByIdAndDeletedAtIsNull(30L))
+                .willReturn(java.util.Optional.of(appeal));
+        given(familyMemberRepository.findByCustomerId(2L))
+                .willReturn(
+                        java.util.Optional.of(
+                                FamilyMember.builder()
+                                        .familyId(10L)
+                                        .customerId(2L)
+                                        .role(RoleType.MEMBER)
+                                        .build()));
+        given(
+                        policyAppealCommentRepository.findByAppealIdAndIdLessThanOrderByIdDesc(
+                                30L, null, PageRequest.of(0, 3)))
+                .willReturn(List.of(firstComment, secondComment, thirdComment));
+        given(policyAssignmentRepository.findByIdAndDeletedAtIsNull(100L))
+                .willReturn(java.util.Optional.of(policyAssignment(100L, 50L, 10L, 2L)));
+        given(policyRepository.findByIdAndDeletedAtIsNull(50L))
+                .willReturn(java.util.Optional.of(policy(50L, PolicyType.MONTHLY_LIMIT)));
+        given(customerRepository.findAllById(anyIterable()))
+                .willReturn(List.of(customer(1L, "owner"), customer(2L, "member")));
+
+        AppealDetailResult result = appealService.getAppealDetail(auth, 30L, null, 2);
+
+        assertThat(result.policyType()).isEqualTo(PolicyType.MONTHLY_LIMIT);
+        assertThat(result.comments().content()).hasSize(2);
+        assertThat(result.comments().hasNext()).isTrue();
+        assertThat(result.comments().nextCursor()).isEqualTo("19");
+        assertThat(result.comments().content().getFirst().authorName()).isEqualTo("member");
+    }
+
+    @Test
+    @DisplayName("MEMBER는 같은 가족 정책 할당으로 이의제기를 생성한다")
+    void createAppeal_whenMember_thenCreatesAppeal() {
+        AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
+        AppealCreateRequest request =
+                new AppealCreateRequest(100L, "규칙 변경 요청", Map.of("limitBytes", 2048L));
+        PolicyAssignment assignment = policyAssignment(100L, 50L, 10L, 2L);
+        PolicyAppeal saved =
+                PolicyAppeal.builder()
+                        .id(40L)
+                        .type(AppealType.NORMAL)
+                        .policyAssignmentId(100L)
+                        .requesterId(2L)
+                        .requestReason("규칙 변경 요청")
+                        .desiredRules(Map.of("limitBytes", 2048L))
+                        .status(AppealStatus.PENDING)
+                        .build();
+        setCreatedAt(saved, LocalDateTime.of(2026, 3, 10, 10, 0));
+
+        given(policyAssignmentRepository.findByIdAndDeletedAtIsNull(100L))
+                .willReturn(java.util.Optional.of(assignment));
+        given(
+                        policyAppealRepository
+                                .existsByPolicyAssignmentIdAndRequesterIdAndTypeAndStatusAndDeletedAtIsNull(
+                                        100L, 2L, AppealType.NORMAL, AppealStatus.PENDING))
+                .willReturn(false);
+        given(policyAppealRepository.save(any(PolicyAppeal.class))).willReturn(saved);
+
+        AppealCreateResult result = appealService.createAppeal(auth, request);
+
+        assertThat(result.appealId()).isEqualTo(40L);
+        assertThat(result.policyAssignmentId()).isEqualTo(100L);
+        assertThat(result.status()).isEqualTo(AppealStatus.PENDING);
+        assertThat(result.desiredRules()).containsEntry("limitBytes", 2048L);
+    }
+
+    @Test
+    @DisplayName("OWNER는 일반 이의제기를 생성할 수 없다")
+    void createAppeal_whenOwner_thenThrowsForbidden() {
+        AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
+        AppealCreateRequest request = new AppealCreateRequest(100L, "규칙 변경 요청", null);
+
+        assertThatThrownBy(() -> appealService.createAppeal(auth, request))
+                .isInstanceOf(ApplicationException.class)
+                .extracting(ex -> ((ApplicationException) ex).getCode())
+                .isEqualTo(AppealErrorCode.APPEAL_FORBIDDEN);
+    }
+
+    @Test
+    @DisplayName("같은 정책에 대한 진행 중 이의제기가 있으면 생성할 수 없다")
+    void createAppeal_whenPendingAppealExists_thenThrowsConflict() {
+        AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
+        AppealCreateRequest request =
+                new AppealCreateRequest(100L, "규칙 변경 요청", Map.of("limitBytes", 2048L));
+        PolicyAssignment assignment = policyAssignment(100L, 50L, 10L, 2L);
+
+        given(policyAssignmentRepository.findByIdAndDeletedAtIsNull(100L))
+                .willReturn(java.util.Optional.of(assignment));
+        given(
+                        policyAppealRepository
+                                .existsByPolicyAssignmentIdAndRequesterIdAndTypeAndStatusAndDeletedAtIsNull(
+                                        100L, 2L, AppealType.NORMAL, AppealStatus.PENDING))
+                .willReturn(true);
+
+        assertThatThrownBy(() -> appealService.createAppeal(auth, request))
+                .isInstanceOf(ApplicationException.class)
+                .extracting(ex -> ((ApplicationException) ex).getCode())
+                .isEqualTo(AppealErrorCode.APPEAL_ALREADY_PENDING);
+    }
+
+    @Test
+    @DisplayName("긴급 쿼터 요청은 월 한도를 즉시 증가시키고 승인 상태로 저장한다")
+    void requestEmergencyQuota_whenValid_thenUpdatesQuota() {
+        AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
+        EmergencyQuotaRequest request = new EmergencyQuotaRequest("데이터가 부족합니다", 104_857_600L);
+        CustomerQuota customerQuota =
+                CustomerQuota.builder()
+                        .familyId(10L)
+                        .customerId(2L)
+                        .monthlyLimitBytes(500_000_000L)
+                        .monthlyUsedBytes(100L)
+                        .currentMonth(LocalDate.now(FIXED_CLOCK).withDayOfMonth(1))
+                        .isBlocked(false)
+                        .build();
+        PolicyAppeal saved =
+                PolicyAppeal.builder()
+                        .id(55L)
+                        .type(AppealType.EMERGENCY)
+                        .requesterId(2L)
+                        .requestReason("데이터가 부족합니다")
+                        .desiredRules(Map.of("additionalBytes", 104_857_600L))
+                        .status(AppealStatus.APPROVED)
+                        .build();
+        setCreatedAt(saved, LocalDateTime.of(2026, 3, 10, 12, 0));
+
+        given(
+                        customerQuotaRepository
+                                .findByFamilyIdAndCustomerIdAndCurrentMonthAndDeletedAtIsNull(
+                                        10L, 2L, LocalDate.now(FIXED_CLOCK).withDayOfMonth(1)))
+                .willReturn(java.util.Optional.of(customerQuota));
+        given(policyAppealRepository.saveAndFlush(any(PolicyAppeal.class))).willReturn(saved);
+
+        EmergencyQuotaResult result = appealService.requestEmergencyQuota(auth, request);
+
+        assertThat(result.appealId()).isEqualTo(55L);
+        assertThat(result.status()).isEqualTo(AppealStatus.APPROVED);
+        assertThat(result.additionalBytes()).isEqualTo(104_857_600L);
+        assertThat(result.newMonthlyLimitBytes()).isEqualTo(604_857_600L);
+        assertThat(customerQuota.getMonthlyLimitBytes()).isEqualTo(604_857_600L);
+    }
+
+    @Test
+    @DisplayName("이번 달 승인된 긴급 요청이 있으면 재요청을 거절한다")
+    void requestEmergencyQuota_whenAlreadyApprovedThisMonth_thenThrowsLimit() {
+        AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
+        EmergencyQuotaRequest request = new EmergencyQuotaRequest("데이터가 부족합니다", 104_857_600L);
+        CustomerQuota customerQuota =
+                CustomerQuota.builder()
+                        .familyId(10L)
+                        .customerId(2L)
+                        .monthlyLimitBytes(500_000_000L)
+                        .monthlyUsedBytes(100L)
+                        .currentMonth(LocalDate.now(FIXED_CLOCK).withDayOfMonth(1))
+                        .isBlocked(false)
+                        .build();
+
+        given(
+                        customerQuotaRepository
+                                .findByFamilyIdAndCustomerIdAndCurrentMonthAndDeletedAtIsNull(
+                                        10L, 2L, LocalDate.now(FIXED_CLOCK).withDayOfMonth(1)))
+                .willReturn(java.util.Optional.of(customerQuota));
+        given(policyAppealRepository.saveAndFlush(any(PolicyAppeal.class)))
+                .willThrow(new DataIntegrityViolationException("duplicate emergency grant month"));
+
+        assertThatThrownBy(() -> appealService.requestEmergencyQuota(auth, request))
+                .isInstanceOf(ApplicationException.class)
+                .extracting(ex -> ((ApplicationException) ex).getCode())
+                .isEqualTo(AppealErrorCode.APPEAL_EMERGENCY_MONTHLY_LIMIT);
+    }
+
     private PolicyAppeal appeal(
             Long appealId, Long requesterId, Long policyAssignmentId, AppealStatus status) {
         PolicyAppeal appeal =
                 PolicyAppeal.builder()
                         .id(appealId)
-                        .type(AppealType.NORMAL)
+                        .type(policyAssignmentId == null ? AppealType.EMERGENCY : AppealType.NORMAL)
                         .policyAssignmentId(policyAssignmentId)
                         .requesterId(requesterId)
                         .requestReason("need change")
@@ -116,6 +338,44 @@ class AppealServiceImplTest {
                         .build();
         setCreatedAt(appeal, LocalDateTime.of(2026, 3, 10, 10, 0));
         return appeal;
+    }
+
+    private PolicyAppealComment comment(Long commentId, Long authorId, String text) {
+        PolicyAppealComment comment =
+                PolicyAppealComment.builder()
+                        .id(commentId)
+                        .appealId(30L)
+                        .authorId(authorId)
+                        .comment(text)
+                        .build();
+        setField(
+                comment,
+                comment.getClass().getSuperclass(),
+                "createdAt",
+                LocalDateTime.of(2026, 3, 10, 11, 0));
+        return comment;
+    }
+
+    private PolicyAssignment policyAssignment(
+            Long assignmentId, Long policyId, Long familyId, Long targetCustomerId) {
+        return PolicyAssignment.builder()
+                .id(assignmentId)
+                .policyId(policyId)
+                .familyId(familyId)
+                .targetCustomerId(targetCustomerId)
+                .rules("{\"limitBytes\":1024}")
+                .isActive(true)
+                .build();
+    }
+
+    private Policy policy(Long policyId, PolicyType policyType) {
+        return Policy.builder()
+                .id(policyId)
+                .name("월 한도")
+                .policyType(policyType)
+                .isSystem(true)
+                .isActive(true)
+                .build();
     }
 
     private Customer customer(Long customerId, String name) {
