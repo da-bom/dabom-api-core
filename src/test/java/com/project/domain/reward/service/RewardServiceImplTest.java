@@ -83,6 +83,8 @@ class RewardServiceImplTest {
                 .willReturn(Optional.of(mission));
         Customer owner = namedCustomer("owner");
         given(customerRepository.findById(1L)).willReturn(Optional.of(owner));
+        Customer requester = mock(Customer.class);
+        given(customerRepository.findById(2L)).willReturn(Optional.of(requester));
 
         var result =
                 rewardService.respondRewardRequest(
