@@ -44,7 +44,8 @@ public class RewardTemplateServiceImpl implements RewardTemplateService {
     @Transactional
     public RewardTemplate updateTemplate(Long id, RewardTemplateRequest.Update request) {
         RewardTemplate template = findTemplateOrThrow(id);
-        template.update(request.name(), request.thumbnailUrl(), request.price(), request.isActive());
+        template.update(
+                request.name(), request.thumbnailUrl(), request.price(), request.isActive());
         return template;
     }
 

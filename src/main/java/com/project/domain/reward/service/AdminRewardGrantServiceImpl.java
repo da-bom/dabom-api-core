@@ -1,6 +1,5 @@
 package com.project.domain.reward.service;
 
-import com.project.domain.reward.enums.RewardGrantSort;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -9,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.project.domain.reward.entity.RewardGrant;
+import com.project.domain.reward.enums.RewardGrantSort;
 import com.project.domain.reward.enums.RewardGrantStatus;
 import com.project.domain.reward.repository.RewardGrantRepository;
 

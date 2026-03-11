@@ -3,6 +3,8 @@ package com.project.domain.reward.dto.response;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.mission.entity.MissionItem;
 import com.project.domain.reward.entity.Reward;
@@ -10,14 +12,8 @@ import com.project.domain.reward.entity.RewardGrant;
 import com.project.domain.reward.enums.RewardCategory;
 import com.project.domain.reward.enums.RewardGrantStatus;
 
-import org.springframework.data.domain.Page;
-
 public record RewardGrantListResponse(
-        List<RewardGrantItem> content,
-        int page,
-        int size,
-        long totalElements,
-        int totalPages) {
+        List<RewardGrantItem> content, int page, int size, long totalElements, int totalPages) {
 
     public record RewardGrantItem(
             Long grantId,
@@ -72,7 +68,8 @@ public record RewardGrantListResponse(
     }
 
     public static RewardGrantListResponse from(Page<RewardGrant> grants) {
-        List<RewardGrantItem> items = grants.getContent().stream().map(RewardGrantItem::from).toList();
+        List<RewardGrantItem> items =
+                grants.getContent().stream().map(RewardGrantItem::from).toList();
         return new RewardGrantListResponse(
                 items,
                 grants.getNumber(),

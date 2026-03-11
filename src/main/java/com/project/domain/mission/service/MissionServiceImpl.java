@@ -143,8 +143,7 @@ public class MissionServiceImpl implements MissionService {
         }
 
         // 2. 템플릿을 조회한 뒤 현재 값을 복사한 Reward 스냅샷을 생성한다.
-        Reward reward =
-                rewardSnapshotService.createFromTemplate(req.rewardTemplateId());
+        Reward reward = rewardSnapshotService.createFromTemplate(req.rewardTemplateId());
 
         // 생성된 Reward를 미션에 연결해 저장한다.
         MissionItem mission =

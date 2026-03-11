@@ -59,8 +59,7 @@ class RewardTemplateServiceImplTest {
     void createTemplate_validRequest_savesAndReturnsTemplate() {
         // given
         RewardTemplateRequest.Create request =
-                new RewardTemplateRequest.Create(
-                        "기프티콘 5000원", RewardCategory.GIFTICON, null, 5000);
+                new RewardTemplateRequest.Create("기프티콘 5000원", RewardCategory.GIFTICON, null, 5000);
         given(rewardTemplateRepository.save(any(RewardTemplate.class)))
                 .willAnswer(invocation -> invocation.getArgument(0));
 

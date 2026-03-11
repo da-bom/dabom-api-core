@@ -215,9 +215,7 @@ class MissionControllerIntegrationTest {
 
         JsonNode nonNullExistingMissionNode = Objects.requireNonNull(existingMissionNode);
         assertRewardNode(
-                nonNullExistingMissionNode.path("reward"),
-                rewardTemplate.getId(),
-                "data reward");
+                nonNullExistingMissionNode.path("reward"), rewardTemplate.getId(), "data reward");
 
         MvcResult logsResult =
                 mockMvc.perform(
@@ -233,9 +231,7 @@ class MissionControllerIntegrationTest {
                         .path("missions")
                         .get(0);
         assertRewardNode(
-                logNode.path("missionItem").path("reward"),
-                rewardTemplate.getId(),
-                "data reward");
+                logNode.path("missionItem").path("reward"), rewardTemplate.getId(), "data reward");
     }
 
     @Test
