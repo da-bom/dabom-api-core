@@ -2,6 +2,7 @@ package com.project.domain.customer.controller;
 
 import jakarta.validation.Valid;
 
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -10,14 +11,20 @@ import org.springframework.web.bind.annotation.RestController;
 import com.project.domain.customer.dto.request.CustomerRefreshRequest;
 import com.project.domain.customer.dto.request.CustomerSignInRequest;
 import com.project.domain.customer.dto.request.CustomerSignUpRequest;
+import com.project.domain.customer.dto.response.MyPageInfoResponse;
 import com.project.domain.customer.dto.response.SignInResponse;
 import com.project.domain.customer.dto.response.SignUpResponse;
+import com.project.domain.customer.model.MyPageInfo;
 import com.project.domain.customer.service.CustomerService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.api.response.TokenRefreshResponse;
 import com.project.global.auth.TokenRefreshResult;
+import com.project.global.auth.aop.CustomerId;
+import com.project.global.auth.model.AuthContext;
+import com.project.global.auth.service.AuthContextService;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import lombok.RequiredArgsConstructor;
@@ -29,6 +36,7 @@ import lombok.RequiredArgsConstructor;
 public class CustomerController {
 
     private final CustomerService customerService;
+    private final AuthContextService authContextService;
 
     @PostMapping("/login")
     @Operation(summary = "사용자 로그인", description = "사용자 이메일/비밀번호로 로그인합니다.")
@@ -57,5 +65,16 @@ public class CustomerController {
     public ApiResponse<Void> logout() {
         // 서버 측 처리 없음 — 클라이언트가 토큰을 삭제
         return ApiResponse.success(null);
+    }
+
+    @GetMapping("/mypage")
+    @Operation(summary = "마이페이지 조회", description = "본인 이름, 가족 이름, 기본 정책 상세 내용을 반환합니다.")
+    public ApiResponse<MyPageInfoResponse> getMyPageInfo(
+            @Parameter(hidden = true) @CustomerId Long customerId) {
+        AuthContext authContext = authContextService.resolve(customerId);
+
+        MyPageInfo myPageInfo = customerService.getMyPageInfo(authContext);
+
+        return ApiResponse.success(MyPageInfoResponse.from(myPageInfo));
     }
 }

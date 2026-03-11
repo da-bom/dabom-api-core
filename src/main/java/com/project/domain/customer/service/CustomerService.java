@@ -4,7 +4,9 @@ import com.project.domain.customer.dto.request.CustomerSignInRequest;
 import com.project.domain.customer.dto.request.CustomerSignUpRequest;
 import com.project.domain.customer.dto.response.SignInResponse;
 import com.project.domain.customer.dto.response.SignUpResponse;
+import com.project.domain.customer.model.MyPageInfo;
 import com.project.global.auth.TokenRefreshResult;
+import com.project.global.auth.model.AuthContext;
 
 public interface CustomerService {
     SignInResponse signIn(CustomerSignInRequest requestDto);
@@ -12,4 +14,6 @@ public interface CustomerService {
     SignUpResponse signUp(CustomerSignUpRequest requestDto);
 
     TokenRefreshResult refreshToken(String refreshToken);
+
+    MyPageInfo getMyPageInfo(AuthContext authContext);
 }
