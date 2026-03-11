@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.repository.CustomerRepository;
 import com.project.domain.mission.entity.MissionItem;
+import com.project.domain.mission.entity.MissionItem;
 import com.project.domain.mission.entity.MissionLog;
 import com.project.domain.mission.entity.MissionRequest;
 import com.project.domain.mission.enums.MissionLogActionType;
@@ -24,8 +25,11 @@ import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
 import com.project.domain.mission.repository.MissionRequestRepository;
 import com.project.domain.reward.dto.request.RespondRewardRequest;
+import com.project.domain.reward.entity.RewardGrant;
+import com.project.domain.reward.enums.RewardGrantStatus;
 import com.project.domain.reward.model.ReceivedRewardListResult;
 import com.project.domain.reward.model.RewardRespondResult;
+import com.project.domain.reward.repository.RewardGrantRepository;
 import com.project.domain.reward.support.RewardDtoMapper;
 import com.project.global.auth.model.AuthContext;
 import com.project.global.exception.ApplicationException;
@@ -47,6 +51,7 @@ public class RewardServiceImpl implements RewardService {
     private final MissionItemRepository missionItemRepository;
     private final MissionLogRepository missionLogRepository;
     private final CustomerRepository customerRepository;
+    private final RewardGrantRepository rewardGrantRepository;
 
     /** OWNER가 보상 요청을 승인하거나 거절한다. */
     @Override
@@ -87,6 +92,21 @@ public class RewardServiceImpl implements RewardService {
                     auth.customerId(),
                     MissionLogActionType.APPROVED,
                     "Reward approved");
+
+            Customer requester =
+                    customerRepository
+                            .findById(missionRequest.getRequesterId())
+                            .orElseThrow(
+                                    () ->
+                                            new ApplicationException(
+                                                    MissionErrorCode.MISSION_TARGET_INVALID));
+            rewardGrantRepository.save(
+                    RewardGrant.builder()
+                            .reward(mission.getReward())
+                            .customer(requester)
+                            .missionItem(mission)
+                            .status(RewardGrantStatus.ISSUED)
+                            .build());
         } else {
             if (req.rejectReason() == null || req.rejectReason().isBlank()) {
                 throw new ApplicationException(MissionErrorCode.MISSION_REJECT_REASON_REQUIRED);

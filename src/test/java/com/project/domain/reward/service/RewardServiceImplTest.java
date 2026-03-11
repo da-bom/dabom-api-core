@@ -30,6 +30,7 @@ import com.project.domain.reward.dto.request.RespondRewardRequest;
 import com.project.domain.reward.entity.Reward;
 import com.project.domain.reward.entity.RewardTemplate;
 import com.project.domain.reward.enums.RewardCategory;
+import com.project.domain.reward.repository.RewardGrantRepository;
 import com.project.global.auth.model.AuthContext;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.MissionErrorCode;
@@ -41,6 +42,7 @@ class RewardServiceImplTest {
     @Mock private MissionItemRepository missionItemRepository;
     @Mock private MissionLogRepository missionLogRepository;
     @Mock private CustomerRepository customerRepository;
+    @Mock private RewardGrantRepository rewardGrantRepository;
 
     private RewardServiceImpl rewardService;
 
@@ -51,7 +53,8 @@ class RewardServiceImplTest {
                         missionRequestRepository,
                         missionItemRepository,
                         missionLogRepository,
-                        customerRepository);
+                        customerRepository,
+                        rewardGrantRepository);
     }
 
     @Test
@@ -71,6 +74,8 @@ class RewardServiceImplTest {
                 .willReturn(Optional.of(mission));
         Customer owner = namedCustomer("owner");
         given(customerRepository.findById(1L)).willReturn(Optional.of(owner));
+        Customer requester = customer(2L, "member");
+        given(customerRepository.findById(2L)).willReturn(Optional.of(requester));
 
         var result =
                 rewardService.respondRewardRequest(

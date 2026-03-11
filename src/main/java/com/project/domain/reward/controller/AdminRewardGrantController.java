@@ -1,0 +1,41 @@
+package com.project.domain.reward.controller;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.project.domain.reward.dto.response.RewardGrantListResponse;
+import com.project.domain.reward.enums.RewardGrantStatus;
+import com.project.domain.reward.service.AdminRewardGrantService;
+import com.project.global.api.response.ApiResponse;
+import com.project.global.auth.aop.AdminOnly;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping("/admin/rewards/grants")
+@RequiredArgsConstructor
+@Tag(name = "Admin_Reward_Grant", description = "관리자 보상 지급 내역 API")
+public class AdminRewardGrantController {
+
+    private final AdminRewardGrantService adminRewardGrantService;
+
+    @GetMapping
+    @AdminOnly
+    @Operation(summary = "보상 지급 내역 조회", description = "관리자가 보상 지급 내역을 조회합니다.")
+    public ApiResponse<RewardGrantListResponse> getGrants(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) RewardGrantStatus status,
+            @RequestParam(defaultValue = "LATEST") String sort,
+            @RequestParam(required = false) Boolean unusedOnly,
+            @RequestParam(required = false) String phoneNumber) {
+        return ApiResponse.success(
+                adminRewardGrantService.getGrants(
+                        page, size, status, sort, unusedOnly, phoneNumber));
+    }
+}
