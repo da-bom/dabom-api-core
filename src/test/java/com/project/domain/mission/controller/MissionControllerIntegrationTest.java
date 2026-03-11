@@ -38,10 +38,13 @@ import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.family.repository.FamilyRepository;
 import com.project.domain.mission.entity.MissionItem;
 import com.project.domain.mission.entity.MissionLog;
+import com.project.domain.mission.entity.MissionRequest;
 import com.project.domain.mission.enums.MissionLogActionType;
+import com.project.domain.mission.enums.MissionRequestStatus;
 import com.project.domain.mission.enums.MissionStatus;
 import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
+import com.project.domain.mission.repository.MissionRequestRepository;
 import com.project.domain.reward.entity.Reward;
 import com.project.domain.reward.entity.RewardTemplate;
 import com.project.domain.reward.enums.RewardCategory;
@@ -70,6 +73,7 @@ class MissionControllerIntegrationTest {
     @Autowired private FamilyMemberRepository familyMemberRepository;
     @Autowired private MissionItemRepository missionItemRepository;
     @Autowired private MissionLogRepository missionLogRepository;
+    @Autowired private MissionRequestRepository missionRequestRepository;
     @Autowired private RewardTemplateRepository rewardTemplateRepository;
     @Autowired private RewardRepository rewardRepository;
 
@@ -309,8 +313,8 @@ class MissionControllerIntegrationTest {
                 MissionLog.builder()
                         .missionItemId(mission.getId())
                         .actorId(owner.getId())
-                        .actionType(MissionLogActionType.APPROVED)
-                        .message("approved")
+                        .actionType(MissionLogActionType.COMPLETED)
+                        .message("completed")
                         .build());
 
         MvcResult logsResult =
@@ -330,6 +334,35 @@ class MissionControllerIntegrationTest {
                         delete("/missions/{missionId}", mission.getId())
                                 .header("Authorization", "Bearer " + OWNER_TOKEN))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("미션 요청 이력은 MissionRequest 기준으로 status를 반환한다")
+    void missionRequestHistoryReturnsMissionRequestStatus() throws Exception {
+        missionRequestRepository.save(
+                MissionRequest.builder()
+                        .missionItemId(mission.getId())
+                        .requesterId(member.getId())
+                        .status(MissionRequestStatus.PENDING)
+                        .build());
+
+        MvcResult result =
+                mockMvc.perform(
+                                get("/missions/history")
+                                        .header("Authorization", "Bearer " + OWNER_TOKEN)
+                                        .param("size", "20"))
+                        .andExpect(status().isOk())
+                        .andReturn();
+
+        JsonNode item =
+                objectMapper
+                        .readTree(result.getResponse().getContentAsString())
+                        .path("data")
+                        .path("requests")
+                        .get(0);
+        assertThat(item.path("status").asText()).isEqualTo("PENDING");
+        assertThat(item.path("missionItem").path("missionItemId").asLong()).isEqualTo(mission.getId());
+        assertThat(item.path("requestedBy").path("customerId").asLong()).isEqualTo(member.getId());
     }
 
     private void assertRewardNode(JsonNode rewardNode, long templateId, String expectedName) {

@@ -92,8 +92,8 @@ public class RewardServiceImpl implements RewardService {
             appendLog(
                     mission.getId(),
                     auth.customerId(),
-                    MissionLogActionType.APPROVED,
-                    "Reward approved");
+                    MissionLogActionType.COMPLETED,
+                    "Mission completed");
 
             Customer requester =
                     customerRepository
@@ -114,11 +114,6 @@ public class RewardServiceImpl implements RewardService {
                 throw new ApplicationException(MissionErrorCode.MISSION_REJECT_REASON_REQUIRED);
             }
             missionRequest.reject(auth.customerId(), req.rejectReason(), LocalDateTime.now(clock));
-            appendLog(
-                    mission.getId(),
-                    auth.customerId(),
-                    MissionLogActionType.REJECTED,
-                    "Reward rejected");
         }
 
         // 3. 응답에는 MissionItem에 연결된 Reward 스냅샷을 포함한다.

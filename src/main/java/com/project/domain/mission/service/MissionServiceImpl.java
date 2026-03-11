@@ -30,6 +30,7 @@ import com.project.domain.mission.enums.MissionStatus;
 import com.project.domain.mission.model.CreateMissionResult;
 import com.project.domain.mission.model.MissionListResult;
 import com.project.domain.mission.model.MissionLogListResult;
+import com.project.domain.mission.model.MissionRequestHistoryListResult;
 import com.project.domain.mission.model.MissionRequestResult;
 import com.project.domain.mission.repository.MissionItemRepository;
 import com.project.domain.mission.repository.MissionLogRepository;
@@ -87,6 +88,9 @@ public class MissionServiceImpl implements MissionService {
     }
 
     /** 권한 범위에 맞는 미션 로그 목록을 커서 기반으로 조회한다. */
+    /** 미션 이벤트 로그를 조회한다.
+     * 이 메서드는 MissionLog 기준 조회이며, 요청 처리 상태 이력은 포함하지 않는다.
+     */
     @Override
     public MissionLogListResult listMissionLogs(AuthContext auth, String cursor, int size) {
         // 1. 커서 입력을 정규화한다.
@@ -121,6 +125,53 @@ public class MissionServiceImpl implements MissionService {
                         .map(log -> toMissionLogItem(log, missionMap, customerNameMap))
                         .toList();
         return new MissionLogListResult(items, nextCursor, hasNext);
+    }
+
+    /** 미션 완료 요청 이력을 조회한다.
+     * 응답의 각 항목은 MissionRequest 1건이며, status는 최신 처리 상태를 의미한다.
+     */
+    @Override
+    public MissionRequestHistoryListResult listMissionRequestHistory(
+            AuthContext auth, String cursor, int size) {
+        // 1. 커서 입력을 정규화한다.
+        int pageSize = normalizeSize(size);
+        Long cursorId = parseCursor(cursor);
+
+        // 2. OWNER는 가족 기준, MEMBER는 본인 기준으로 요청 이력을 조회한다.
+        List<MissionRequest> requests =
+                auth.isOwner()
+                        ? missionRequestRepository.findByFamilyIdOrderByIdDesc(
+                                auth.familyId(), cursorId, PageRequest.of(0, pageSize + 1))
+                        : missionRequestRepository.findByRequesterIdOrderByIdDesc(
+                                auth.customerId(), cursorId, PageRequest.of(0, pageSize + 1));
+
+        boolean hasNext = requests.size() > pageSize;
+        List<MissionRequest> page = hasNext ? requests.subList(0, pageSize) : requests;
+        String nextCursor = hasNext ? String.valueOf(page.getLast().getId()) : null;
+
+        // 3. 요청 이력에 연결된 미션과 사용자 정보를 일괄 조회한다.
+        Set<Long> missionIds =
+                page.stream().map(MissionRequest::getMissionItemId).collect(Collectors.toSet());
+        Map<Long, MissionItem> missionMap =
+                missionItemRepository.findAllWithRewardByIdIn(missionIds).stream()
+                        .collect(Collectors.toMap(MissionItem::getId, Function.identity()));
+
+        Set<Long> customerIds =
+                page.stream()
+                        .flatMap(
+                                request ->
+                                        Stream.of(request.getRequesterId(), request.getResolvedById()))
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet());
+        Map<Long, String> customerNameMap = customerRepository.findAllById(customerIds).stream()
+                .collect(Collectors.toMap(Customer::getId, Customer::getName));
+
+        // 4. MissionRequest를 요청 이력 응답 모델로 조합한다.
+        List<MissionRequestHistoryListResult.MissionRequestHistoryItem> items =
+                page.stream()
+                        .map(request -> toMissionRequestHistoryItem(request, missionMap, customerNameMap))
+                        .toList();
+        return new MissionRequestHistoryListResult(items, nextCursor, hasNext);
     }
 
     /** OWNER가 미션을 생성하고 Reward 스냅샷을 함께 저장한다. */
@@ -378,6 +429,36 @@ public class MissionServiceImpl implements MissionService {
                                 log.getActorId(),
                                 customerNameMap.getOrDefault(log.getActorId(), UNKNOWN_NAME)),
                 log.getCreatedAt());
+    }
+
+    /** MissionRequest 엔티티를 요청 이력 응답 모델로 변환한다. */
+    private MissionRequestHistoryListResult.MissionRequestHistoryItem toMissionRequestHistoryItem(
+            MissionRequest request,
+            Map<Long, MissionItem> missionMap,
+            Map<Long, String> customerNameMap) {
+        MissionItem mission = missionMap.get(request.getMissionItemId());
+        if (mission == null) {
+            throw new ApplicationException(MissionErrorCode.MISSION_NOT_FOUND);
+        }
+        return new MissionRequestHistoryListResult.MissionRequestHistoryItem(
+                request.getId(),
+                request.getStatus().name(),
+                request.getRejectReason(),
+                new MissionLogListResult.MissionItemSimple(
+                        mission.getId(),
+                        mission.getMissionText(),
+                        RewardDtoMapper.toModel(mission.getReward())),
+                new MissionListResult.CustomerSummary(
+                        request.getRequesterId(),
+                        customerNameMap.getOrDefault(request.getRequesterId(), UNKNOWN_NAME)),
+                request.getResolvedById() == null
+                        ? null
+                        : new MissionListResult.CustomerSummary(
+                                request.getResolvedById(),
+                                customerNameMap.getOrDefault(
+                                        request.getResolvedById(), UNKNOWN_NAME)),
+                request.getCreatedAt(),
+                request.getResolvedAt());
     }
 
     /** 미션 목록 응답에 필요한 사용자명을 일괄 조회한다. */
