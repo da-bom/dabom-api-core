@@ -1,7 +1,5 @@
 package com.project.domain.reward.controller;
 
-import com.project.domain.reward.entity.RewardGrant;
-import com.project.domain.reward.enums.RewardGrantSort;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -9,6 +7,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.project.domain.reward.dto.response.RewardGrantListResponse;
+import com.project.domain.reward.entity.RewardGrant;
+import com.project.domain.reward.enums.RewardGrantSort;
 import com.project.domain.reward.enums.RewardGrantStatus;
 import com.project.domain.reward.service.AdminRewardGrantService;
 import com.project.global.api.response.ApiResponse;
