@@ -3,6 +3,9 @@ package com.project.domain.reward.dto.response;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.project.domain.customer.entity.Customer;
+import com.project.domain.mission.entity.MissionItem;
+import com.project.domain.reward.entity.Reward;
 import com.project.domain.reward.entity.RewardGrant;
 import com.project.domain.reward.enums.RewardCategory;
 import com.project.domain.reward.enums.RewardGrantStatus;
@@ -25,40 +28,51 @@ public record RewardGrantListResponse(
             String couponUrl,
             RewardGrantStatus status,
             LocalDateTime expiredAt,
-            LocalDateTime createdAt) {}
+            LocalDateTime createdAt) {
+
+        public static RewardGrantItem from(RewardGrant grant) {
+            return new RewardGrantItem(
+                    grant.getId(),
+                    RewardInfo.from(grant.getReward()),
+                    CustomerInfo.from(grant.getCustomer()),
+                    MissionInfo.from(grant.getMissionItem()),
+                    grant.getCouponCode(),
+                    grant.getCouponUrl(),
+                    grant.getStatus(),
+                    grant.getExpiredAt(),
+                    grant.getCreatedAt());
+        }
+    }
 
     public record RewardInfo(
-            Long rewardId, String name, RewardCategory category, String thumbnailUrl) {}
+            Long rewardId, String name, RewardCategory category, String thumbnailUrl) {
 
-    public record CustomerInfo(Long customerId, String name, String phoneNumber) {}
+        public static RewardInfo from(Reward reward) {
+            return new RewardInfo(
+                    reward.getId(),
+                    reward.getName(),
+                    reward.getCategory(),
+                    reward.getThumbnailUrl());
+        }
+    }
 
-    public record MissionInfo(Long missionItemId, String missionText) {}
+    public record CustomerInfo(Long customerId, String name, String phoneNumber) {
+
+        public static CustomerInfo from(Customer customer) {
+            return new CustomerInfo(
+                    customer.getId(), customer.getName(), customer.getPhoneNumber());
+        }
+    }
+
+    public record MissionInfo(Long missionItemId, String missionText) {
+
+        public static MissionInfo from(MissionItem missionItem) {
+            return new MissionInfo(missionItem.getId(), missionItem.getMissionText());
+        }
+    }
 
     public static RewardGrantListResponse from(Page<RewardGrant> grants) {
-        List<RewardGrantItem> items =
-                grants.getContent().stream()
-                        .map(
-                                grant ->
-                                        new RewardGrantItem(
-                                                grant.getId(),
-                                                new RewardInfo(
-                                                        grant.getReward().getId(),
-                                                        grant.getReward().getName(),
-                                                        grant.getReward().getCategory(),
-                                                        grant.getReward().getThumbnailUrl()),
-                                                new CustomerInfo(
-                                                        grant.getCustomer().getId(),
-                                                        grant.getCustomer().getName(),
-                                                        grant.getCustomer().getPhoneNumber()),
-                                                new MissionInfo(
-                                                        grant.getMissionItem().getId(),
-                                                        grant.getMissionItem().getMissionText()),
-                                                grant.getCouponCode(),
-                                                grant.getCouponUrl(),
-                                                grant.getStatus(),
-                                                grant.getExpiredAt(),
-                                                grant.getCreatedAt()))
-                        .toList();
+        List<RewardGrantItem> items = grants.getContent().stream().map(RewardGrantItem::from).toList();
         return new RewardGrantListResponse(
                 items,
                 grants.getNumber(),
