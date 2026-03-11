@@ -89,7 +89,11 @@ public class RewardGrant extends BaseEntity {
         StringBuilder sb = new StringBuilder("RewardGrant.RewardGrantBuilder(");
         sb.append("id=").append(this.id);
         sb.append(", reward=").append(this.reward);
-        sb.append(", customer=").append(this.customer);
+        if (this.customer != null) {
+            sb.append(", customer=<set>");
+        } else {
+            sb.append(", customer=null");
+        }
         // Avoid calling MissionItem.toString() directly.
         if (this.missionItem != null) {
             sb.append(", missionItem=<set>");
