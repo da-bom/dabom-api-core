@@ -83,4 +83,24 @@ public class RewardGrant extends BaseEntity {
         this.status = status;
         this.expiredAt = expiredAt;
     }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder("RewardGrant.RewardGrantBuilder(");
+        sb.append("id=").append(this.id);
+        sb.append(", reward=").append(this.reward);
+        sb.append(", customer=").append(this.customer);
+        // Avoid calling MissionItem.toString() directly.
+        if (this.missionItem != null) {
+            sb.append(", missionItem=<set>");
+        } else {
+            sb.append(", missionItem=null");
+        }
+        sb.append(", couponCode=").append(this.couponCode);
+        sb.append(", couponUrl=").append(this.couponUrl);
+        sb.append(", status=").append(this.status);
+        sb.append(", expiredAt=").append(this.expiredAt);
+        sb.append(')');
+        return sb.toString();
+    }
 }
