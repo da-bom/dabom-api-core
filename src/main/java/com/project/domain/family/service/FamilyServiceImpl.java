@@ -22,9 +22,7 @@ import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.FamilyErrorCode;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -121,11 +119,6 @@ public class FamilyServiceImpl implements FamilyService {
     public List<FamilyUsageCustomerRow> getUsageReportCustomers(
             Long familyId, LocalDate targetMonth) {
         return familyQueryRepository.findUsageReportCustomers(familyId, targetMonth);
-    }
-
-    @Override
-    public void handleFamilyEvent(Long familyId, Long customerId) {
-        log.info("Handling family event: familyId={}, customerId={}", familyId, customerId);
     }
 
     @Override

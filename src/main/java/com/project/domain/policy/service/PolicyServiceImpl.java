@@ -8,15 +8,17 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.dabom.messaging.kafka.contract.KafkaEventTypes;
+import com.dabom.messaging.kafka.contract.KafkaTopics;
+import com.dabom.messaging.kafka.event.dto.policy.PolicyUpdatedPayload;
+import com.dabom.messaging.kafka.event.publisher.KafkaEventPublisher;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.policy.dto.request.PolicyRequest;
 import com.project.domain.policy.entity.Policy;
-import com.project.domain.policy.infra.messaging.PolicyUpdateEventPublish;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.domain.policy.repository.PolicyRepository;
 import com.project.domain.policy.service.helper.RulesUtil;
-import com.project.global.event.dto.policy.PolicyUpdatedPayload;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.PolicyErrorCode;
 
@@ -31,7 +33,7 @@ public class PolicyServiceImpl implements PolicyService {
     private final PolicyAssignmentRepository policyAssignmentRepository;
     private final ObjectMapper objectMapper;
 
-    private final PolicyUpdateEventPublish policyUpdateEventPublish;
+    private final KafkaEventPublisher kafkaEventPublisher;
     private final RulesUtil rulesUtil;
 
     // 정책 상세 정보 조회
@@ -69,7 +71,9 @@ public class PolicyServiceImpl implements PolicyService {
                                 ? objectMapper.writeValueAsString(policy.getDefaultRules())
                                 : null;
                 applyToExistingAssignments(policy);
-                policyUpdateEventPublish.publish(
+                kafkaEventPublisher.publish(
+                        KafkaTopics.POLICY_UPDATED,
+                        KafkaEventTypes.POLICY_UPDATED,
                         new PolicyUpdatedPayload(null, null, policyKey, rule, policy.isActive()));
             } catch (JsonProcessingException e) {
                 throw new ApplicationException(PolicyErrorCode.POLICY_RULES_SERIALIZATION_FAILED);
