@@ -52,8 +52,9 @@ class AdminRewardGrantServiceImplTest {
     void getGrants_withStatus_filtersByStatus() {
         // given
         Page<RewardGrant> page = new PageImpl<>(List.of());
-        given(rewardGrantRepository.findWithFilters(
-                        eq(RewardGrantStatus.USED), eq(null), any(Pageable.class)))
+        given(
+                        rewardGrantRepository.findWithFilters(
+                                eq(RewardGrantStatus.USED), eq(null), any(Pageable.class)))
                 .willReturn(page);
 
         // when
@@ -72,8 +73,9 @@ class AdminRewardGrantServiceImplTest {
     void getGrants_unusedOnly_overridesStatusToIssued() {
         // given
         Page<RewardGrant> page = new PageImpl<>(List.of());
-        given(rewardGrantRepository.findWithFilters(
-                        eq(RewardGrantStatus.ISSUED), eq(null), any(Pageable.class)))
+        given(
+                        rewardGrantRepository.findWithFilters(
+                                eq(RewardGrantStatus.ISSUED), eq(null), any(Pageable.class)))
                 .willReturn(page);
 
         // when
@@ -91,8 +93,9 @@ class AdminRewardGrantServiceImplTest {
     void getGrants_expiringSoon_callsExpiringSoonMethod() {
         // given
         Page<RewardGrant> page = new PageImpl<>(List.of());
-        given(rewardGrantRepository.findWithFiltersOrderByExpiringSoon(
-                        eq(null), eq(null), any(Pageable.class)))
+        given(
+                        rewardGrantRepository.findWithFiltersOrderByExpiringSoon(
+                                eq(null), eq(null), any(Pageable.class)))
                 .willReturn(page);
 
         // when

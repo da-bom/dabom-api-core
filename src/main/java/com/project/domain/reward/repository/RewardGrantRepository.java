@@ -31,13 +31,11 @@ public interface RewardGrantRepository extends JpaRepository<RewardGrant, Long> 
 
     @Query(
             value =
-                    "SELECT rg FROM RewardGrant rg "
-                            + "JOIN FETCH rg.reward r "
-                            + "JOIN FETCH rg.customer c "
-                            + "JOIN FETCH rg.missionItem mi "
-                            + "WHERE (:status IS NULL OR rg.status = :status) "
-                            + "AND (:phoneNumber IS NULL OR c.phoneNumber LIKE %:phoneNumber%) "
-                            + "ORDER BY CASE WHEN rg.expiredAt IS NULL THEN 1 ELSE 0 END, rg.expiredAt ASC",
+                    "SELECT rg FROM RewardGrant rg JOIN FETCH rg.reward r JOIN FETCH rg.customer c"
+                        + " JOIN FETCH rg.missionItem mi WHERE (:status IS NULL OR rg.status ="
+                        + " :status) AND (:phoneNumber IS NULL OR c.phoneNumber LIKE"
+                        + " %:phoneNumber%) ORDER BY CASE WHEN rg.expiredAt IS NULL THEN 1 ELSE 0"
+                        + " END, rg.expiredAt ASC",
             countQuery =
                     "SELECT COUNT(rg) FROM RewardGrant rg "
                             + "JOIN rg.customer c "

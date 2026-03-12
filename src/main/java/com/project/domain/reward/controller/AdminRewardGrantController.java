@@ -32,9 +32,7 @@ public class AdminRewardGrantController {
     @AdminOnly
     @Operation(summary = "보상 지급 내역 조회", description = "관리자가 보상 지급 내역을 조회합니다.")
     public ApiResponse<RewardGrantListResponse> getGrants(
-            @Parameter(description = "페이지 번호 (0부터 시작)")
-                    @RequestParam(defaultValue = "0")
-                    int page,
+            @Parameter(description = "페이지 번호 (0부터 시작)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "20") int size,
             @Parameter(description = "지급 상태 필터") @RequestParam(required = false)
                     RewardGrantStatus status,
@@ -43,8 +41,7 @@ public class AdminRewardGrantController {
                     RewardGrantSort sort,
             @Parameter(description = "미사용 건만 조회 여부") @RequestParam(required = false)
                     Boolean unusedOnly,
-            @Parameter(description = "전화번호 검색 (부분 일치)")
-                    @RequestParam(required = false)
+            @Parameter(description = "전화번호 검색 (부분 일치)") @RequestParam(required = false)
                     String phoneNumber) {
         Page<RewardGrant> grants =
                 adminRewardGrantService.getGrants(
