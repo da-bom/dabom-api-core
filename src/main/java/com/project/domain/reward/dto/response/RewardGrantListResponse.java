@@ -11,6 +11,7 @@ import com.project.domain.reward.entity.Reward;
 import com.project.domain.reward.entity.RewardGrant;
 import com.project.domain.reward.enums.RewardCategory;
 import com.project.domain.reward.enums.RewardGrantStatus;
+import com.project.global.util.PhoneNumberUtils;
 
 public record RewardGrantListResponse(
         List<RewardGrantItem> content, int page, int size, long totalElements, int totalPages) {
@@ -56,7 +57,9 @@ public record RewardGrantListResponse(
 
         public static CustomerInfo from(Customer customer) {
             return new CustomerInfo(
-                    customer.getId(), customer.getName(), customer.getPhoneNumber());
+                    customer.getId(),
+                    customer.getName(),
+                    PhoneNumberUtils.mask(customer.getPhoneNumber()));
         }
     }
 
