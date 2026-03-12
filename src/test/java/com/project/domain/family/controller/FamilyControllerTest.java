@@ -174,6 +174,28 @@ class FamilyControllerTest {
     }
 
     @Test
+    @DisplayName("GET /families/usage/current - 토큰 없이 요청하면 401을 반환한다")
+    void getCurrentFamilyUsage_noToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(get("/families/usage/current"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("GLOBAL_003"));
+    }
+
+    @Test
+    @DisplayName("PUT /families - 토큰 없이 요청하면 401을 반환한다")
+    void updateFamilyName_noToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(
+                        put("/families")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                new com.project.domain.family.dto.request
+                                                        .FamilyNameUpdateRequest("김씨 가족"))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("GLOBAL_003"));
+    }
+
+    @Test
     @DisplayName("GET /families/usage/dashboard returns dashboard usage response")
     void getCustomersUsageDashboardReturnsOk() throws Exception {
         CustomerUsage me = new CustomerUsage(101L, "다봄1", 12_000L, 50_000L, false, null, true);
