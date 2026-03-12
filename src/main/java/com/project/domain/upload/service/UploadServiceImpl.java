@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.project.domain.upload.dto.response.UploadResponse;
 import com.project.domain.upload.enums.UploadType;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.UploadErrorCode;
@@ -35,7 +34,7 @@ public class UploadServiceImpl implements UploadService {
     private String cdnBaseUrl;
 
     @Override
-    public UploadResponse upload(MultipartFile file, UploadType type) {
+    public String upload(MultipartFile file, UploadType type) {
         validateFile(file);
 
         String extension = extractExtension(file.getOriginalFilename());
@@ -56,8 +55,7 @@ public class UploadServiceImpl implements UploadService {
             throw new ApplicationException(UploadErrorCode.UPLOAD_FAILED);
         }
 
-        String cdnUrl = cdnBaseUrl + "/" + key;
-        return UploadResponse.from(cdnUrl);
+        return cdnBaseUrl + "/" + key;
     }
 
     private void validateFile(MultipartFile file) {

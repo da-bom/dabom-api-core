@@ -35,7 +35,7 @@ public class UploadController {
     public ApiResponse<UploadResponse> uploadImage(
             @RequestParam("file") MultipartFile file, @RequestParam("type") UploadType type) {
 
-        UploadResponse response = uploadService.upload(file, type);
-        return ApiResponse.created(response);
+        String cdnUrl = uploadService.upload(file, type);
+        return ApiResponse.created(UploadResponse.from(cdnUrl));
     }
 }
