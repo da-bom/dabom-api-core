@@ -47,6 +47,15 @@ public class AdminRewardTemplateController {
         return ApiResponse.success(result);
     }
 
+    @GetMapping("/{id}")
+    @AdminOnly
+    @Operation(summary = "보상 템플릿 상세 조회", description = "보상 템플릿 ID로 상세 정보를 조회합니다.")
+    @Parameter(name = "id", description = "보상 템플릿 ID", required = true)
+    public ApiResponse<RewardTemplateResponse.Detail> getTemplate(@PathVariable Long id) {
+        RewardTemplate template = rewardTemplateService.getTemplate(id);
+        return ApiResponse.success(RewardTemplateResponse.Detail.from(template));
+    }
+
     @PostMapping
     @AdminOnly
     @ResponseStatus(HttpStatus.CREATED)
