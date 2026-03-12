@@ -147,7 +147,7 @@ class MissionServiceImplTest {
                         .id(300L)
                         .missionItemId(100L)
                         .actorId(1L)
-                        .actionType(MissionLogActionType.CREATED)
+                        .actionType(MissionLogActionType.MISSION_CREATED)
                         .message("Mission created")
                         .build();
         MissionItem mission = mission(100L, 10L, 2L, 1L, reward(900L, 500L), "clean room");
@@ -164,7 +164,7 @@ class MissionServiceImplTest {
 
         assertThat(result.missions()).hasSize(1);
         assertThat(result.missions().getFirst().logId()).isEqualTo(300L);
-        assertThat(result.missions().getFirst().actionType()).isEqualTo("CREATED");
+        assertThat(result.missions().getFirst().actionType()).isEqualTo("MISSION_CREATED");
         assertThat(result.missions().getFirst().missionItem().reward().rewardId()).isEqualTo(900L);
         verify(missionLogRepository).findByFamilyScope(10L, null, PageRequest.of(0, 21));
     }

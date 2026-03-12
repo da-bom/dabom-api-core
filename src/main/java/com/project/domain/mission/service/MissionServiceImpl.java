@@ -212,7 +212,7 @@ public class MissionServiceImpl implements MissionService {
         appendLog(
                 mission.getId(),
                 auth.customerId(),
-                MissionLogActionType.CREATED,
+                MissionLogActionType.MISSION_CREATED,
                 "Mission created");
         return new CreateMissionResult(mission.getId(), mission.getCreatedAt());
     }
@@ -231,7 +231,7 @@ public class MissionServiceImpl implements MissionService {
         appendLog(
                 mission.getId(),
                 auth.customerId(),
-                MissionLogActionType.CANCELLED,
+                MissionLogActionType.MISSION_CANCELLED,
                 "Mission cancelled");
     }
 
@@ -269,7 +269,7 @@ public class MissionServiceImpl implements MissionService {
         appendLog(
                 mission.getId(),
                 auth.customerId(),
-                MissionLogActionType.REQUESTED,
+                MissionLogActionType.MISSION_REQUESTED,
                 "Mission requested");
 
         // 3. 응답에는 MissionItem이 참조하는 Reward 스냅샷을 그대로 사용한다.

@@ -244,5 +244,6 @@ class RewardControllerIntegrationTest {
         assertThat(rewardNode.has("rewardId")).isTrue();
         assertThat(rewardNode.path("templateId").asLong()).isEqualTo(templateId);
         assertThat(rewardNode.path("name").asText()).isEqualTo(expectedName);
+        assertThat(rewardNode.has("rewardValue")).isFalse();
     }
 }

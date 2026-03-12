@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Min;
 
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,20 +14,29 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.project.domain.appeal.dto.request.AppealCommentRequest;
 import com.project.domain.appeal.dto.request.AppealCreateRequest;
+import com.project.domain.appeal.dto.request.AppealRespondRequest;
 import com.project.domain.appeal.dto.request.EmergencyQuotaRequest;
+import com.project.domain.appeal.dto.response.AppealCancelResponse;
+import com.project.domain.appeal.dto.response.AppealCommentResponse;
 import com.project.domain.appeal.dto.response.AppealCreateResponse;
 import com.project.domain.appeal.dto.response.AppealDetailResponse;
 import com.project.domain.appeal.dto.response.AppealListResponse;
+import com.project.domain.appeal.dto.response.AppealRespondResponse;
 import com.project.domain.appeal.dto.response.EmergencyQuotaResponse;
 import com.project.domain.appeal.enums.AppealStatus;
+import com.project.domain.appeal.model.AppealCancelResult;
+import com.project.domain.appeal.model.AppealCommentResult;
 import com.project.domain.appeal.model.AppealCreateResult;
 import com.project.domain.appeal.model.AppealDetailResult;
 import com.project.domain.appeal.model.AppealListResult;
+import com.project.domain.appeal.model.AppealRespondResult;
 import com.project.domain.appeal.model.EmergencyQuotaResult;
 import com.project.domain.appeal.service.AppealService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.CustomerId;
+import com.project.global.auth.aop.OwnerOnly;
 import com.project.global.auth.model.AuthContext;
 import com.project.global.auth.service.AuthContextService;
 
@@ -82,6 +92,41 @@ public class AppealController {
         AuthContext auth = authContextService.resolve(customerId);
         AppealCreateResult result = appealService.createAppeal(auth, request);
         return ApiResponse.created(AppealCreateResponse.from(result));
+    }
+
+    /** 이의제기 승인/거절 처리 */
+    @OwnerOnly
+    @PatchMapping("/{appealId}/respond")
+    @Operation(summary = "이의제기 승인/거절")
+    public ApiResponse<AppealRespondResponse> respondAppeal(
+            @Parameter(hidden = true) @CustomerId Long customerId,
+            @PathVariable Long appealId,
+            @RequestBody @Valid AppealRespondRequest request) {
+        AuthContext auth = authContextService.resolve(customerId);
+        AppealRespondResult result = appealService.respondAppeal(auth, appealId, request);
+        return ApiResponse.success(AppealRespondResponse.from(result));
+    }
+
+    /** 이의제기 댓글 작성 처리 */
+    @PostMapping("/{appealId}/comments")
+    @Operation(summary = "이의제기 댓글 작성")
+    public ApiResponse<AppealCommentResponse> createComment(
+            @Parameter(hidden = true) @CustomerId Long customerId,
+            @PathVariable Long appealId,
+            @RequestBody @Valid AppealCommentRequest request) {
+        AuthContext auth = authContextService.resolve(customerId);
+        AppealCommentResult result = appealService.createComment(auth, appealId, request);
+        return ApiResponse.created(AppealCommentResponse.from(result));
+    }
+
+    /** 이의제기 취소 처리 */
+    @PatchMapping("/{appealId}/cancel")
+    @Operation(summary = "이의제기 취소")
+    public ApiResponse<AppealCancelResponse> cancelAppeal(
+            @Parameter(hidden = true) @CustomerId Long customerId, @PathVariable Long appealId) {
+        AuthContext auth = authContextService.resolve(customerId);
+        AppealCancelResult result = appealService.cancelAppeal(auth, appealId);
+        return ApiResponse.success(AppealCancelResponse.from(result));
     }
 
     /** 긴급 쿼터 요청 처리 */

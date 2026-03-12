@@ -5,8 +5,8 @@ package com.project.domain.mission.enums;
  * 부모가 요청을 승인해 미션이 완료됨
  */
 public enum MissionLogActionType {
-    CREATED,
-    REQUESTED,
-    CANCELLED,
-    COMPLETED
+    MISSION_CREATED,
+    MISSION_REQUESTED,
+    MISSION_COMPLETED,
+    MISSION_CANCELLED
 }
