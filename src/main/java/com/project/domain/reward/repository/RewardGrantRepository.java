@@ -12,13 +12,36 @@ import com.project.domain.reward.enums.RewardGrantStatus;
 public interface RewardGrantRepository extends JpaRepository<RewardGrant, Long> {
 
     @Query(
-            "SELECT rg FROM RewardGrant rg "
-                    + "JOIN FETCH rg.reward r "
-                    + "JOIN FETCH rg.customer c "
-                    + "JOIN FETCH rg.missionItem mi "
-                    + "WHERE (:status IS NULL OR rg.status = :status) "
-                    + "AND (:phoneNumber IS NULL OR c.phoneNumber LIKE %:phoneNumber%)")
+            value =
+                    "SELECT rg FROM RewardGrant rg "
+                            + "JOIN FETCH rg.reward r "
+                            + "JOIN FETCH rg.customer c "
+                            + "JOIN FETCH rg.missionItem mi "
+                            + "WHERE (:status IS NULL OR rg.status = :status) "
+                            + "AND (:phoneNumber IS NULL OR c.phoneNumber LIKE %:phoneNumber%)",
+            countQuery =
+                    "SELECT COUNT(rg) FROM RewardGrant rg "
+                            + "JOIN rg.customer c "
+                            + "WHERE (:status IS NULL OR rg.status = :status) "
+                            + "AND (:phoneNumber IS NULL OR c.phoneNumber LIKE %:phoneNumber%)")
     Page<RewardGrant> findWithFilters(
+            @Param("status") RewardGrantStatus status,
+            @Param("phoneNumber") String phoneNumber,
+            Pageable pageable);
+
+    @Query(
+            value =
+                    "SELECT rg FROM RewardGrant rg JOIN FETCH rg.reward r JOIN FETCH rg.customer c"
+                        + " JOIN FETCH rg.missionItem mi WHERE (:status IS NULL OR rg.status ="
+                        + " :status) AND (:phoneNumber IS NULL OR c.phoneNumber LIKE"
+                        + " %:phoneNumber%) ORDER BY CASE WHEN rg.expiredAt IS NULL THEN 1 ELSE 0"
+                        + " END, rg.expiredAt ASC",
+            countQuery =
+                    "SELECT COUNT(rg) FROM RewardGrant rg "
+                            + "JOIN rg.customer c "
+                            + "WHERE (:status IS NULL OR rg.status = :status) "
+                            + "AND (:phoneNumber IS NULL OR c.phoneNumber LIKE %:phoneNumber%)")
+    Page<RewardGrant> findWithFiltersOrderByExpiringSoon(
             @Param("status") RewardGrantStatus status,
             @Param("phoneNumber") String phoneNumber,
             Pageable pageable);
