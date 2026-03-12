@@ -34,12 +34,13 @@ public class AdminRewardGrantServiceImpl implements AdminRewardGrantService {
             status = RewardGrantStatus.ISSUED;
         }
 
-        Sort sortOrder =
-                sort == RewardGrantSort.EXPIRING_SOON
-                        ? Sort.by("expiredAt").ascending()
-                        : Sort.by("createdAt").descending();
+        if (sort == RewardGrantSort.EXPIRING_SOON) {
+            Pageable pageable = PageRequest.of(page, size);
+            return rewardGrantRepository.findWithFiltersOrderByExpiringSoon(
+                    status, phoneNumber, pageable);
+        }
 
-        Pageable pageable = PageRequest.of(page, size, sortOrder);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         return rewardGrantRepository.findWithFilters(status, phoneNumber, pageable);
     }
 }
