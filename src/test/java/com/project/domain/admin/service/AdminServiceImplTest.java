@@ -19,11 +19,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.project.domain.admin.entity.Admin;
 import com.project.domain.admin.repository.AdminRepository;
-import com.project.domain.customer.dto.response.SignInResponse;
 import com.project.domain.customer.dto.response.SignUpResponse;
 import com.project.domain.customer.enums.RoleType;
 import com.project.global.auth.JwtTokenUtil;
 import com.project.global.auth.PasswordHash;
+import com.project.global.auth.SignInResult;
 import com.project.global.auth.TokenRefreshResult;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.AdminErrorCode;
@@ -59,12 +59,12 @@ class AdminServiceImplTest {
             passwordHash.when(() -> PasswordHash.matches("raw-pw", "hashed-pw")).thenReturn(true);
 
             // when
-            SignInResponse result = adminService.signIn("admin@test.com", "raw-pw");
+            SignInResult result = adminService.signIn("admin@test.com", "raw-pw");
 
             // then
             assertThat(result.accessToken()).isEqualTo("access-token");
             assertThat(result.refreshToken()).isEqualTo("refresh-token");
-            assertThat(result.role()).isEqualTo("ADMIN");
+            assertThat(result.role()).isEqualTo(RoleType.ADMIN);
         }
     }
 

@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.customer.dto.request.CustomerSignInRequest;
 import com.project.domain.customer.dto.request.CustomerSignUpRequest;
-import com.project.domain.customer.dto.response.SignInResponse;
 import com.project.domain.customer.dto.response.SignUpResponse;
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.entity.CustomerQuota;
@@ -40,6 +39,7 @@ import com.project.domain.policy.enums.PolicyType;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.global.auth.JwtTokenUtil;
 import com.project.global.auth.PasswordHash;
+import com.project.global.auth.SignInResult;
 import com.project.global.auth.TokenRefreshResult;
 import com.project.global.auth.model.AuthContext;
 import com.project.global.exception.ApplicationException;
@@ -81,12 +81,12 @@ class CustomerServiceImplTest {
             passwordHash.when(() -> PasswordHash.matches("raw-pw", "hashed-pw")).thenReturn(true);
 
             // when
-            SignInResponse result = customerService.signIn(request);
+            SignInResult result = customerService.signIn(request);
 
             // then
             assertThat(result.accessToken()).isEqualTo("access-token");
             assertThat(result.refreshToken()).isEqualTo("refresh-token");
-            assertThat(result.role()).isEqualTo("OWNER");
+            assertThat(result.role()).isEqualTo(RoleType.OWNER);
         }
     }
 

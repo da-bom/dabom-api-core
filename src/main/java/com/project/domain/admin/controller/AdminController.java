@@ -34,7 +34,8 @@ public class AdminController {
     public ApiResponse<SignInResponse> signIn(
             @Valid @RequestBody AdminSignInRequest signInRequest) {
         return ApiResponse.success(
-                adminService.signIn(signInRequest.email(), signInRequest.password()));
+                SignInResponse.from(
+                        adminService.signIn(signInRequest.email(), signInRequest.password())));
     }
 
     @PostMapping("/signup")
