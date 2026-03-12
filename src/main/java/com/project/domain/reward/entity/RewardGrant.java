@@ -29,9 +29,8 @@ import lombok.NoArgsConstructor;
 @Table(
         name = "reward_grant",
         indexes = {
-            @Index(name = "idx_reward_grant_status_created", columnList = "status, created_at"),
             @Index(name = "idx_reward_grant_customer", columnList = "customer_id"),
-            @Index(name = "idx_reward_grant_status", columnList = "status"),
+            @Index(name = "idx_reward_grant_status", columnList = "status, created_at"),
             @Index(name = "idx_reward_grant_expired", columnList = "expired_at")
         })
 @Getter
