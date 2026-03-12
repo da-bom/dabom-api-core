@@ -68,7 +68,7 @@ public class CustomerServiceImpl implements CustomerService {
         String accessToken = jwtTokenUtil.createToken(customer.getId(), role);
         String refreshToken = jwtTokenUtil.createRefreshToken(customer.getId(), role);
 
-        return new SignInResponse(accessToken, refreshToken);
+        return new SignInResponse(accessToken, refreshToken, role.name());
     }
 
     @Transactional
