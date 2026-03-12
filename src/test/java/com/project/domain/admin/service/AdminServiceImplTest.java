@@ -44,17 +44,20 @@ class AdminServiceImplTest {
     @DisplayName("signIn - 올바른 자격증명이면 토큰과 ADMIN 역할을 반환한다")
     void signIn_validCredentials_returnsTokensAndAdminRole() {
         // given
-        Admin admin = Admin.builder().id(1L).email("admin@test.com").name("ADMIN")
-                .passwordHash("hashed-pw").build();
+        Admin admin =
+                Admin.builder()
+                        .id(1L)
+                        .email("admin@test.com")
+                        .name("ADMIN")
+                        .passwordHash("hashed-pw")
+                        .build();
 
         given(adminRepository.findByEmail("admin@test.com")).willReturn(Optional.of(admin));
         given(jwtTokenUtil.createToken(1L, RoleType.ADMIN)).willReturn("access-token");
         given(jwtTokenUtil.createRefreshToken(1L, RoleType.ADMIN)).willReturn("refresh-token");
 
         try (MockedStatic<PasswordHash> passwordHash = mockStatic(PasswordHash.class)) {
-            passwordHash
-                    .when(() -> PasswordHash.matches("raw-pw", "hashed-pw"))
-                    .thenReturn(true);
+            passwordHash.when(() -> PasswordHash.matches("raw-pw", "hashed-pw")).thenReturn(true);
 
             // when
             SignInResponse result = adminService.signIn("admin@test.com", "raw-pw");
@@ -85,8 +88,13 @@ class AdminServiceImplTest {
     @DisplayName("signIn - 비밀번호가 틀리면 예외를 던진다")
     void signIn_wrongPassword_throwsException() {
         // given
-        Admin admin = Admin.builder().id(1L).email("admin@test.com").name("ADMIN")
-                .passwordHash("hashed-pw").build();
+        Admin admin =
+                Admin.builder()
+                        .id(1L)
+                        .email("admin@test.com")
+                        .name("ADMIN")
+                        .passwordHash("hashed-pw")
+                        .build();
 
         given(adminRepository.findByEmail("admin@test.com")).willReturn(Optional.of(admin));
 
@@ -101,8 +109,7 @@ class AdminServiceImplTest {
                     .satisfies(
                             e ->
                                     assertThat(((ApplicationException) e).getCode())
-                                            .isEqualTo(
-                                                    CustomerErrorCode.CUSTOMER_SIGN_IN_FAILED));
+                                            .isEqualTo(CustomerErrorCode.CUSTOMER_SIGN_IN_FAILED));
         }
     }
 

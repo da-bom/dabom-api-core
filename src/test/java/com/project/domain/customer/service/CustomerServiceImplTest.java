@@ -10,13 +10,12 @@ import static org.mockito.Mockito.mockStatic;
 import java.time.LocalDate;
 import java.util.Optional;
 
-import org.mockito.MockedStatic;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -73,14 +72,13 @@ class CustomerServiceImplTest {
 
         given(customerRepository.findByPhoneNumber("01012345678")).willReturn(customer);
         given(familyMemberRepository.findRoleById(customer.getId())).willReturn(RoleType.OWNER);
-        given(jwtTokenUtil.createToken(customer.getId(), RoleType.OWNER)).willReturn("access-token");
+        given(jwtTokenUtil.createToken(customer.getId(), RoleType.OWNER))
+                .willReturn("access-token");
         given(jwtTokenUtil.createRefreshToken(customer.getId(), RoleType.OWNER))
                 .willReturn("refresh-token");
 
         try (MockedStatic<PasswordHash> passwordHash = mockStatic(PasswordHash.class)) {
-            passwordHash
-                    .when(() -> PasswordHash.matches("raw-pw", "hashed-pw"))
-                    .thenReturn(true);
+            passwordHash.when(() -> PasswordHash.matches("raw-pw", "hashed-pw")).thenReturn(true);
 
             // when
             SignInResponse result = customerService.signIn(request);
@@ -128,8 +126,7 @@ class CustomerServiceImplTest {
                     .satisfies(
                             e ->
                                     assertThat(((ApplicationException) e).getCode())
-                                            .isEqualTo(
-                                                    CustomerErrorCode.CUSTOMER_SIGN_IN_FAILED));
+                                            .isEqualTo(CustomerErrorCode.CUSTOMER_SIGN_IN_FAILED));
         }
     }
 
@@ -137,8 +134,7 @@ class CustomerServiceImplTest {
     @DisplayName("signUp - 정상 요청이면 고객을 저장하고 ID를 반환한다")
     void signUp_validRequest_returnsCustomerId() {
         // given
-        CustomerSignUpRequest request =
-                new CustomerSignUpRequest("01012345678", "raw-pw", "철수");
+        CustomerSignUpRequest request = new CustomerSignUpRequest("01012345678", "raw-pw", "철수");
 
         given(customerRepository.existsByPhoneNumber("01012345678")).willReturn(false);
         given(customerRepository.save(any(Customer.class)))
@@ -146,7 +142,9 @@ class CustomerServiceImplTest {
                         invocation -> {
                             Customer saved = invocation.getArgument(0);
                             return new Customer(
-                                    saved.getPhoneNumber(), saved.getPasswordHash(), saved.getName());
+                                    saved.getPhoneNumber(),
+                                    saved.getPasswordHash(),
+                                    saved.getName());
                         });
         given(familyMemberRepository.save(any(FamilyMember.class)))
                 .willAnswer(invocation -> invocation.getArgument(0));
@@ -166,8 +164,7 @@ class CustomerServiceImplTest {
     @DisplayName("signUp - 중복 전화번호이면 예외를 던진다")
     void signUp_duplicatePhoneNumber_throwsException() {
         // given
-        CustomerSignUpRequest request =
-                new CustomerSignUpRequest("01012345678", "raw-pw", "철수");
+        CustomerSignUpRequest request = new CustomerSignUpRequest("01012345678", "raw-pw", "철수");
         given(customerRepository.existsByPhoneNumber("01012345678")).willReturn(true);
 
         // when & then
