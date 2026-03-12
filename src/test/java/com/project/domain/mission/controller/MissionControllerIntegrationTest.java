@@ -192,7 +192,9 @@ class MissionControllerIntegrationTest {
                         .readTree(requestResult.getResponse().getContentAsString())
                         .path("data");
         assertRewardNode(
-                requestData.path("missionItem").path("reward"), rewardTemplate.getId(), "data reward");
+                requestData.path("missionItem").path("reward"),
+                rewardTemplate.getId(),
+                "data reward");
 
         MvcResult missionListResult =
                 mockMvc.perform(

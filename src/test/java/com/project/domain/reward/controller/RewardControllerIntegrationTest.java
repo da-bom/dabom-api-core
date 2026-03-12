@@ -178,7 +178,9 @@ class RewardControllerIntegrationTest {
                         .readTree(respondResult.getResponse().getContentAsString())
                         .path("data");
         assertRewardNode(
-                respondData.path("missionItem").path("reward"), rewardTemplate.getId(), "data reward");
+                respondData.path("missionItem").path("reward"),
+                rewardTemplate.getId(),
+                "data reward");
 
         MvcResult receivedResult =
                 mockMvc.perform(
@@ -194,7 +196,9 @@ class RewardControllerIntegrationTest {
                         .path("rewards")
                         .get(0);
         assertRewardNode(
-                receivedNode.path("missionItem").path("reward"), rewardTemplate.getId(), "data reward");
+                receivedNode.path("missionItem").path("reward"),
+                rewardTemplate.getId(),
+                "data reward");
     }
 
     @Test
