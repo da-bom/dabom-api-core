@@ -5,16 +5,18 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.dabom.messaging.kafka.contract.KafkaEventTypes;
+import com.dabom.messaging.kafka.contract.KafkaTopics;
+import com.dabom.messaging.kafka.event.dto.policy.PolicyUpdatedPayload;
+import com.dabom.messaging.kafka.event.publisher.KafkaEventPublisher;
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.policy.dto.response.FamilyPolicyResponse;
 import com.project.domain.policy.entity.PolicyAssignment;
 import com.project.domain.policy.enums.PolicyType;
-import com.project.domain.policy.infra.messaging.PolicyUpdateEventPublish;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.domain.policy.repository.PolicyQueryRepository;
 import com.project.domain.policy.service.helper.RulesUtil;
-import com.project.global.event.dto.policy.PolicyUpdatedPayload;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.FamilyErrorCode;
 import com.project.global.exception.code.PolicyErrorCode;
@@ -32,7 +34,7 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
 
     private final RulesUtil rulesUtil;
 
-    private final PolicyUpdateEventPublish policyUpdateEventPublish;
+    private final KafkaEventPublisher kafkaEventPublisher;
 
     @Override
     public FamilyPolicyResponse getFamilyPolicyResponse(Long customerId) {
@@ -72,7 +74,9 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
         assignment.update(newRules, isActive, actorId);
 
         String policyKey = rulesUtil.toPolicyKey(type);
-        policyUpdateEventPublish.publish(
+        kafkaEventPublisher.publish(
+                KafkaTopics.POLICY_UPDATED,
+                KafkaEventTypes.POLICY_UPDATED,
                 new PolicyUpdatedPayload(
                         familyId, targetCustomerId, policyKey, newRules, isActive));
     }
