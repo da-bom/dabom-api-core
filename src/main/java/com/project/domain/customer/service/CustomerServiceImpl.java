@@ -11,7 +11,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.customer.dto.request.CustomerSignInRequest;
 import com.project.domain.customer.dto.request.CustomerSignUpRequest;
-import com.project.domain.customer.dto.response.SignInResponse;
 import com.project.domain.customer.dto.response.SignUpResponse;
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.entity.CustomerQuota;
@@ -26,6 +25,7 @@ import com.project.domain.policy.enums.PolicyType;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.global.auth.JwtTokenUtil;
 import com.project.global.auth.PasswordHash;
+import com.project.global.auth.SignInResult;
 import com.project.global.auth.TokenRefreshResult;
 import com.project.global.auth.model.AuthContext;
 import com.project.global.exception.ApplicationException;
@@ -52,7 +52,7 @@ public class CustomerServiceImpl implements CustomerService {
     private final ObjectMapper objectMapper;
 
     @Override
-    public SignInResponse signIn(CustomerSignInRequest requestDto) {
+    public SignInResult signIn(CustomerSignInRequest requestDto) {
         Customer customer = customerRepository.findByPhoneNumber(requestDto.phoneNumber());
 
         if (customer == null) {
@@ -68,7 +68,7 @@ public class CustomerServiceImpl implements CustomerService {
         String accessToken = jwtTokenUtil.createToken(customer.getId(), role);
         String refreshToken = jwtTokenUtil.createRefreshToken(customer.getId(), role);
 
-        return new SignInResponse(accessToken, refreshToken);
+        return new SignInResult(accessToken, refreshToken, role);
     }
 
     @Transactional

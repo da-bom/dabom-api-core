@@ -2,14 +2,14 @@ package com.project.domain.customer.service;
 
 import com.project.domain.customer.dto.request.CustomerSignInRequest;
 import com.project.domain.customer.dto.request.CustomerSignUpRequest;
-import com.project.domain.customer.dto.response.SignInResponse;
 import com.project.domain.customer.dto.response.SignUpResponse;
 import com.project.domain.customer.model.MyPageInfo;
+import com.project.global.auth.SignInResult;
 import com.project.global.auth.TokenRefreshResult;
 import com.project.global.auth.model.AuthContext;
 
 public interface CustomerService {
-    SignInResponse signIn(CustomerSignInRequest requestDto);
+    SignInResult signIn(CustomerSignInRequest requestDto);
 
     SignUpResponse signUp(CustomerSignUpRequest requestDto);
 
