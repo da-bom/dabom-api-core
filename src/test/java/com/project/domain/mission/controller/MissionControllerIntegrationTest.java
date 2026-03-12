@@ -192,9 +192,7 @@ class MissionControllerIntegrationTest {
                         .readTree(requestResult.getResponse().getContentAsString())
                         .path("data");
         assertRewardNode(
-                requestData.path("missionItem").path("reward"),
-                rewardTemplate.getId(),
-                "data reward");
+                requestData.path("missionItem").path("reward"), rewardTemplate.getId(), "data reward");
 
         MvcResult missionListResult =
                 mockMvc.perform(
@@ -228,14 +226,23 @@ class MissionControllerIntegrationTest {
                                         .param("size", "20"))
                         .andExpect(status().isOk())
                         .andReturn();
-        JsonNode logNode =
+        JsonNode logList =
                 objectMapper
                         .readTree(logsResult.getResponse().getContentAsString())
                         .path("data")
-                        .path("missions")
-                        .get(0);
+                        .path("missions");
+        JsonNode logNode = null;
+        for (JsonNode node : logList) {
+            if (node.path("missionItem").path("missionItemId").asLong() == createdMissionId) {
+                logNode = node;
+                break;
+            }
+        }
+        assertThat(logNode).isNotNull();
         assertRewardNode(
-                logNode.path("missionItem").path("reward"), rewardTemplate.getId(), "data reward");
+                Objects.requireNonNull(logNode).path("missionItem").path("reward"),
+                rewardTemplate.getId(),
+                "data reward");
     }
 
     @Test
@@ -299,21 +306,21 @@ class MissionControllerIntegrationTest {
                 MissionLog.builder()
                         .missionItemId(mission.getId())
                         .actorId(owner.getId())
-                        .actionType(MissionLogActionType.CREATED)
+                        .actionType(MissionLogActionType.MISSION_CREATED)
                         .message("created")
                         .build());
         missionLogRepository.save(
                 MissionLog.builder()
                         .missionItemId(mission.getId())
                         .actorId(member.getId())
-                        .actionType(MissionLogActionType.REQUESTED)
+                        .actionType(MissionLogActionType.MISSION_REQUESTED)
                         .message("requested")
                         .build());
         missionLogRepository.save(
                 MissionLog.builder()
                         .missionItemId(mission.getId())
                         .actorId(owner.getId())
-                        .actionType(MissionLogActionType.COMPLETED)
+                        .actionType(MissionLogActionType.MISSION_COMPLETED)
                         .message("completed")
                         .build());
 
@@ -370,5 +377,6 @@ class MissionControllerIntegrationTest {
         assertThat(rewardNode.has("rewardId")).isTrue();
         assertThat(rewardNode.path("templateId").asLong()).isEqualTo(templateId);
         assertThat(rewardNode.path("name").asText()).isEqualTo(expectedName);
+        assertThat(rewardNode.has("rewardValue")).isFalse();
     }
 }

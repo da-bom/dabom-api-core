@@ -92,7 +92,7 @@ public class RewardServiceImpl implements RewardService {
             appendLog(
                     mission.getId(),
                     auth.customerId(),
-                    MissionLogActionType.COMPLETED,
+                    MissionLogActionType.MISSION_COMPLETED,
                     "Mission completed");
 
             Customer requester =

@@ -4,7 +4,11 @@ import com.project.domain.mission.model.MissionListResult;
 
 /** 보상 정보 응답 DTO */
 public record RewardResponse(
-        Long rewardId, String name, String category, String thumbnailUrl, Long templateId) {
+        Long rewardId,
+        String name,
+        String category,
+        String thumbnailUrl,
+        Long templateId) {
     public static RewardResponse from(MissionListResult.Reward reward) {
         return new RewardResponse(
                 reward.rewardId(),

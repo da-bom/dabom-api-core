@@ -178,9 +178,7 @@ class RewardControllerIntegrationTest {
                         .readTree(respondResult.getResponse().getContentAsString())
                         .path("data");
         assertRewardNode(
-                respondData.path("missionItem").path("reward"),
-                rewardTemplate.getId(),
-                "data reward");
+                respondData.path("missionItem").path("reward"), rewardTemplate.getId(), "data reward");
 
         MvcResult receivedResult =
                 mockMvc.perform(
@@ -196,9 +194,7 @@ class RewardControllerIntegrationTest {
                         .path("rewards")
                         .get(0);
         assertRewardNode(
-                receivedNode.path("missionItem").path("reward"),
-                rewardTemplate.getId(),
-                "data reward");
+                receivedNode.path("missionItem").path("reward"), rewardTemplate.getId(), "data reward");
     }
 
     @Test
@@ -244,5 +240,6 @@ class RewardControllerIntegrationTest {
         assertThat(rewardNode.has("rewardId")).isTrue();
         assertThat(rewardNode.path("templateId").asLong()).isEqualTo(templateId);
         assertThat(rewardNode.path("name").asText()).isEqualTo(expectedName);
+        assertThat(rewardNode.has("rewardValue")).isFalse();
     }
 }
