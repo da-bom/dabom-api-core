@@ -13,7 +13,6 @@ import com.project.global.auth.PasswordHash;
 import com.project.global.auth.TokenRefreshResult;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.AdminErrorCode;
-import com.project.global.exception.code.CustomerErrorCode;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -38,7 +37,7 @@ public class AdminServiceImpl implements AdminService {
                                                 AdminErrorCode.ADMIN_SIGN_IN_FAILED));
 
         if (!PasswordHash.matches(password, admin.getPasswordHash())) {
-            throw new ApplicationException(CustomerErrorCode.CUSTOMER_SIGN_IN_FAILED);
+            throw new ApplicationException(AdminErrorCode.ADMIN_SIGN_IN_FAILED);
         }
 
         String accessToken = jwtTokenUtil.createToken(admin.getId(), RoleType.ADMIN);

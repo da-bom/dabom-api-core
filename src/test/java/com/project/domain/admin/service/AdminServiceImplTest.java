@@ -27,7 +27,6 @@ import com.project.global.auth.PasswordHash;
 import com.project.global.auth.TokenRefreshResult;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.AdminErrorCode;
-import com.project.global.exception.code.CustomerErrorCode;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -109,7 +108,7 @@ class AdminServiceImplTest {
                     .satisfies(
                             e ->
                                     assertThat(((ApplicationException) e).getCode())
-                                            .isEqualTo(CustomerErrorCode.CUSTOMER_SIGN_IN_FAILED));
+                                            .isEqualTo(AdminErrorCode.ADMIN_SIGN_IN_FAILED));
         }
     }
 
