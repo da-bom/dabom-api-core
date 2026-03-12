@@ -68,8 +68,14 @@ public class FamilyRecapWeekly extends BaseEntity {
     @Column(name = "mission_rejected_count", nullable = false)
     private int missionRejectedCount;
 
-    @Column(name = "appeal_count", nullable = false)
-    private int appealCount;
+    @Column(name = "total_appeal_count", nullable = false)
+    private int totalAppealCount;
+
+    @Column(name = "approved_appeal_count", nullable = false)
+    private int approvedAppealCount;
+
+    @Column(name = "rejected_appeal_count", nullable = false)
+    private int rejectedAppealCount;
 
     @Builder
     public FamilyRecapWeekly(
@@ -84,7 +90,9 @@ public class FamilyRecapWeekly extends BaseEntity {
             int missionCreatedCount,
             int missionCompletedCount,
             int missionRejectedCount,
-            int appealCount) {
+            int totalAppealCount,
+            int approvedAppealCount,
+            int rejectedAppealCount) {
         this.id = id;
         this.familyId = familyId;
         this.weekStartDate = weekStartDate;
@@ -96,6 +104,8 @@ public class FamilyRecapWeekly extends BaseEntity {
         this.missionCreatedCount = missionCreatedCount;
         this.missionCompletedCount = missionCompletedCount;
         this.missionRejectedCount = missionRejectedCount;
-        this.appealCount = appealCount;
+        this.totalAppealCount = totalAppealCount;
+        this.approvedAppealCount = approvedAppealCount;
+        this.rejectedAppealCount = rejectedAppealCount;
     }
 }
