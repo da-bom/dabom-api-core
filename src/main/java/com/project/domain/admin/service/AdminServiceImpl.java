@@ -53,9 +53,9 @@ public class AdminServiceImpl implements AdminService {
 
         Admin admin = Admin.builder().name("ADMIN").email(email).passwordHash(hashed).build();
 
-        adminRepository.save(admin);
+        Admin saved = adminRepository.save(admin);
 
-        return new SignUpResponse(admin.getId());
+        return new SignUpResponse(saved.getId());
     }
 
     @Override

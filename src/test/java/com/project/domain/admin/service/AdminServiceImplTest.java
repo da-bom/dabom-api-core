@@ -116,8 +116,14 @@ class AdminServiceImplTest {
     @DisplayName("signUp - 정상 요청이면 관리자를 저장하고 ID를 반환한다")
     void signUp_validRequest_returnsAdminId() {
         // given
-        given(adminRepository.save(any(Admin.class)))
-                .willAnswer(invocation -> invocation.getArgument(0));
+        Admin savedAdmin =
+                Admin.builder()
+                        .id(1L)
+                        .email("admin@test.com")
+                        .name("ADMIN")
+                        .passwordHash("hashed-pw")
+                        .build();
+        given(adminRepository.save(any(Admin.class))).willReturn(savedAdmin);
 
         try (MockedStatic<PasswordHash> passwordHash = mockStatic(PasswordHash.class)) {
             passwordHash.when(() -> PasswordHash.hash("raw-pw")).thenReturn("hashed-pw");
@@ -126,7 +132,7 @@ class AdminServiceImplTest {
             SignUpResponse result = adminService.signUp("admin@test.com", "raw-pw");
 
             // then
-            assertThat(result).isNotNull();
+            assertThat(result.id()).isEqualTo(1L);
         }
     }
 

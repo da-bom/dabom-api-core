@@ -137,15 +137,11 @@ class CustomerServiceImplTest {
         CustomerSignUpRequest request = new CustomerSignUpRequest("01012345678", "raw-pw", "철수");
 
         given(customerRepository.existsByPhoneNumber("01012345678")).willReturn(false);
-        given(customerRepository.save(any(Customer.class)))
-                .willAnswer(
-                        invocation -> {
-                            Customer saved = invocation.getArgument(0);
-                            return new Customer(
-                                    saved.getPhoneNumber(),
-                                    saved.getPasswordHash(),
-                                    saved.getName());
-                        });
+
+        Customer savedCustomer = mock(Customer.class);
+        given(savedCustomer.getId()).willReturn(1L);
+        given(customerRepository.save(any(Customer.class))).willReturn(savedCustomer);
+
         given(familyMemberRepository.save(any(FamilyMember.class)))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
@@ -156,7 +152,7 @@ class CustomerServiceImplTest {
             SignUpResponse result = customerService.signUp(request);
 
             // then
-            assertThat(result).isNotNull();
+            assertThat(result.id()).isEqualTo(1L);
         }
     }
 
