@@ -28,9 +28,7 @@ public class R2Config {
                                 AwsBasicCredentials.create(accessKey, secretKey)))
                 .region(Region.of("auto"))
                 .serviceConfiguration(
-                        S3Configuration.builder()
-                                .pathStyleAccessEnabled(true)
-                                .build())
+                        S3Configuration.builder().pathStyleAccessEnabled(true).build())
                 .build();
     }
 }

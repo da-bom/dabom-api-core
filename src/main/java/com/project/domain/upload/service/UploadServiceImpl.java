@@ -12,11 +12,11 @@ import com.project.domain.upload.enums.UploadType;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.UploadErrorCode;
 
-import lombok.RequiredArgsConstructor;
-
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -51,8 +51,7 @@ public class UploadServiceImpl implements UploadService {
                             .build();
 
             s3Client.putObject(
-                    putRequest,
-                    RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+                    putRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
         } catch (Exception e) {
             throw new ApplicationException(UploadErrorCode.UPLOAD_FAILED);
         }
@@ -78,8 +77,6 @@ public class UploadServiceImpl implements UploadService {
         if (originalFilename == null || !originalFilename.contains(".")) {
             return "png";
         }
-        return originalFilename
-                .substring(originalFilename.lastIndexOf('.') + 1)
-                .toLowerCase();
+        return originalFilename.substring(originalFilename.lastIndexOf('.') + 1).toLowerCase();
     }
 }
