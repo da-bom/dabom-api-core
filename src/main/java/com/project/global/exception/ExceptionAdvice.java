@@ -31,6 +31,7 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
     }
 
     /** 그 외 모든 예외 */
+    @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleUnhandledException(Exception e, WebRequest request) {
         log.error("[Exception] Unhandled: {}", e.getMessage(), e);
 
