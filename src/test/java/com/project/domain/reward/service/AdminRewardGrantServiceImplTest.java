@@ -79,9 +79,8 @@ class AdminRewardGrantServiceImplTest {
                 .willReturn(page);
 
         // when
-        Page<RewardGrant> result =
-                adminRewardGrantService.getGrants(
-                        0, 20, RewardGrantStatus.USED, RewardGrantSort.LATEST, true, null);
+        adminRewardGrantService.getGrants(
+                0, 20, RewardGrantStatus.USED, RewardGrantSort.LATEST, true, null);
 
         // then
         verify(rewardGrantRepository)
