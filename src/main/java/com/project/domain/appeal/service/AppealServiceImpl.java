@@ -235,7 +235,7 @@ public class AppealServiceImpl implements AppealService {
         } else {
             // 6. REJECTED면 거절 사유를 검증한 뒤 거절 처리한다.
             if (request.rejectReason() == null || request.rejectReason().isBlank()) {
-                throw new ApplicationException(AppealErrorCode.APPEAL_INVALID_DESIRED_RULES);
+                throw new ApplicationException(AppealErrorCode.APPEAL_REJECT_REASON_REQUIRED);
             }
             appeal.reject(auth.customerId(), request.rejectReason(), now);
         }
@@ -270,16 +270,13 @@ public class AppealServiceImpl implements AppealService {
                                 .build());
 
         // 4. 댓글 작성자 이름을 추가한다.
-        String authorName =
-                customerRepository
-                        .findById(auth.customerId())
-                        .map(Customer::getName)
-                        .orElse(UNKNOWN_NAME);
         return new AppealCommentResult(
                 comment.getId(),
                 comment.getAppealId(),
                 comment.getAuthorId(),
-                authorName,
+                auth.authorName() == null || auth.authorName().isBlank()
+                        ? UNKNOWN_NAME
+                        : auth.authorName(),
                 comment.getComment(),
                 comment.getCreatedAt());
     }
@@ -506,16 +503,16 @@ public class AppealServiceImpl implements AppealService {
 
     private AppealStatus parseRespondAction(String action) {
         if (action == null || action.isBlank()) {
-            throw new ApplicationException(AppealErrorCode.APPEAL_ALREADY_RESOLVED);
+            throw new ApplicationException(AppealErrorCode.APPEAL_INVALID_ACTION);
         }
         try {
             AppealStatus parsed = AppealStatus.valueOf(action.toUpperCase());
             if (AppealStatus.APPROVED.equals(parsed) || AppealStatus.REJECTED.equals(parsed)) {
                 return parsed;
             }
-            throw new ApplicationException(AppealErrorCode.APPEAL_ALREADY_RESOLVED);
+            throw new ApplicationException(AppealErrorCode.APPEAL_INVALID_ACTION);
         } catch (IllegalArgumentException e) {
-            throw new ApplicationException(AppealErrorCode.APPEAL_ALREADY_RESOLVED);
+            throw new ApplicationException(AppealErrorCode.APPEAL_INVALID_ACTION);
         }
     }
 

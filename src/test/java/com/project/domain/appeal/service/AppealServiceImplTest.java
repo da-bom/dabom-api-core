@@ -93,7 +93,7 @@ class AppealServiceImplTest {
     @Test
     @DisplayName("OWNER는 가족 전체 이의제기를 조회한다")
     void getAppeals_whenOwner_thenReturnsFamilyAppeals() {
-        AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
+        AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER, "owner");
         PolicyAppeal first = appeal(30L, 2L, 100L, AppealStatus.PENDING);
         PolicyAppeal second = appeal(29L, 3L, 101L, AppealStatus.APPROVED);
         given(policyAppealRepository.findAllByFamilyId(10L, null, null, PageRequest.of(0, 21)))
@@ -135,7 +135,7 @@ class AppealServiceImplTest {
     @Test
     @DisplayName("목록 조회는 커서 기반 nextCursor와 hasNext를 계산한다")
     void getAppeals_whenMoreThanSize_thenReturnsNextCursor() {
-        AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
+        AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER, "owner");
         given(policyAppealRepository.findAllByFamilyId(10L, null, 50L, PageRequest.of(0, 3)))
                 .willReturn(
                         List.of(
@@ -155,7 +155,7 @@ class AppealServiceImplTest {
     @Test
     @DisplayName("상세 조회는 같은 가족의 댓글 커서 페이지와 정책 타입을 반환한다")
     void getAppealDetail_whenSameFamily_thenReturnsDetail() {
-        AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
+        AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER, "owner");
         PolicyAppeal appeal = appeal(30L, 2L, 100L, AppealStatus.PENDING);
         PolicyAppealComment firstComment = comment(20L, 2L, "첫 댓글");
         PolicyAppealComment secondComment = comment(19L, 1L, "둘째 댓글");
@@ -336,7 +336,7 @@ class AppealServiceImplTest {
     @Test
     @DisplayName("가족 구성원은 이의제기에 댓글을 작성할 수 있다")
     void createComment_whenFamilyMember_thenCreatesComment() {
-        AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
+        AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER, "owner");
         PolicyAppeal appeal = appeal(30L, 2L, 100L, AppealStatus.PENDING);
         PolicyAppealComment saved =
                 PolicyAppealComment.builder()
@@ -369,8 +369,6 @@ class AppealServiceImplTest {
                                         .customerId(1L)
                                         .role(RoleType.OWNER)
                                         .build()));
-        given(customerRepository.findById(1L))
-                .willReturn(java.util.Optional.of(customer(1L, "owner")));
         given(policyAppealCommentRepository.save(any(PolicyAppealComment.class))).willReturn(saved);
 
         var result = appealService.createComment(auth, 30L, new AppealCommentRequest("확인 후 처리할게요"));
