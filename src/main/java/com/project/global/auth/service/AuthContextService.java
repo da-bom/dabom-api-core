@@ -31,7 +31,9 @@ public class AuthContextService {
                 customerRepository
                         .findById(customerId)
                         .orElseThrow(
-                                () -> new ApplicationException(CustomerErrorCode.CUSTOMER_NOT_FOUND));
+                                () ->
+                                        new ApplicationException(
+                                                CustomerErrorCode.CUSTOMER_NOT_FOUND));
         return new AuthContext(
                 customerId, member.getFamilyId(), member.getRole(), customer.getName());
     }

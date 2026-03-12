@@ -97,15 +97,16 @@ public class PolicyAppeal extends BaseEntity {
         this.resolvedById = resolverId;
         this.resolvedAt = resolvedAt;
     }
+
     public void reject(Long resolverId, String rejectReason, LocalDateTime resolvedAt) {
         this.status = AppealStatus.REJECTED;
         this.rejectReason = rejectReason;
         this.resolvedById = resolverId;
         this.resolvedAt = resolvedAt;
     }
+
     public void cancel(LocalDateTime cancelledAt) {
         this.status = AppealStatus.CANCELLED;
         this.cancelledAt = cancelledAt;
     }
-
 }
