@@ -15,6 +15,7 @@ import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.AdminOnly;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import lombok.RequiredArgsConstructor;
@@ -31,12 +32,20 @@ public class AdminRewardGrantController {
     @AdminOnly
     @Operation(summary = "보상 지급 내역 조회", description = "관리자가 보상 지급 내역을 조회합니다.")
     public ApiResponse<RewardGrantListResponse> getGrants(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) RewardGrantStatus status,
-            @RequestParam(defaultValue = "LATEST") RewardGrantSort sort,
-            @RequestParam(required = false) Boolean unusedOnly,
-            @RequestParam(required = false) String phoneNumber) {
+            @Parameter(description = "페이지 번호 (0부터 시작)")
+                    @RequestParam(defaultValue = "0")
+                    int page,
+            @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "지급 상태 필터") @RequestParam(required = false)
+                    RewardGrantStatus status,
+            @Parameter(description = "정렬 기준 (LATEST, EXPIRING_SOON)")
+                    @RequestParam(defaultValue = "LATEST")
+                    RewardGrantSort sort,
+            @Parameter(description = "미사용 건만 조회 여부") @RequestParam(required = false)
+                    Boolean unusedOnly,
+            @Parameter(description = "전화번호 검색 (부분 일치)")
+                    @RequestParam(required = false)
+                    String phoneNumber) {
         Page<RewardGrant> grants =
                 adminRewardGrantService.getGrants(
                         page, size, status, sort, unusedOnly, phoneNumber);
