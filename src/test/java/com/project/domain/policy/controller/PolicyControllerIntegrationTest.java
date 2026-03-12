@@ -56,7 +56,7 @@ class PolicyControllerIntegrationTest {
     @Autowired private PolicyAssignmentRepository policyAssignmentRepository;
     @Autowired private EntityManager entityManager;
 
-    @MockitoBean private KafkaTemplate<String, Object> kafkaTemplate;
+    @MockitoBean private KafkaTemplate<String, String> kafkaTemplate;
     @MockitoBean private JwtTokenUtil jwtTokenUtil;
 
     @Test

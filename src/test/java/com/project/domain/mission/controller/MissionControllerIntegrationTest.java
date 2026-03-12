@@ -78,7 +78,7 @@ class MissionControllerIntegrationTest {
     @Autowired private RewardRepository rewardRepository;
 
     @MockitoBean private JwtTokenUtil jwtTokenUtil;
-    @MockitoBean private KafkaTemplate<String, Object> kafkaTemplate;
+    @MockitoBean private KafkaTemplate<String, String> kafkaTemplate;
 
     private Customer owner;
     private Customer member;

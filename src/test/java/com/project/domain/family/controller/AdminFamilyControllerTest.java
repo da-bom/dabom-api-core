@@ -51,7 +51,7 @@ class AdminFamilyControllerTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private FamilyApiTestSupport familyApiTestSupport;
 
-    @MockitoBean private KafkaTemplate<String, Object> kafkaTemplate;
+    @MockitoBean private KafkaTemplate<String, String> kafkaTemplate;
     @MockitoBean private JwtTokenUtil jwtTokenUtil;
     @MockitoBean private FamilyCacheRepository familyCacheRepository;
 
