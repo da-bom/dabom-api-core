@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -100,12 +101,24 @@ class AppealServiceImplTest {
                 .willReturn(List.of(first, second));
         given(customerRepository.findAllById(anyIterable()))
                 .willReturn(List.of(customer(2L, "member-a"), customer(3L, "member-b")));
+        given(policyAssignmentRepository.findAllByIdInAndDeletedAtIsNull(Set.of(100L, 101L)))
+                .willReturn(
+                        List.of(
+                                policyAssignment(100L, 50L, 10L, 2L),
+                                policyAssignment(101L, 51L, 10L, 3L)));
+        given(policyRepository.findAllByIdInAndDeletedAtIsNull(Set.of(50L, 51L)))
+                .willReturn(
+                        List.of(
+                                policy(50L, PolicyType.MONTHLY_LIMIT),
+                                policy(51L, PolicyType.TIME_BLOCK)));
 
         AppealListResult result = appealService.getAppeals(auth, null, null, 20);
 
         assertThat(result.appeals()).hasSize(2);
         assertThat(result.appeals().get(0).requesterName()).isEqualTo("member-a");
+        assertThat(result.appeals().get(0).policyType()).isEqualTo(PolicyType.MONTHLY_LIMIT);
         assertThat(result.appeals().get(1).policyAssignmentId()).isEqualTo(101L);
+        assertThat(result.appeals().get(1).policyType()).isEqualTo(PolicyType.TIME_BLOCK);
         assertThat(result.hasNext()).isFalse();
         assertThat(result.nextCursor()).isNull();
     }
@@ -121,11 +134,16 @@ class AppealServiceImplTest {
                 .willReturn(List.of(appeal));
         given(customerRepository.findAllById(anyIterable()))
                 .willReturn(List.of(customer(2L, "member-a")));
+        given(policyAssignmentRepository.findAllByIdInAndDeletedAtIsNull(Set.of(100L)))
+                .willReturn(List.of(policyAssignment(100L, 50L, 10L, 2L)));
+        given(policyRepository.findAllByIdInAndDeletedAtIsNull(Set.of(50L)))
+                .willReturn(List.of(policy(50L, PolicyType.MONTHLY_LIMIT)));
 
         AppealListResult result = appealService.getAppeals(auth, AppealStatus.PENDING, null, 20);
 
         assertThat(result.appeals()).hasSize(1);
         assertThat(result.appeals().getFirst().requesterId()).isEqualTo(2L);
+        assertThat(result.appeals().getFirst().policyType()).isEqualTo(PolicyType.MONTHLY_LIMIT);
         assertThat(result.appeals().getFirst().status()).isEqualTo(AppealStatus.PENDING);
         verify(policyAppealRepository)
                 .findByRequesterIdAndFamilyId(
@@ -144,12 +162,41 @@ class AppealServiceImplTest {
                                 appeal(38L, 2L, 102L, AppealStatus.PENDING)));
         given(customerRepository.findAllById(anyIterable()))
                 .willReturn(List.of(customer(2L, "member-a")));
+        given(policyAssignmentRepository.findAllByIdInAndDeletedAtIsNull(Set.of(100L, 101L)))
+                .willReturn(
+                        List.of(
+                                policyAssignment(100L, 50L, 10L, 2L),
+                                policyAssignment(101L, 51L, 10L, 2L)));
+        given(policyRepository.findAllByIdInAndDeletedAtIsNull(Set.of(50L, 51L)))
+                .willReturn(
+                        List.of(
+                                policy(50L, PolicyType.MONTHLY_LIMIT),
+                                policy(51L, PolicyType.TIME_BLOCK)));
 
         AppealListResult result = appealService.getAppeals(auth, null, 50L, 2);
 
         assertThat(result.appeals()).hasSize(2);
+        assertThat(result.appeals().get(0).policyType()).isEqualTo(PolicyType.MONTHLY_LIMIT);
+        assertThat(result.appeals().get(1).policyType()).isEqualTo(PolicyType.TIME_BLOCK);
         assertThat(result.hasNext()).isTrue();
         assertThat(result.nextCursor()).isEqualTo("39");
+    }
+
+    @Test
+    @DisplayName("EMERGENCY 이의제기 목록은 policyType을 null로 반환한다")
+    void getAppeals_whenEmergencyAppeal_thenReturnsNullPolicyType() {
+        AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER, "owner");
+        PolicyAppeal emergencyAppeal = appeal(41L, 2L, null, AppealStatus.APPROVED);
+        given(policyAppealRepository.findAllByFamilyId(10L, null, null, PageRequest.of(0, 21)))
+                .willReturn(List.of(emergencyAppeal));
+        given(customerRepository.findAllById(anyIterable()))
+                .willReturn(List.of(customer(2L, "member-a")));
+
+        AppealListResult result = appealService.getAppeals(auth, null, null, 20);
+
+        assertThat(result.appeals()).hasSize(1);
+        assertThat(result.appeals().getFirst().policyAssignmentId()).isNull();
+        assertThat(result.appeals().getFirst().policyType()).isNull();
     }
 
     @Test

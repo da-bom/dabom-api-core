@@ -3,6 +3,7 @@ package com.project.domain.appeal.service;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -99,10 +100,13 @@ public class AppealServiceImpl implements AppealService {
         List<PolicyAppeal> page = hasNext ? appeals.subList(0, pageSize) : appeals;
         String nextCursor = hasNext ? String.valueOf(page.getLast().getId()) : null;
         Map<Long, String> customerNameMap = loadCustomerNameMap(extractRequesterIds(page));
+        Map<Long, PolicyType> policyTypeMap = loadPolicyTypeMap(page);
 
         // 4. 현재 페이지 엔티티를 응답 모델로 변환해 목록 결과를 반환한다.
         return new AppealListResult(
-                page.stream().map(appeal -> toAppealSummary(appeal, customerNameMap)).toList(),
+                page.stream()
+                        .map(appeal -> toAppealSummary(appeal, customerNameMap, policyTypeMap))
+                        .toList(),
                 nextCursor,
                 hasNext);
     }
@@ -369,17 +373,57 @@ public class AppealServiceImpl implements AppealService {
 
     /** 이의제기 요약 모델 변환 */
     private AppealListResult.AppealSummary toAppealSummary(
-            PolicyAppeal appeal, Map<Long, String> customerNameMap) {
+            PolicyAppeal appeal,
+            Map<Long, String> customerNameMap,
+            Map<Long, PolicyType> policyTypeMap) {
         return new AppealListResult.AppealSummary(
                 appeal.getId(),
                 appeal.getType(),
                 appeal.getPolicyAssignmentId(),
+                appeal.getPolicyAssignmentId() == null
+                        ? null
+                        : policyTypeMap.get(appeal.getPolicyAssignmentId()),
                 appeal.getRequesterId(),
                 customerNameMap.getOrDefault(appeal.getRequesterId(), UNKNOWN_NAME),
                 appeal.getRequestReason(),
                 appeal.getDesiredRules(),
                 appeal.getStatus(),
                 appeal.getCreatedAt());
+    }
+
+    private Map<Long, PolicyType> loadPolicyTypeMap(List<PolicyAppeal> appeals) {
+        Set<Long> assignmentIds =
+                appeals.stream()
+                        .map(PolicyAppeal::getPolicyAssignmentId)
+                        .filter(java.util.Objects::nonNull)
+                        .collect(Collectors.toSet());
+        if (assignmentIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<PolicyAssignment> assignments =
+                policyAssignmentRepository.findAllByIdInAndDeletedAtIsNull(assignmentIds);
+        Set<Long> policyIds =
+                assignments.stream()
+                        .map(PolicyAssignment::getPolicyId)
+                        .filter(java.util.Objects::nonNull)
+                        .collect(Collectors.toSet());
+        if (policyIds.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<Long, PolicyType> policyTypeByPolicyId =
+                policyRepository.findAllByIdInAndDeletedAtIsNull(policyIds).stream()
+                        .collect(Collectors.toMap(Policy::getId, Policy::getPolicyType));
+
+        Map<Long, PolicyType> policyTypeMap = new HashMap<>();
+        for (PolicyAssignment assignment : assignments) {
+            PolicyType policyType = policyTypeByPolicyId.get(assignment.getPolicyId());
+            if (policyType != null) {
+                policyTypeMap.put(assignment.getId(), policyType);
+            }
+        }
+        return policyTypeMap;
     }
 
     /** 댓글 항목 모델 변환 */
