@@ -72,7 +72,8 @@ public class AdminRewardTemplateController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "보상 템플릿 삭제", description = "보상 템플릿을 삭제합니다. (Soft Delete)")
     @Parameter(name = "id", description = "보상 템플릿 ID", required = true)
-    public void deleteTemplate(@PathVariable Long id) {
+    public ApiResponse<Void> deleteTemplate(@PathVariable Long id) {
         rewardTemplateService.deleteTemplate(id);
+        return ApiResponse.success(null);
     }
 }
