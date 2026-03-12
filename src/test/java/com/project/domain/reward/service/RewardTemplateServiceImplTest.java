@@ -55,6 +55,48 @@ class RewardTemplateServiceImplTest {
     }
 
     @Test
+    @DisplayName("getTemplate - ID로 템플릿을 조회한다")
+    void getTemplate_validId_returnsTemplate() {
+        // given
+        Long id = 1L;
+        RewardTemplate template =
+                RewardTemplate.builder()
+                        .name("메가커피 아메리카노")
+                        .category(RewardCategory.GIFTICON)
+                        .price(3000)
+                        .isSystem(true)
+                        .isActive(true)
+                        .build();
+        given(rewardTemplateRepository.findByIdAndDeletedAtIsNull(id))
+                .willReturn(Optional.of(template));
+
+        // when
+        RewardTemplate result = rewardTemplateService.getTemplate(id);
+
+        // then
+        assertThat(result.getName()).isEqualTo("메가커피 아메리카노");
+        assertThat(result.getCategory()).isEqualTo(RewardCategory.GIFTICON);
+        assertThat(result.getPrice()).isEqualTo(3000);
+        verify(rewardTemplateRepository).findByIdAndDeletedAtIsNull(id);
+    }
+
+    @Test
+    @DisplayName("getTemplate - 존재하지 않는 ID 조회 시 예외가 발생한다")
+    void getTemplate_notFoundId_throwsException() {
+        // given
+        Long id = 999L;
+        given(rewardTemplateRepository.findByIdAndDeletedAtIsNull(id)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> rewardTemplateService.getTemplate(id))
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(
+                        e ->
+                                assertThat(((ApplicationException) e).getCode())
+                                        .isEqualTo(RewardErrorCode.REWARD_TEMPLATE_NOT_FOUND));
+    }
+
+    @Test
     @DisplayName("createTemplate - 새로운 템플릿을 생성하고 저장한다")
     void createTemplate_validRequest_savesAndReturnsTemplate() {
         // given
