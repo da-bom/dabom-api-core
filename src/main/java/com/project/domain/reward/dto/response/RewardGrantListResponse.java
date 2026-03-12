@@ -11,7 +11,6 @@ import com.project.domain.reward.entity.Reward;
 import com.project.domain.reward.entity.RewardGrant;
 import com.project.domain.reward.enums.RewardCategory;
 import com.project.domain.reward.enums.RewardGrantStatus;
-import com.project.global.util.MaskingUtils;
 
 public record RewardGrantListResponse(
         List<RewardGrantItem> content, int page, int size, long totalElements, int totalPages) {
@@ -33,7 +32,7 @@ public record RewardGrantListResponse(
                     RewardInfo.from(grant.getReward()),
                     CustomerInfo.from(grant.getCustomer()),
                     MissionInfo.from(grant.getMissionItem()),
-                    MaskingUtils.maskCouponCode(grant.getCouponCode()),
+                    grant.getCouponCode(),
                     grant.getCouponUrl(),
                     grant.getStatus(),
                     grant.getExpiredAt(),
