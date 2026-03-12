@@ -10,6 +10,8 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 
 import com.project.global.auth.AuthorizationExtractor;
 import com.project.global.auth.JwtTokenUtil;
+import com.project.global.exception.ApplicationException;
+import com.project.global.exception.code.GlobalErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
@@ -36,7 +38,16 @@ public class CustomerArgumentResolver implements HandlerMethodArgumentResolver {
         HttpServletRequest request = (HttpServletRequest) webRequest.getNativeRequest();
 
         String token = AuthorizationExtractor.extract(request);
-        Long id = jwtTokenUtil.getMemberId(token);
+        if (token == null || token.isBlank()) {
+            throw new ApplicationException(GlobalErrorCode.UNAUTHORIZED_TOKEN);
+        }
+
+        Long id;
+        try {
+            id = jwtTokenUtil.getMemberId(token);
+        } catch (RuntimeException e) {
+            throw new ApplicationException(GlobalErrorCode.UNAUTHORIZED_TOKEN);
+        }
 
         return id;
     }
