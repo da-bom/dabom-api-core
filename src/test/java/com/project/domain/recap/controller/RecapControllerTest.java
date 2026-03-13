@@ -131,6 +131,6 @@ class RecapControllerTest {
                                 .param("month", "3")
                                 .header("Authorization", "Bearer " + MEMBER_TOKEN))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("RECAP_001"));
+                .andExpect(jsonPath("$.error.code").value("RECAP_001"));
     }
 }

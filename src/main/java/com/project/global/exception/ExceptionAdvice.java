@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import com.project.global.api.response.ApiResponse;
 import com.project.global.exception.code.BaseErrorCode;
 import com.project.global.exception.code.GlobalErrorCode;
 
@@ -23,11 +24,8 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
         BaseErrorCode code = e.getCode();
         log.error("[BaseException] {} - {}", code.name(), code.getMessage());
 
-        ErrorResponse response =
-                new ErrorResponse(
-                        code.getHttpStatus().value(), code.getCustomCode(), code.getMessage());
-
-        return ResponseEntity.status(code.getHttpStatus()).body(response);
+        return ResponseEntity.status(code.getHttpStatus())
+                .body(ApiResponse.fail(code.getCustomCode(), code.getMessage(), null));
     }
 
     /** 그 외 모든 예외 */
@@ -37,10 +35,7 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
 
         GlobalErrorCode code = GlobalErrorCode.INTERNAL_SERVER_ERROR;
 
-        ErrorResponse response =
-                new ErrorResponse(
-                        code.getHttpStatus().value(), code.getCustomCode(), code.getMessage());
-
-        return ResponseEntity.status(code.getHttpStatus()).body(response);
+        return ResponseEntity.status(code.getHttpStatus())
+                .body(ApiResponse.fail(code.getCustomCode(), code.getMessage(), null));
     }
 }

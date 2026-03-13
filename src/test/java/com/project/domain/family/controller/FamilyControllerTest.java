@@ -119,7 +119,7 @@ class FamilyControllerTest {
                                                 new com.project.domain.family.dto.request
                                                         .FamilyNameUpdateRequest("김씨 가족"))))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("CUSTOMER_005"));
+                .andExpect(jsonPath("$.error.code").value("CUSTOMER_005"));
     }
 
     @Test
@@ -196,7 +196,7 @@ class FamilyControllerTest {
     void getCurrentFamilyUsage_noToken_returnsUnauthorized() throws Exception {
         mockMvc.perform(get("/families/usage/current"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("GLOBAL_003"));
+                .andExpect(jsonPath("$.error.code").value("GLOBAL_003"));
     }
 
     @Test
@@ -210,7 +210,7 @@ class FamilyControllerTest {
                                                 new com.project.domain.family.dto.request
                                                         .FamilyNameUpdateRequest("김씨 가족"))))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("GLOBAL_003"));
+                .andExpect(jsonPath("$.error.code").value("GLOBAL_003"));
     }
 
     @Test
