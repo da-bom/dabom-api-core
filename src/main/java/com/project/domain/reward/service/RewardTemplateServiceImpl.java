@@ -26,6 +26,11 @@ public class RewardTemplateServiceImpl implements RewardTemplateService {
     }
 
     @Override
+    public RewardTemplate getTemplate(Long id) {
+        return findTemplateOrThrow(id);
+    }
+
+    @Override
     @Transactional
     public RewardTemplate createTemplate(RewardTemplateRequest.Create request) {
         RewardTemplate template =

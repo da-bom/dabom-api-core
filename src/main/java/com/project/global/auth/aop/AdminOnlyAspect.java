@@ -15,6 +15,8 @@ import com.project.global.auth.JwtTokenUtil;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.AdminErrorCode;
 
+import io.jsonwebtoken.JwtException;
+
 import lombok.RequiredArgsConstructor;
 
 @Aspect
@@ -38,7 +40,7 @@ public class AdminOnlyAspect {
         RoleType role;
         try {
             role = jwtTokenUtil.getRole(token);
-        } catch (RuntimeException e) {
+        } catch (JwtException e) {
             throw new ApplicationException(AdminErrorCode.ADMIN_UNAUTHORIZED);
         }
 

@@ -12,6 +12,7 @@ import com.project.domain.family.entity.Family;
 import com.project.domain.family.infra.cache.FamilyCacheRepository;
 import com.project.domain.family.model.FamilyDetail;
 import com.project.domain.family.model.FamilyMemberDetail;
+import com.project.domain.family.model.FamilyMemberInfo;
 import com.project.domain.family.model.FamilySearchResult;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.family.repository.FamilyQueryRepository;
@@ -119,6 +120,12 @@ public class FamilyServiceImpl implements FamilyService {
     public List<FamilyUsageCustomerRow> getUsageReportCustomers(
             Long familyId, LocalDate targetMonth) {
         return familyQueryRepository.findUsageReportCustomers(familyId, targetMonth);
+    }
+
+    @Override
+    public List<FamilyMemberInfo> getFamilyMembers(Long customerId) {
+        Long familyId = getFamilyIdByCustomerId(customerId);
+        return familyQueryRepository.findMembersByFamilyId(familyId);
     }
 
     @Override

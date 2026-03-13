@@ -1,7 +1,5 @@
 package com.project.domain.mission.service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -44,7 +42,7 @@ import com.project.global.exception.code.MissionErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
-/** 미션 조회, 생성, 취소, 완료 요청을 처리하는 서비스 구현체. */
+/** 미션 조회, 생성, 취소, 완료 요청을 처리하는 서비스 구현체 */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -61,40 +59,34 @@ public class MissionServiceImpl implements MissionService {
     private final CustomerRepository customerRepository;
     private final FamilyMemberRepository familyMemberRepository;
 
-    /** 역할 범위 내 활성 미션 중 PENDING 또는 요청 이력이 없는 미션만 조회한다. */
+    /** ACTIVE 미션을 조회하고, 최신 MissionRequest.status는 표시 정보로만 사용한다. */
     @Override
     public MissionListResult listMissions(AuthContext auth, String cursor, int size) {
-
-        // 1. 요청 파라미터를 커서 기반 조회에 사용할 값으로 정규화한다.
         int pageSize = normalizeSize(size);
         Long cursorId = parseCursor(cursor);
 
-        // 2. 목록 정책에 맞는 미션만 별도 수집해 페이지 조각을 만든다.
-        VisibleMissionSlice visibleMissionSlice = findVisibleMissionSlice(auth, cursorId, pageSize);
+        List<MissionItem> missions = findActiveMissionItemsByRole(auth, cursorId, pageSize + 1);
+        boolean hasNext = missions.size() > pageSize;
+        List<MissionItem> page = hasNext ? missions.subList(0, pageSize) : missions;
+        String nextCursor = hasNext ? String.valueOf(page.getLast().getId()) : null;
 
-        // 3. 최종 페이지에 포함된 미션만 기준으로 사용자 이름을 조회해 응답을 조합한다.
-        Map<Long, String> customerNameMap = loadCustomerNameMap(visibleMissionSlice.missions());
+        Map<Long, String> customerNameMap = loadCustomerNameMap(page);
+        Map<Long, String> requestStatusMap = loadMissionRequestStatusMap(page);
+
         return new MissionListResult(
-                visibleMissionSlice.missions().stream()
-                        .map(
-                                mission ->
-                                        toMissionCard(
-                                                mission,
-                                                customerNameMap,
-                                                visibleMissionSlice.requestStatusMap()))
+                page.stream()
+                        .map(mission -> toMissionCard(mission, customerNameMap, requestStatusMap))
                         .toList(),
-                visibleMissionSlice.nextCursor(),
-                visibleMissionSlice.hasNext());
+                nextCursor,
+                hasNext);
     }
 
-    /** 미션 이벤트 로그를 조회한다. 이 메서드는 MissionLog 기준 조회이며, 요청 처리 상태 이력은 포함하지 않는다. */
+    /** 미션 이벤트 로그를 조회한다. 이 메서드는 MissionLog 기반 조회이며, 요청 처리 상태 이력은 포함하지 않는다. */
     @Override
     public MissionLogListResult listMissionLogs(AuthContext auth, String cursor, int size) {
-        // 1. 커서 입력을 정규화한다.
         int pageSize = normalizeSize(size);
         Long cursorId = parseCursor(cursor);
 
-        // 2. OWNER는 가족 기준, MEMBER는 본인 기준으로 로그를 조회한다.
         List<MissionLog> logs =
                 auth.isOwner()
                         ? missionLogRepository.findByFamilyScope(
@@ -106,7 +98,6 @@ public class MissionServiceImpl implements MissionService {
         List<MissionLog> page = hasNext ? logs.subList(0, pageSize) : logs;
         String nextCursor = hasNext ? String.valueOf(page.getLast().getId()) : null;
 
-        // 3. 로그에 연결된 미션과 사용자명을 조회해 응답 모델로 조합한다.
         Map<Long, MissionItem> missionMap =
                 missionItemRepository
                         .findAllWithRewardByIdIn(
@@ -128,11 +119,9 @@ public class MissionServiceImpl implements MissionService {
     @Override
     public MissionRequestHistoryListResult listMissionRequestHistory(
             AuthContext auth, String cursor, int size) {
-        // 1. 커서 입력을 정규화한다.
         int pageSize = normalizeSize(size);
         Long cursorId = parseCursor(cursor);
 
-        // 2. OWNER는 가족 기준, MEMBER는 본인 기준으로 요청 이력을 조회한다.
         List<MissionRequest> requests =
                 auth.isOwner()
                         ? missionRequestRepository.findByFamilyIdOrderByIdDesc(
@@ -144,7 +133,6 @@ public class MissionServiceImpl implements MissionService {
         List<MissionRequest> page = hasNext ? requests.subList(0, pageSize) : requests;
         String nextCursor = hasNext ? String.valueOf(page.getLast().getId()) : null;
 
-        // 3. 요청 이력에 연결된 미션과 사용자 정보를 일괄 조회한다.
         Set<Long> missionIds =
                 page.stream().map(MissionRequest::getMissionItemId).collect(Collectors.toSet());
         Map<Long, MissionItem> missionMap =
@@ -164,7 +152,6 @@ public class MissionServiceImpl implements MissionService {
                 customerRepository.findAllById(customerIds).stream()
                         .collect(Collectors.toMap(Customer::getId, Customer::getName));
 
-        // 4. MissionRequest를 요청 이력 응답 모델로 조합한다.
         List<MissionRequestHistoryListResult.MissionRequestHistoryItem> items =
                 page.stream()
                         .map(
@@ -179,7 +166,6 @@ public class MissionServiceImpl implements MissionService {
     @Override
     @Transactional
     public CreateMissionResult createMission(AuthContext auth, CreateMissionRequest req) {
-        // 1. 요청자가 OWNER인지, 대상이 같은 가족의 MEMBER인지 검증한다.
         assertOwner(auth);
 
         FamilyMember targetMember =
@@ -194,10 +180,8 @@ public class MissionServiceImpl implements MissionService {
             throw new ApplicationException(MissionErrorCode.MISSION_TARGET_INVALID);
         }
 
-        // 2. 템플릿을 조회한 뒤 현재 값을 복사한 Reward 스냅샷을 생성한다.
         Reward reward = rewardSnapshotService.createFromTemplate(req.rewardTemplateId());
 
-        // 생성된 Reward를 미션에 연결해 저장한다.
         MissionItem mission =
                 missionItemRepository.save(
                         MissionItem.builder()
@@ -235,11 +219,10 @@ public class MissionServiceImpl implements MissionService {
                 "Mission cancelled");
     }
 
-    /** MEMBER가 본인에게 할당된 미션의 완료 승인을 요청한다. */
+    /** MEMBER가 자신에게 할당된 미션의 완료 승인을 요청한다. */
     @Override
     @Transactional
     public MissionRequestResult requestMissionApproval(AuthContext auth, Long missionId) {
-        // 1. 미션 할당 대상과 상태, 중복 요청 여부를 검증한다.
         MissionItem mission = findMissionByFamilyScopeForUpdate(auth, missionId);
         if (!mission.isAssignedTo(auth.customerId())) {
             throw new ApplicationException(MissionErrorCode.MISSION_NOT_ASSIGNED);
@@ -252,7 +235,6 @@ public class MissionServiceImpl implements MissionService {
             throw new ApplicationException(MissionErrorCode.MISSION_REQUEST_DUPLICATED);
         }
 
-        // 2. 중복 생성 경쟁을 대비해 요청 저장 예외를 도메인 예외로 변환한다.
         MissionRequest request;
         try {
             request =
@@ -272,7 +254,6 @@ public class MissionServiceImpl implements MissionService {
                 MissionLogActionType.MISSION_REQUESTED,
                 "Mission requested");
 
-        // 3. 응답에는 MissionItem이 참조하는 Reward 스냅샷을 그대로 사용한다.
         String requesterName =
                 customerRepository
                         .findById(auth.customerId())
@@ -289,7 +270,6 @@ public class MissionServiceImpl implements MissionService {
                 request.getCreatedAt());
     }
 
-    /** 역할에 따라 활성 미션 조회 범위를 분기한다. */
     private List<MissionItem> findActiveMissionItemsByRole(
             AuthContext auth, Long cursorId, int fetchSize) {
         if (auth.isOwner()) {
@@ -298,80 +278,6 @@ public class MissionServiceImpl implements MissionService {
         }
         return missionItemRepository.findByTargetScope(
                 auth.customerId(), MissionStatus.ACTIVE, cursorId, PageRequest.of(0, fetchSize));
-    }
-
-    /** 목록 정책에 맞는 미션만 수집해 커서 페이지 조각으로 반환한다. */
-    private VisibleMissionSlice findVisibleMissionSlice(
-            AuthContext auth, Long cursorId, int pageSize) {
-        // 1. 활성 미션 자체는 커서 기준으로 읽고, 노출 가능한 미션만 별도 버퍼에 담는다.
-        List<MissionItem> visibleMissions = new ArrayList<>();
-        Map<Long, String> visibleRequestStatusMap = new HashMap<>();
-        Long nextFetchCursor = cursorId;
-        int fetchSize = pageSize + 1;
-        boolean sourceExhausted = false;
-
-        while (visibleMissions.size() < fetchSize && !sourceExhausted) {
-            // 2. 한 번 읽은 chunk에 대해 최신 요청 상태를 붙인 뒤 노출 여부를 판단한다.
-            List<MissionItem> chunk =
-                    findActiveMissionItemsByRole(auth, nextFetchCursor, fetchSize);
-            if (chunk.isEmpty()) {
-                sourceExhausted = true;
-            } else {
-                // 3. 목록 노출 조건에 맞는 미션만 골라서 따로 담습니다
-                collectVisibleMissions(chunk, fetchSize, visibleMissions, visibleRequestStatusMap);
-
-                nextFetchCursor = chunk.getLast().getId();
-                sourceExhausted = chunk.size() < fetchSize;
-            }
-        }
-
-        // 4. pageSize + 1개 수집 결과를 바탕으로 다음 페이지 존재 여부를 계산한다.
-        return toVisibleMissionSlice(pageSize, visibleMissions, visibleRequestStatusMap);
-    }
-
-    /** 목록에는 PENDING 상태이거나 요청 이력이 없는 미션만 노출한다. */
-    private boolean isVisibleMissionRequestStatus(String requestStatus) {
-        return requestStatus == null || MissionRequestStatus.PENDING.name().equals(requestStatus);
-    }
-
-    /** 한 번 조회한 chunk에서 목록 노출 조건을 만족하는 미션만 누적한다. */
-    private void collectVisibleMissions(
-            List<MissionItem> chunk,
-            int fetchSize,
-            List<MissionItem> visibleMissions,
-            Map<Long, String> visibleRequestStatusMap) {
-        Map<Long, String> chunkRequestStatusMap = loadMissionRequestStatusMap(chunk);
-        for (MissionItem mission : chunk) {
-            if (visibleMissions.size() == fetchSize) {
-                return;
-            }
-
-            String requestStatus = chunkRequestStatusMap.get(mission.getId());
-            if (isVisibleMissionRequestStatus(requestStatus)) {
-                visibleMissions.add(mission);
-                if (requestStatus != null) {
-                    visibleRequestStatusMap.put(mission.getId(), requestStatus);
-                }
-            }
-        }
-    }
-
-    /** 누적된 미션 목록을 pageSize 기준의 커서 페이지 조각으로 변환한다. */
-    private VisibleMissionSlice toVisibleMissionSlice(
-            int pageSize,
-            List<MissionItem> visibleMissions,
-            Map<Long, String> visibleRequestStatusMap) {
-        boolean hasNext = visibleMissions.size() > pageSize;
-        List<MissionItem> page = hasNext ? visibleMissions.subList(0, pageSize) : visibleMissions;
-        Map<Long, String> pageRequestStatusMap =
-                page.stream()
-                        .filter(mission -> visibleRequestStatusMap.containsKey(mission.getId()))
-                        .collect(
-                                Collectors.toMap(
-                                        MissionItem::getId,
-                                        mission -> visibleRequestStatusMap.get(mission.getId())));
-        String nextCursor = hasNext ? String.valueOf(page.getLast().getId()) : null;
-        return new VisibleMissionSlice(page, pageRequestStatusMap, nextCursor, hasNext);
     }
 
     private MissionListResult.MissionCard toMissionCard(
@@ -392,7 +298,7 @@ public class MissionServiceImpl implements MissionService {
                 mission.getCreatedAt());
     }
 
-    /** 미션별 최신 요청 상태를 맵 형태로 로드한다. */
+    /** 미션별 최신 요청 상태를 맵 형태로 조회한다. */
     private Map<Long, String> loadMissionRequestStatusMap(List<MissionItem> missions) {
         Set<Long> missionIds =
                 missions.stream().map(MissionItem::getId).collect(Collectors.toSet());
@@ -462,7 +368,7 @@ public class MissionServiceImpl implements MissionService {
                 request.getResolvedAt());
     }
 
-    /** 미션 목록 응답에 필요한 사용자명을 일괄 조회한다. */
+    /** 미션 목록 응답에 필요한 사용자 이름을 일괄 조회한다. */
     private Map<Long, String> loadCustomerNameMap(List<MissionItem> missions) {
         Set<Long> customerIds =
                 missions.stream()
@@ -476,7 +382,7 @@ public class MissionServiceImpl implements MissionService {
                 .collect(Collectors.toMap(Customer::getId, Customer::getName));
     }
 
-    /** 미션 로그 응답에 필요한 사용자명을 일괄 조회한다. */
+    /** 미션 로그 응답에 필요한 사용자 이름을 일괄 조회한다. */
     private Map<Long, String> loadCustomerNameMapFromLogs(
             List<MissionLog> logs, Map<Long, MissionItem> missionMap) {
         Set<Long> customerIds =
@@ -525,7 +431,7 @@ public class MissionServiceImpl implements MissionService {
         }
     }
 
-    /** 요청한 페이지 크기를 허용 범위로 보정한다. */
+    /** 요청 페이지 크기를 허용 범위로 보정한다. */
     private int normalizeSize(int size) {
         if (size <= 0) {
             return DEFAULT_CURSOR_SIZE;
@@ -544,11 +450,4 @@ public class MissionServiceImpl implements MissionService {
             throw new ApplicationException(MissionErrorCode.MISSION_INVALID_CURSOR);
         }
     }
-
-    /** 노출 미션 목록과 요청 상태, 다음 커서 정보를 담는다. */
-    private record VisibleMissionSlice(
-            List<MissionItem> missions,
-            Map<Long, String> requestStatusMap,
-            String nextCursor,
-            boolean hasNext) {}
 }

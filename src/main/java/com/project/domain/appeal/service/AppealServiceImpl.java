@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -66,8 +67,7 @@ public class AppealServiceImpl implements AppealService {
     private static final int DEFAULT_CURSOR_SIZE = 20;
     private static final int MAX_CURSOR_SIZE = 100;
     private static final String UNKNOWN_NAME = "unknown";
-    private static final long MIN_EMERGENCY_BYTES = 104_857_600L;
-    private static final long MAX_EMERGENCY_BYTES = 314_572_800L;
+    private static final long EMERGENCY_ADDITIONAL_BYTES = 314_572_800L;
 
     private final Clock clock;
     private final PolicyAppealRepository policyAppealRepository;
@@ -117,10 +117,13 @@ public class AppealServiceImpl implements AppealService {
         List<PolicyAppeal> page = hasNext ? appeals.subList(0, pageSize) : appeals;
         String nextCursor = hasNext ? String.valueOf(page.getLast().getId()) : null;
         Map<Long, String> customerNameMap = loadCustomerNameMap(extractRequesterIds(page));
+        Map<Long, PolicyType> policyTypeMap = loadPolicyTypeMap(page);
 
         // 4. 현재 페이지 엔티티를 응답 모델로 변환해 목록 결과를 반환한다.
         return new AppealListResult(
-                page.stream().map(appeal -> toAppealSummary(appeal, customerNameMap)).toList(),
+                page.stream()
+                        .map(appeal -> toAppealSummary(appeal, customerNameMap, policyTypeMap))
+                        .toList(),
                 nextCursor,
                 hasNext);
     }
@@ -334,9 +337,8 @@ public class AppealServiceImpl implements AppealService {
     @Transactional
     public EmergencyQuotaResult requestEmergencyQuota(
             AuthContext auth, EmergencyQuotaRequest request) {
-        // 1. MEMBER 역할과 요청 바이트 범위를 검증한다.
+        // 1. MEMBER 역할을 검증한다.
         validateMemberOnly(auth);
-        validateEmergencyBytes(request.additionalBytes());
 
         // 2. 당월 고객 쿼터를 조회하고 무제한 사용자 여부를 확인한다.
         LocalDate currentMonth = LocalDate.now(clock).withDayOfMonth(1);
@@ -363,7 +365,7 @@ public class AppealServiceImpl implements AppealService {
                                     .requesterId(auth.customerId())
                                     .requestReason(request.requestReason())
                                     .desiredRules(
-                                            Map.of("additionalBytes", request.additionalBytes()))
+                                            Map.of("additionalBytes", EMERGENCY_ADDITIONAL_BYTES))
                                     .status(AppealStatus.APPROVED)
                                     .emergencyGrantMonth(currentMonth)
                                     .build());
@@ -372,14 +374,18 @@ public class AppealServiceImpl implements AppealService {
         }
 
         // 4. 승인 저장이 확정되면 월 한도를 즉시 증가시킨다.
-        customerQuota.addMonthlyLimitBytes(request.additionalBytes());
+        customerQuota.addMonthlyLimitBytes(EMERGENCY_ADDITIONAL_BYTES);
 
-        // 5. 긴급 쿼터 결과를 응답 모델로 반환한다.
+        // 5. MONTHLY_LIMIT 정책 할당이 있으면 rules.limitBytes도 동기화한다.
+        syncMonthlyLimitPolicyAssignment(
+                auth.familyId(), auth.customerId(), customerQuota.getMonthlyLimitBytes());
+
+        // 6. 긴급 쿼터 결과를 응답 모델로 반환한다.
         return new EmergencyQuotaResult(
                 appeal.getId(),
                 appeal.getType(),
                 appeal.getStatus(),
-                request.additionalBytes(),
+                EMERGENCY_ADDITIONAL_BYTES,
                 customerQuota.getMonthlyLimitBytes(),
                 appeal.getRequestReason(),
                 appeal.getCreatedAt());
@@ -387,17 +393,57 @@ public class AppealServiceImpl implements AppealService {
 
     /** 이의제기 요약 모델 변환 */
     private AppealListResult.AppealSummary toAppealSummary(
-            PolicyAppeal appeal, Map<Long, String> customerNameMap) {
+            PolicyAppeal appeal,
+            Map<Long, String> customerNameMap,
+            Map<Long, PolicyType> policyTypeMap) {
         return new AppealListResult.AppealSummary(
                 appeal.getId(),
                 appeal.getType(),
                 appeal.getPolicyAssignmentId(),
+                appeal.getPolicyAssignmentId() == null
+                        ? null
+                        : policyTypeMap.get(appeal.getPolicyAssignmentId()),
                 appeal.getRequesterId(),
                 customerNameMap.getOrDefault(appeal.getRequesterId(), UNKNOWN_NAME),
                 appeal.getRequestReason(),
                 appeal.getDesiredRules(),
                 appeal.getStatus(),
                 appeal.getCreatedAt());
+    }
+
+    private Map<Long, PolicyType> loadPolicyTypeMap(List<PolicyAppeal> appeals) {
+        Set<Long> assignmentIds =
+                appeals.stream()
+                        .map(PolicyAppeal::getPolicyAssignmentId)
+                        .filter(java.util.Objects::nonNull)
+                        .collect(Collectors.toSet());
+        if (assignmentIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<PolicyAssignment> assignments =
+                policyAssignmentRepository.findAllByIdInAndDeletedAtIsNull(assignmentIds);
+        Set<Long> policyIds =
+                assignments.stream()
+                        .map(PolicyAssignment::getPolicyId)
+                        .filter(java.util.Objects::nonNull)
+                        .collect(Collectors.toSet());
+        if (policyIds.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<Long, PolicyType> policyTypeByPolicyId =
+                policyRepository.findAllByIdInAndDeletedAtIsNull(policyIds).stream()
+                        .collect(Collectors.toMap(Policy::getId, Policy::getPolicyType));
+
+        Map<Long, PolicyType> policyTypeMap = new HashMap<>();
+        for (PolicyAssignment assignment : assignments) {
+            PolicyType policyType = policyTypeByPolicyId.get(assignment.getPolicyId());
+            if (policyType != null) {
+                policyTypeMap.put(assignment.getId(), policyType);
+            }
+        }
+        return policyTypeMap;
     }
 
     /** 댓글 항목 모델 변환 */
@@ -451,13 +497,6 @@ public class AppealServiceImpl implements AppealService {
         }
     }
 
-    /** 긴급 요청 바이트 범위 검증 */
-    private void validateEmergencyBytes(Long additionalBytes) {
-        if (additionalBytes < MIN_EMERGENCY_BYTES || additionalBytes > MAX_EMERGENCY_BYTES) {
-            throw new ApplicationException(AppealErrorCode.APPEAL_EMERGENCY_INVALID_BYTES);
-        }
-    }
-
     /** 정책 타입 조회 */
     private PolicyType resolvePolicyType(PolicyAppeal appeal) {
         if (AppealType.EMERGENCY.equals(appeal.getType())
@@ -500,6 +539,33 @@ public class AppealServiceImpl implements AppealService {
         } catch (JsonProcessingException e) {
             throw new ApplicationException(AppealErrorCode.APPEAL_INVALID_DESIRED_RULES);
         }
+    }
+
+    /** MONTHLY_LIMIT 정책 할당의 rules.limitBytes를 갱신한다. */
+    private void syncMonthlyLimitPolicyAssignment(
+            Long familyId, Long customerId, Long newLimitBytes) {
+        policyAssignmentRepository
+                .findByTargetAndType(familyId, customerId, PolicyType.MONTHLY_LIMIT)
+                .ifPresent(
+                        assignment -> {
+                            try {
+                                Map<String, Object> rules =
+                                        objectMapper.readValue(
+                                                assignment.getRules(),
+                                                objectMapper
+                                                        .getTypeFactory()
+                                                        .constructMapType(
+                                                                Map.class,
+                                                                String.class,
+                                                                Object.class));
+                                rules.put("limitBytes", newLimitBytes);
+                                assignment.update(
+                                        objectMapper.writeValueAsString(rules), null, null);
+                            } catch (JsonProcessingException e) {
+                                throw new ApplicationException(
+                                        AppealErrorCode.APPEAL_INVALID_DESIRED_RULES);
+                            }
+                        });
     }
 
     private void validateOwnerOnly(AuthContext auth) {

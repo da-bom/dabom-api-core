@@ -1,7 +1,9 @@
 package com.project.domain.mission.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -51,6 +53,8 @@ import com.project.domain.reward.enums.RewardCategory;
 import com.project.domain.reward.repository.RewardRepository;
 import com.project.domain.reward.repository.RewardTemplateRepository;
 import com.project.global.auth.JwtTokenUtil;
+
+import io.jsonwebtoken.Claims;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -143,17 +147,20 @@ class MissionControllerIntegrationTest {
                                 .status(MissionStatus.ACTIVE)
                                 .build());
 
-        lenient()
-                .when(jwtTokenUtil.verify(org.mockito.ArgumentMatchers.anyString()))
-                .thenReturn(null);
-        lenient().when(jwtTokenUtil.getMemberId(OWNER_TOKEN)).thenReturn(owner.getId());
-        lenient().when(jwtTokenUtil.getMemberId(MEMBER_TOKEN)).thenReturn(member.getId());
-        lenient().when(jwtTokenUtil.getRole(OWNER_TOKEN)).thenReturn(RoleType.OWNER);
-        lenient().when(jwtTokenUtil.getRole(MEMBER_TOKEN)).thenReturn(RoleType.MEMBER);
+        Claims ownerClaims = mock(Claims.class);
+        doReturn(owner.getId().toString()).when(ownerClaims).getSubject();
+        doReturn(RoleType.OWNER.name()).when(ownerClaims).get("role", String.class);
+
+        Claims memberClaims = mock(Claims.class);
+        doReturn(member.getId().toString()).when(memberClaims).getSubject();
+        doReturn(RoleType.MEMBER.name()).when(memberClaims).get("role", String.class);
+
+        lenient().when(jwtTokenUtil.getVerifiedClaims(OWNER_TOKEN)).thenReturn(ownerClaims);
+        lenient().when(jwtTokenUtil.getVerifiedClaims(MEMBER_TOKEN)).thenReturn(memberClaims);
     }
 
     @Test
-    @DisplayName("미션 생성과 완료 요청, 목록/로그 조회에서 reward 정보가 유지된다")
+    @DisplayName("미션 생성과 완료 요청, 목록과 로그 조회에서 reward 정보가 유지된다")
     void missionFlowKeepsRewardShape() throws Exception {
         String createBody =
                 objectMapper.writeValueAsString(
@@ -343,6 +350,44 @@ class MissionControllerIntegrationTest {
                         delete("/missions/{missionId}", mission.getId())
                                 .header("Authorization", "Bearer " + OWNER_TOKEN))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("미션 목록은 REJECTED 요청 이력이 있어도 ACTIVE 미션을 반환한다")
+    void missionListIncludesActiveMissionWithRejectedRequest() throws Exception {
+        missionRequestRepository.save(
+                MissionRequest.builder()
+                        .missionItemId(mission.getId())
+                        .requesterId(member.getId())
+                        .status(MissionRequestStatus.REJECTED)
+                        .resolvedById(owner.getId())
+                        .rejectReason("photo missing")
+                        .build());
+
+        MvcResult result =
+                mockMvc.perform(
+                                get("/missions")
+                                        .header("Authorization", "Bearer " + MEMBER_TOKEN)
+                                        .param("size", "20"))
+                        .andExpect(status().isOk())
+                        .andReturn();
+
+        JsonNode missions =
+                objectMapper
+                        .readTree(result.getResponse().getContentAsString())
+                        .path("data")
+                        .path("missions");
+        JsonNode foundMission = null;
+        for (JsonNode node : missions) {
+            if (node.path("missionItemId").asLong() == mission.getId()) {
+                foundMission = node;
+                break;
+            }
+        }
+
+        assertThat(foundMission).isNotNull();
+        assertThat(Objects.requireNonNull(foundMission).path("requestStatus").asText())
+                .isEqualTo("REJECTED");
     }
 
     @Test

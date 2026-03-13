@@ -28,7 +28,7 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
-    baseline-version: 7
+    baseline-version: 8
 
   jwt:
     secret-key: ${JWT_SECRET_KEY:changeme}
@@ -52,6 +52,18 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+
+r2:
+  endpoint: ${R2_ENDPOINT:https://localhost.r2.cloudflarestorage.com}
+  access-key: ${R2_ACCESS_KEY:changeme}
+  secret-key: ${R2_SECRET_KEY:changeme}
+  bucket: ${R2_BUCKET:dabom-storage}
+  cdn-base-url: ${R2_CDN_BASE_URL:https://cdn.dabom.site}
 
 server:
   port: ${SERVER_PORT:8080}
