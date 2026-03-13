@@ -50,8 +50,8 @@ public class AdminRewardTemplateController {
     @GetMapping("/{id}")
     @AdminOnly
     @Operation(summary = "보상 템플릿 상세 조회", description = "보상 템플릿 ID로 상세 정보를 조회합니다.")
-    @Parameter(name = "id", description = "보상 템플릿 ID", required = true)
-    public ApiResponse<RewardTemplateResponse.Detail> getTemplate(@PathVariable Long id) {
+    public ApiResponse<RewardTemplateResponse.Detail> getTemplate(
+            @Parameter(description = "보상 템플릿 ID", required = true) @PathVariable("id") Long id) {
         RewardTemplate template = rewardTemplateService.getTemplate(id);
         return ApiResponse.success(RewardTemplateResponse.Detail.from(template));
     }
@@ -69,9 +69,9 @@ public class AdminRewardTemplateController {
     @PutMapping("/{id}")
     @AdminOnly
     @Operation(summary = "보상 템플릿 수정", description = "보상 템플릿을 수정합니다.")
-    @Parameter(name = "id", description = "보상 템플릿 ID", required = true)
     public ApiResponse<RewardTemplateResponse.Detail> updateTemplate(
-            @PathVariable Long id, @Valid @RequestBody RewardTemplateRequest.Update request) {
+            @Parameter(description = "보상 템플릿 ID", required = true) @PathVariable("id") Long id,
+            @Valid @RequestBody RewardTemplateRequest.Update request) {
         RewardTemplate template = rewardTemplateService.updateTemplate(id, request);
         return ApiResponse.success(RewardTemplateResponse.Detail.from(template));
     }
@@ -80,8 +80,8 @@ public class AdminRewardTemplateController {
     @AdminOnly
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "보상 템플릿 삭제", description = "보상 템플릿을 삭제합니다. (Soft Delete)")
-    @Parameter(name = "id", description = "보상 템플릿 ID", required = true)
-    public ApiResponse<Void> deleteTemplate(@PathVariable Long id) {
+    public ApiResponse<Void> deleteTemplate(
+            @Parameter(description = "보상 템플릿 ID", required = true) @PathVariable("id") Long id) {
         rewardTemplateService.deleteTemplate(id);
         return ApiResponse.success(null);
     }
