@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.project.domain.policy.entity.PolicyAssignment;
 import com.project.domain.policy.enums.PolicyType;
+import com.project.domain.policy.model.AppliedPolicyQueryResult;
 
 public interface PolicyAssignmentRepository extends JpaRepository<PolicyAssignment, Long> {
     Optional<PolicyAssignment> findByIdAndDeletedAtIsNull(Long id);
@@ -55,4 +56,29 @@ public interface PolicyAssignmentRepository extends JpaRepository<PolicyAssignme
             @Param("policyId") Long policyId,
             @Param("rules") String rules,
             @Param("active") boolean active);
+
+    List<PolicyAssignment> findAllByTargetCustomerIdAndDeletedAtIsNull(Long customerId);
+
+    // 특정 고객에게 현재 적용 중인 정책 목록과 정책 메타 정보를 함께 조회
+    @Query(
+            """
+            SELECT new com.project.domain.policy.model.AppliedPolicyQueryResult(
+                pa.id,
+                p.id,
+                p.name,
+                p.policyType,
+                pa.rules,
+                pa.isActive,
+                pa.appliedAt
+            )
+            FROM PolicyAssignment pa
+            JOIN Policy p ON p.id = pa.policyId
+            WHERE pa.targetCustomerId = :customerId
+              AND pa.deletedAt IS NULL
+              AND p.deletedAt IS NULL
+              AND pa.isActive = true
+              AND p.isActive = true
+            """)
+    List<AppliedPolicyQueryResult> findAppealablePoliciesByCustomerId(
+            @Param("customerId") Long customerId);
 }

@@ -3,6 +3,7 @@ package com.project.domain.appeal.service;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.appeal.dto.request.AppealCommentRequest;
 import com.project.domain.appeal.dto.request.AppealCreateRequest;
@@ -31,6 +33,7 @@ import com.project.domain.appeal.model.AppealCreateResult;
 import com.project.domain.appeal.model.AppealDetailResult;
 import com.project.domain.appeal.model.AppealListResult;
 import com.project.domain.appeal.model.AppealRespondResult;
+import com.project.domain.appeal.model.AppealablePolicyListResult;
 import com.project.domain.appeal.model.EmergencyQuotaResult;
 import com.project.domain.appeal.repository.PolicyAppealCommentRepository;
 import com.project.domain.appeal.repository.PolicyAppealRepository;
@@ -44,6 +47,7 @@ import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.policy.entity.Policy;
 import com.project.domain.policy.entity.PolicyAssignment;
 import com.project.domain.policy.enums.PolicyType;
+import com.project.domain.policy.model.AppliedPolicyQueryResult;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.domain.policy.repository.PolicyRepository;
 import com.project.global.auth.model.AuthContext;
@@ -74,6 +78,20 @@ public class AppealServiceImpl implements AppealService {
     private final PolicyRepository policyRepository;
     private final CustomerQuotaRepository customerQuotaRepository;
     private final ObjectMapper objectMapper;
+
+    /** 이의제기 가능 정책 목록 조회 */
+    @Override
+    public AppealablePolicyListResult getAppealablePolicyListResult(AuthContext auth) {
+        // 현재 사용자에게 적용 중인 정책 목록을 조회해 이의제기 목록 모델로 변환한다.
+        List<AppealablePolicyListResult.AppealablePolicy> policies =
+                policyAssignmentRepository
+                        .findAppealablePoliciesByCustomerId(auth.customerId())
+                        .stream()
+                        .map(this::toAppealablePolicyResult)
+                        .toList();
+
+        return new AppealablePolicyListResult(policies);
+    }
 
     /** 이의제기 목록 조회 */
     @Override
@@ -602,5 +620,30 @@ public class AppealServiceImpl implements AppealService {
             return DEFAULT_CURSOR_SIZE;
         }
         return Math.min(size, MAX_CURSOR_SIZE);
+    }
+
+    /** 적용 정책 조회 결과를 이의제기 목록 항목 모델로 변환 */
+    private AppealablePolicyListResult.AppealablePolicy toAppealablePolicyResult(
+            AppliedPolicyQueryResult result) {
+        return new AppealablePolicyListResult.AppealablePolicy(
+                result.policyAssignmentId(),
+                result.policyId(),
+                result.policyName(),
+                result.policyType(),
+                parseRules(result.appliedRules()),
+                result.active(),
+                result.appliedAt());
+    }
+
+    /** JSON 규칙 문자열을 응답용 Map 으로 변환 */
+    private Map<String, Object> parseRules(String rules) {
+        if (rules == null || rules.isBlank()) {
+            return Collections.emptyMap();
+        }
+        try {
+            return objectMapper.readValue(rules, new TypeReference<Map<String, Object>>() {});
+        } catch (JsonProcessingException e) {
+            throw new ApplicationException(PolicyErrorCode.POLICY_RULES_CORRUPTED);
+        }
     }
 }
