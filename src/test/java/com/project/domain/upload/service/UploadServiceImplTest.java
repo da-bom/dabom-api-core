@@ -52,8 +52,7 @@ class UploadServiceImplTest {
         String result = uploadService.upload(file, UploadType.REWARD);
 
         // then
-        assertThat(result).startsWith("https://cdn.test.com/rewards/");
-        assertThat(result).endsWith(".png");
+        assertThat(result).startsWith("https://cdn.test.com/rewards/").endsWith(".png");
         verify(s3Client).putObject(any(PutObjectRequest.class), any(RequestBody.class));
     }
 
@@ -149,8 +148,7 @@ class UploadServiceImplTest {
         String result = uploadService.upload(file, UploadType.MISSION);
 
         // then
-        assertThat(result).startsWith("https://cdn.test.com/missions/");
-        assertThat(result).endsWith(".webp");
+        assertThat(result).startsWith("https://cdn.test.com/missions/").endsWith(".webp");
     }
 
     @Test
@@ -166,7 +164,6 @@ class UploadServiceImplTest {
         String result = uploadService.upload(file, UploadType.PROFILE);
 
         // then
-        assertThat(result).startsWith("https://cdn.test.com/profiles/");
-        assertThat(result).endsWith(".jpg");
+        assertThat(result).startsWith("https://cdn.test.com/profiles/").endsWith(".jpg");
     }
 }

@@ -25,7 +25,7 @@ public class UploadServiceImpl implements UploadService {
 
     private static final Set<String> ALLOWED_MIME_TYPES =
             Set.of("image/png", "image/jpeg", "image/webp");
-    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    private static final long MAX_FILE_SIZE = 5L * 1024 * 1024; // 5MB
 
     private final S3Client s3Client;
 
