@@ -11,11 +11,15 @@ import com.project.domain.appeal.model.AppealCreateResult;
 import com.project.domain.appeal.model.AppealDetailResult;
 import com.project.domain.appeal.model.AppealListResult;
 import com.project.domain.appeal.model.AppealRespondResult;
+import com.project.domain.appeal.model.AppealablePolicyListResult;
 import com.project.domain.appeal.model.EmergencyQuotaResult;
 import com.project.global.auth.model.AuthContext;
 
 /** 이의제기 서비스 명세 */
 public interface AppealService {
+    /** 이의제기 가능 정책 조회 */
+    AppealablePolicyListResult getAppealablePolicyListResult(AuthContext auth);
+
     /** 이의제기 목록 조회 */
     AppealListResult getAppeals(AuthContext auth, AppealStatus status, Long cursor, int size);
 

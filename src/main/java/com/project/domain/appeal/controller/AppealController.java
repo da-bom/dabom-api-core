@@ -24,6 +24,7 @@ import com.project.domain.appeal.dto.response.AppealCreateResponse;
 import com.project.domain.appeal.dto.response.AppealDetailResponse;
 import com.project.domain.appeal.dto.response.AppealListResponse;
 import com.project.domain.appeal.dto.response.AppealRespondResponse;
+import com.project.domain.appeal.dto.response.AppealablePolicyListResponse;
 import com.project.domain.appeal.dto.response.EmergencyQuotaResponse;
 import com.project.domain.appeal.enums.AppealStatus;
 import com.project.domain.appeal.model.AppealCancelResult;
@@ -32,6 +33,7 @@ import com.project.domain.appeal.model.AppealCreateResult;
 import com.project.domain.appeal.model.AppealDetailResult;
 import com.project.domain.appeal.model.AppealListResult;
 import com.project.domain.appeal.model.AppealRespondResult;
+import com.project.domain.appeal.model.AppealablePolicyListResult;
 import com.project.domain.appeal.model.EmergencyQuotaResult;
 import com.project.domain.appeal.service.AppealService;
 import com.project.global.api.response.ApiResponse;
@@ -56,6 +58,16 @@ public class AppealController {
 
     private final AppealService appealService;
     private final AuthContextService authContextService;
+
+    /** 현재 적용 중인 정책 목록 조회 */
+    @GetMapping("/policies")
+    @Operation(summary = "이의제기 생성 전, 현재 적용중인 정책 목록 조회 ")
+    public ApiResponse<AppealablePolicyListResponse> getAppealablePolicies(
+            @Parameter(hidden = true) @CustomerId Long customerId) {
+        AuthContext auth = authContextService.resolve(customerId);
+        AppealablePolicyListResult result = appealService.getAppealablePolicyListResult(auth);
+        return ApiResponse.success(AppealablePolicyListResponse.from(result));
+    }
 
     /** 이의제기 목록 조회 처리 */
     @GetMapping
