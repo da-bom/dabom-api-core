@@ -26,6 +26,7 @@ import com.project.domain.family.entity.Family;
 import com.project.domain.family.infra.cache.FamilyCacheRepository;
 import com.project.domain.family.model.FamilyDetail;
 import com.project.domain.family.model.FamilyMemberDetail;
+import com.project.domain.family.model.FamilyMemberInfo;
 import com.project.domain.family.model.FamilyMemberSummary;
 import com.project.domain.family.model.FamilySearchResult;
 import com.project.domain.family.repository.FamilyMemberRepository;
@@ -178,6 +179,51 @@ class FamilyServiceImplTest {
 
         // when & then
         assertThatThrownBy(() -> familyService.updateFamilyName(customerId, "새 이름"))
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(
+                        e ->
+                                assertThat(((ApplicationException) e).getCode())
+                                        .isEqualTo(FamilyErrorCode.FAMILY_NOT_FOUND));
+    }
+
+    @Test
+    @DisplayName("getFamilyMembers - MEMBER 역할의 가족 구성원만 반환한다")
+    void getFamilyMembers_validCustomer_returnsMembersOnly() {
+        // given
+        Long customerId = 1L;
+        Long familyId = 100L;
+        List<FamilyMemberInfo> members =
+                List.of(
+                        new FamilyMemberInfo(2L, "아이1", RoleType.MEMBER),
+                        new FamilyMemberInfo(3L, "아이2", RoleType.MEMBER));
+
+        given(familyMemberRepository.findFamilyIdByCustomerId(customerId))
+                .willReturn(Optional.of(familyId));
+        given(familyQueryRepository.findMembersByFamilyId(familyId)).willReturn(members);
+
+        // when
+        List<FamilyMemberInfo> result = familyService.getFamilyMembers(customerId);
+
+        // then
+        assertThat(result).hasSize(2);
+        assertThat(result).extracting(FamilyMemberInfo::role)
+                .containsOnly(RoleType.MEMBER);
+        assertThat(result).extracting(FamilyMemberInfo::name)
+                .containsExactly("아이1", "아이2");
+        verify(familyMemberRepository).findFamilyIdByCustomerId(customerId);
+        verify(familyQueryRepository).findMembersByFamilyId(familyId);
+    }
+
+    @Test
+    @DisplayName("getFamilyMembers - 고객이 가족에 속하지 않으면 예외를 던진다")
+    void getFamilyMembers_customerNotInFamily_throwsException() {
+        // given
+        Long customerId = 9_999L;
+        given(familyMemberRepository.findFamilyIdByCustomerId(customerId))
+                .willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> familyService.getFamilyMembers(customerId))
                 .isInstanceOf(ApplicationException.class)
                 .satisfies(
                         e ->
