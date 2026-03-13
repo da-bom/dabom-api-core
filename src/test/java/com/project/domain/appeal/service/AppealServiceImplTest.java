@@ -51,6 +51,7 @@ import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.policy.entity.Policy;
 import com.project.domain.policy.entity.PolicyAssignment;
 import com.project.domain.policy.enums.PolicyType;
+import com.project.domain.policy.model.AppliedPolicyQueryResult;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.domain.policy.repository.PolicyRepository;
 import com.project.global.auth.model.AuthContext;
@@ -88,6 +89,55 @@ class AppealServiceImplTest {
                         policyRepository,
                         customerQuotaRepository,
                         objectMapper);
+    }
+
+    @Test
+    @DisplayName("현재 사용자에게 적용 중인 정책 목록을 이의제기용 정책 목록으로 변환한다")
+    void getAppealablePolicyListResult_whenPoliciesExist_thenReturnsMappedPolicies()
+            throws JsonProcessingException {
+        AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
+        AppliedPolicyQueryResult first =
+                new AppliedPolicyQueryResult(
+                        100L,
+                        50L,
+                        "야간 사용 제한",
+                        PolicyType.TIME_BLOCK,
+                        "{\"startTime\":\"22:00\",\"endTime\":\"07:00\"}",
+                        true,
+                        LocalDateTime.of(2026, 3, 10, 22, 0));
+        AppliedPolicyQueryResult second =
+                new AppliedPolicyQueryResult(
+                        101L,
+                        51L,
+                        "월간 데이터 제한",
+                        PolicyType.MONTHLY_LIMIT,
+                        "{\"limitBytes\":2048}",
+                        true,
+                        LocalDateTime.of(2026, 3, 1, 0, 0));
+
+        given(policyAssignmentRepository.findAppealablePoliciesByCustomerId(2L))
+                .willReturn(List.of(first, second));
+        given(
+                        objectMapper.readValue(
+                                org.mockito.ArgumentMatchers.eq(
+                                        "{\"startTime\":\"22:00\",\"endTime\":\"07:00\"}"),
+                                any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .willReturn(Map.of("startTime", "22:00", "endTime", "07:00"));
+        given(
+                        objectMapper.readValue(
+                                org.mockito.ArgumentMatchers.eq("{\"limitBytes\":2048}"),
+                                any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .willReturn(Map.of("limitBytes", 2048));
+
+        var result = appealService.getAppealablePolicyListResult(auth);
+
+        assertThat(result.policies()).hasSize(2);
+        assertThat(result.policies().get(0).policyAssignmentId()).isEqualTo(100L);
+        assertThat(result.policies().get(0).policyId()).isEqualTo(50L);
+        assertThat(result.policies().get(0).policyName()).isEqualTo("야간 사용 제한");
+        assertThat(result.policies().get(0).policyType()).isEqualTo(PolicyType.TIME_BLOCK);
+        assertThat(result.policies().get(0).appliedRules()).containsEntry("startTime", "22:00");
+        assertThat(result.policies().get(1).appliedRules()).containsEntry("limitBytes", 2048);
     }
 
     @Test
