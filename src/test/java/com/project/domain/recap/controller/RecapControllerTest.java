@@ -1,7 +1,8 @@
 package com.project.domain.recap.controller;
 
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -26,6 +27,8 @@ import com.project.global.config.WebConfig;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.ExceptionAdvice;
 import com.project.global.exception.code.RecapErrorCode;
+
+import io.jsonwebtoken.Claims;
 
 @WebMvcTest(RecapController.class)
 @Import({WebConfig.class, ExceptionAdvice.class})
@@ -81,8 +84,9 @@ class RecapControllerTest {
                         new BigDecimal("82.5"),
                         LocalDateTime.of(2026, 3, 1, 0, 0));
 
-        given(jwtTokenUtil.verify(anyString())).willReturn(null);
-        given(jwtTokenUtil.getMemberId(MEMBER_TOKEN)).willReturn(MEMBER_ID);
+        Claims memberClaims = mock(Claims.class);
+        doReturn(MEMBER_ID.toString()).when(memberClaims).getSubject();
+        given(jwtTokenUtil.getVerifiedClaims(MEMBER_TOKEN)).willReturn(memberClaims);
         given(recapService.getMonthlyRecap(MEMBER_ID, 2026, 3)).willReturn(monthlyRecap);
 
         mockMvc.perform(
@@ -115,8 +119,9 @@ class RecapControllerTest {
     @Test
     @DisplayName("GET /recaps/monthly - 리캡이 없으면 404를 반환한다")
     void getMonthlyRecap_notFound_returnsNotFound() throws Exception {
-        given(jwtTokenUtil.verify(anyString())).willReturn(null);
-        given(jwtTokenUtil.getMemberId(MEMBER_TOKEN)).willReturn(MEMBER_ID);
+        Claims memberClaims = mock(Claims.class);
+        doReturn(MEMBER_ID.toString()).when(memberClaims).getSubject();
+        given(jwtTokenUtil.getVerifiedClaims(MEMBER_TOKEN)).willReturn(memberClaims);
         given(recapService.getMonthlyRecap(MEMBER_ID, 2026, 3))
                 .willThrow(new ApplicationException(RecapErrorCode.RECAP_NOT_FOUND));
 
