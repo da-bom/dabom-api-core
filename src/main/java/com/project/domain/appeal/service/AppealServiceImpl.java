@@ -577,7 +577,7 @@ public class AppealServiceImpl implements AppealService {
         try {
             return objectMapper.readValue(rules, new TypeReference<Map<String, Object>>() {});
         } catch (JsonProcessingException e) {
-            throw new ApplicationException(AppealErrorCode.APPEAL_INVALID_DESIRED_RULES);
+            throw new ApplicationException(PolicyErrorCode.POLICY_RULES_CORRUPTED);
         }
     }
 }
