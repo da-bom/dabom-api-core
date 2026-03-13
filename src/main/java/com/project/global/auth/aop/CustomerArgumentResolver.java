@@ -13,6 +13,8 @@ import com.project.global.auth.JwtTokenUtil;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.GlobalErrorCode;
 
+import io.jsonwebtoken.JwtException;
+
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -45,7 +47,7 @@ public class CustomerArgumentResolver implements HandlerMethodArgumentResolver {
         Long id;
         try {
             id = jwtTokenUtil.getMemberId(token);
-        } catch (RuntimeException e) {
+        } catch (JwtException e) {
             throw new ApplicationException(GlobalErrorCode.UNAUTHORIZED_TOKEN);
         }
 

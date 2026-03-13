@@ -8,6 +8,8 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.GlobalErrorCode;
 
+import io.jsonwebtoken.JwtException;
+
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -23,7 +25,7 @@ public class LoginInterceptor implements HandlerInterceptor {
         }
         try {
             jwtTokenUtil.verifyAccessToken(token);
-        } catch (RuntimeException e) {
+        } catch (JwtException e) {
             throw new ApplicationException(GlobalErrorCode.UNAUTHORIZED_TOKEN);
         }
         return true;
