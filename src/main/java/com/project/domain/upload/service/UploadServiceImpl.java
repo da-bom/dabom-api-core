@@ -74,9 +74,15 @@ public class UploadServiceImpl implements UploadService {
     }
 
     private String extractExtension(String contentType) {
-        if ("image/png".equals(contentType)) return "png";
-        if ("image/jpeg".equals(contentType)) return "jpg";
-        if ("image/webp".equals(contentType)) return "webp";
+        if ("image/png".equals(contentType)) {
+            return "png";
+        }
+        if ("image/jpeg".equals(contentType)) {
+            return "jpg";
+        }
+        if ("image/webp".equals(contentType)) {
+            return "webp";
+        }
         throw new ApplicationException(UploadErrorCode.INVALID_MIME_TYPE);
     }
 }
