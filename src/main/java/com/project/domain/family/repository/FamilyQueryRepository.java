@@ -20,10 +20,12 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
+import com.project.domain.customer.enums.RoleType;
 import com.project.domain.family.dto.request.FamilySearchRequest;
 import com.project.domain.family.entity.Family;
 import com.project.domain.family.model.FamilyDetail;
 import com.project.domain.family.model.FamilyMemberDetail;
+import com.project.domain.family.model.FamilyMemberInfo;
 import com.project.domain.family.model.FamilyMemberSummary;
 import com.project.domain.family.model.FamilySearchResult;
 import com.project.domain.family.repository.projection.FamilyUsageCustomerRow;
@@ -31,6 +33,7 @@ import com.project.domain.family.util.FamilyUsageCalculator;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.FamilyErrorCode;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -154,6 +157,24 @@ public class FamilyQueryRepository {
                         familyEntity.getCurrentMonth(),
                         familyEntity.getCreatedAt(),
                         familyEntity.getUpdatedAt()));
+    }
+
+    public List<FamilyMemberInfo> findMembersByFamilyId(Long familyId) {
+        return queryFactory
+                .select(
+                        Projections.constructor(
+                                FamilyMemberInfo.class,
+                                customer.id,
+                                customer.name,
+                                familyMember.role))
+                .from(familyMember)
+                .join(customer)
+                .on(familyMember.customerId.eq(customer.id))
+                .where(
+                        familyMember.familyId.eq(familyId),
+                        familyMember.role.eq(RoleType.MEMBER),
+                        familyMember.deletedAt.isNull())
+                .fetch();
     }
 
     public List<FamilyUsageCustomerRow> findUsageReportCustomers(

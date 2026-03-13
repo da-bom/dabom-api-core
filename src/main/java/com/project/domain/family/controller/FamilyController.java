@@ -1,5 +1,7 @@
 package com.project.domain.family.controller;
 
+import java.util.List;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -13,8 +15,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.project.domain.family.dto.request.FamilyNameUpdateRequest;
+import com.project.domain.family.dto.response.FamilyMemberInfoResponse;
 import com.project.domain.family.dto.response.FamilyNameUpdateResponse;
 import com.project.domain.family.entity.Family;
+import com.project.domain.family.model.FamilyMemberInfo;
 import com.project.domain.family.service.FamilyService;
 import com.project.domain.usagerecord.dto.response.FamilyCustomersUsageResponse;
 import com.project.domain.usagerecord.dto.response.FamilyCustomersUsageSummaryResponse;
@@ -50,6 +54,17 @@ public class FamilyController {
             @RequestBody @Valid FamilyNameUpdateRequest request) {
         Family family = familyService.updateFamilyName(customerId, request.name());
         return ApiResponse.success(FamilyNameUpdateResponse.from(family));
+    }
+
+    @OwnerOnly
+    @GetMapping("/members")
+    @Operation(summary = "가족 구성원 목록 조회", description = "가족 구성원 목록을 조회합니다.")
+    public ApiResponse<List<FamilyMemberInfoResponse>> getFamilyMembers(
+            @Parameter(hidden = true) @CustomerId Long customerId) {
+        List<FamilyMemberInfo> members = familyService.getFamilyMembers(customerId);
+        List<FamilyMemberInfoResponse> response =
+                members.stream().map(FamilyMemberInfoResponse::from).toList();
+        return ApiResponse.success(response);
     }
 
     @GetMapping(value = "/usage/current")
