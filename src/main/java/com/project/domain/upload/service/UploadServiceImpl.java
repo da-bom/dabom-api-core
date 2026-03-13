@@ -1,5 +1,6 @@
 package com.project.domain.upload.service;
 
+import java.io.IOException;
 import java.util.Set;
 import java.util.UUID;
 
@@ -11,6 +12,7 @@ import com.project.domain.upload.enums.UploadType;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.UploadErrorCode;
 
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -37,7 +39,7 @@ public class UploadServiceImpl implements UploadService {
     public String upload(MultipartFile file, UploadType type) {
         validateFile(file);
 
-        String extension = extractExtension(file.getOriginalFilename());
+        String extension = extractExtension(file.getContentType());
         String fileName = UUID.randomUUID() + "." + extension;
         String key = type.getPrefix() + "/" + fileName;
 
@@ -51,7 +53,7 @@ public class UploadServiceImpl implements UploadService {
 
             s3Client.putObject(
                     putRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
-        } catch (Exception e) {
+        } catch (IOException | SdkException e) {
             throw new ApplicationException(UploadErrorCode.UPLOAD_FAILED);
         }
 
@@ -71,10 +73,10 @@ public class UploadServiceImpl implements UploadService {
         }
     }
 
-    private String extractExtension(String originalFilename) {
-        if (originalFilename == null || !originalFilename.contains(".")) {
-            return "png";
-        }
-        return originalFilename.substring(originalFilename.lastIndexOf('.') + 1).toLowerCase();
+    private String extractExtension(String contentType) {
+        if ("image/png".equals(contentType)) return "png";
+        if ("image/jpeg".equals(contentType)) return "jpg";
+        if ("image/webp".equals(contentType)) return "webp";
+        throw new ApplicationException(UploadErrorCode.INVALID_MIME_TYPE);
     }
 }
