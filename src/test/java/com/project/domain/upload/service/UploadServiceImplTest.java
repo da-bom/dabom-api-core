@@ -152,4 +152,21 @@ class UploadServiceImplTest {
         assertThat(result).startsWith("https://cdn.test.com/missions/");
         assertThat(result).endsWith(".webp");
     }
+
+    @Test
+    @DisplayName("upload - image/jpeg Content-Type이면 .jpg 확장자로 변환된다")
+    void upload_jpegContentType_returnsJpgExtension() {
+        // given
+        MockMultipartFile file =
+                new MockMultipartFile("file", "photo.jpeg", "image/jpeg", new byte[1024]);
+        when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
+                .thenReturn(PutObjectResponse.builder().build());
+
+        // when
+        String result = uploadService.upload(file, UploadType.PROFILE);
+
+        // then
+        assertThat(result).startsWith("https://cdn.test.com/profiles/");
+        assertThat(result).endsWith(".jpg");
+    }
 }
