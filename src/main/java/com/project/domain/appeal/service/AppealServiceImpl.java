@@ -360,7 +360,11 @@ public class AppealServiceImpl implements AppealService {
         // 4. 승인 저장이 확정되면 월 한도를 즉시 증가시킨다.
         customerQuota.addMonthlyLimitBytes(request.additionalBytes());
 
-        // 5. 긴급 쿼터 결과를 응답 모델로 반환한다.
+        // 5. MONTHLY_LIMIT 정책 할당이 있으면 rules.limitBytes도 동기화한다.
+        syncMonthlyLimitPolicyAssignment(
+                auth.familyId(), auth.customerId(), customerQuota.getMonthlyLimitBytes());
+
+        // 6. 긴급 쿼터 결과를 응답 모델로 반환한다.
         return new EmergencyQuotaResult(
                 appeal.getId(),
                 appeal.getType(),
@@ -526,6 +530,33 @@ public class AppealServiceImpl implements AppealService {
         } catch (JsonProcessingException e) {
             throw new ApplicationException(AppealErrorCode.APPEAL_INVALID_DESIRED_RULES);
         }
+    }
+
+    /** MONTHLY_LIMIT 정책 할당의 rules.limitBytes를 갱신한다. */
+    private void syncMonthlyLimitPolicyAssignment(
+            Long familyId, Long customerId, Long newLimitBytes) {
+        policyAssignmentRepository
+                .findByTargetAndType(familyId, customerId, PolicyType.MONTHLY_LIMIT)
+                .ifPresent(
+                        assignment -> {
+                            try {
+                                Map<String, Object> rules =
+                                        objectMapper.readValue(
+                                                assignment.getRules(),
+                                                objectMapper
+                                                        .getTypeFactory()
+                                                        .constructMapType(
+                                                                Map.class,
+                                                                String.class,
+                                                                Object.class));
+                                rules.put("limitBytes", newLimitBytes);
+                                assignment.update(
+                                        objectMapper.writeValueAsString(rules), null, null);
+                            } catch (JsonProcessingException e) {
+                                throw new ApplicationException(
+                                        AppealErrorCode.APPEAL_INVALID_DESIRED_RULES);
+                            }
+                        });
     }
 
     private void validateOwnerOnly(AuthContext auth) {
