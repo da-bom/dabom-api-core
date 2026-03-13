@@ -132,9 +132,7 @@ class FamilyControllerTest {
         given(jwtTokenUtil.getRole(OWNER_TOKEN)).willReturn(RoleType.OWNER);
         given(familyService.getFamilyMembers(OWNER_ID)).willReturn(members);
 
-        mockMvc.perform(
-                        get("/families/members")
-                                .header("Authorization", "Bearer " + OWNER_TOKEN))
+        mockMvc.perform(get("/families/members").header("Authorization", "Bearer " + OWNER_TOKEN))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").isArray())
@@ -152,9 +150,7 @@ class FamilyControllerTest {
         given(jwtTokenUtil.verify(anyString())).willReturn(null);
         given(jwtTokenUtil.getRole(MEMBER_TOKEN)).willReturn(RoleType.MEMBER);
 
-        mockMvc.perform(
-                        get("/families/members")
-                                .header("Authorization", "Bearer " + MEMBER_TOKEN))
+        mockMvc.perform(get("/families/members").header("Authorization", "Bearer " + MEMBER_TOKEN))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("CUSTOMER_005"));
     }

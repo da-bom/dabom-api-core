@@ -27,6 +27,7 @@ import org.springframework.data.domain.PageRequest;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.MapType;
 import com.project.domain.appeal.dto.request.AppealCommentRequest;
 import com.project.domain.appeal.dto.request.AppealCreateRequest;
 import com.project.domain.appeal.dto.request.AppealRespondRequest;
@@ -427,10 +428,11 @@ class AppealServiceImplTest {
     }
 
     @Test
-    @DisplayName("긴급 쿼터 요청은 월 한도를 즉시 증가시키고 승인 상태로 저장한다")
-    void requestEmergencyQuota_whenValid_thenUpdatesQuota() {
+    @DisplayName("긴급 쿼터 요청은 300MB를 즉시 증가시키고 PolicyAssignment rules도 동기화한다")
+    void requestEmergencyQuota_whenValid_thenUpdatesQuotaAndPolicyAssignment()
+            throws JsonProcessingException {
         AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
-        EmergencyQuotaRequest request = new EmergencyQuotaRequest("데이터가 부족합니다", 104_857_600L);
+        EmergencyQuotaRequest request = new EmergencyQuotaRequest("데이터가 부족합니다");
         CustomerQuota customerQuota =
                 CustomerQuota.builder()
                         .familyId(10L)
@@ -446,7 +448,61 @@ class AppealServiceImplTest {
                         .type(AppealType.EMERGENCY)
                         .requesterId(2L)
                         .requestReason("데이터가 부족합니다")
-                        .desiredRules(Map.of("additionalBytes", 104_857_600L))
+                        .desiredRules(Map.of("additionalBytes", 314_572_800L))
+                        .status(AppealStatus.APPROVED)
+                        .build();
+        setCreatedAt(saved, LocalDateTime.of(2026, 3, 10, 12, 0));
+
+        PolicyAssignment assignment = policyAssignment(100L, 50L, 10L, 2L);
+
+        given(
+                        customerQuotaRepository
+                                .findByFamilyIdAndCustomerIdAndCurrentMonthAndDeletedAtIsNull(
+                                        10L, 2L, LocalDate.now(FIXED_CLOCK).withDayOfMonth(1)))
+                .willReturn(java.util.Optional.of(customerQuota));
+        given(policyAppealRepository.saveAndFlush(any(PolicyAppeal.class))).willReturn(saved);
+        given(policyAssignmentRepository.findByTargetAndType(10L, 2L, PolicyType.MONTHLY_LIMIT))
+                .willReturn(java.util.Optional.of(assignment));
+        com.fasterxml.jackson.databind.type.TypeFactory typeFactory =
+                com.fasterxml.jackson.databind.type.TypeFactory.defaultInstance();
+        MapType mapType = typeFactory.constructMapType(Map.class, String.class, Object.class);
+        given(objectMapper.getTypeFactory()).willReturn(typeFactory);
+        given(objectMapper.readValue("{\"limitBytes\":1024}", mapType))
+                .willReturn(new java.util.HashMap<>(Map.of("limitBytes", 1024L)));
+        given(objectMapper.writeValueAsString(Map.of("limitBytes", 814_572_800L)))
+                .willReturn("{\"limitBytes\":814572800}");
+
+        EmergencyQuotaResult result = appealService.requestEmergencyQuota(auth, request);
+
+        assertThat(result.appealId()).isEqualTo(55L);
+        assertThat(result.status()).isEqualTo(AppealStatus.APPROVED);
+        assertThat(result.additionalBytes()).isEqualTo(314_572_800L);
+        assertThat(result.newMonthlyLimitBytes()).isEqualTo(814_572_800L);
+        assertThat(customerQuota.getMonthlyLimitBytes()).isEqualTo(814_572_800L);
+        assertThat(assignment.getRules()).isEqualTo("{\"limitBytes\":814572800}");
+    }
+
+    @Test
+    @DisplayName("긴급 쿼터 요청 시 MONTHLY_LIMIT 정책이 없으면 PolicyAssignment 동기화를 건너뛴다")
+    void requestEmergencyQuota_whenNoPolicyAssignment_thenSkipsSync() {
+        AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
+        EmergencyQuotaRequest request = new EmergencyQuotaRequest("데이터가 부족합니다");
+        CustomerQuota customerQuota =
+                CustomerQuota.builder()
+                        .familyId(10L)
+                        .customerId(2L)
+                        .monthlyLimitBytes(500_000_000L)
+                        .monthlyUsedBytes(100L)
+                        .currentMonth(LocalDate.now(FIXED_CLOCK).withDayOfMonth(1))
+                        .isBlocked(false)
+                        .build();
+        PolicyAppeal saved =
+                PolicyAppeal.builder()
+                        .id(55L)
+                        .type(AppealType.EMERGENCY)
+                        .requesterId(2L)
+                        .requestReason("데이터가 부족합니다")
+                        .desiredRules(Map.of("additionalBytes", 314_572_800L))
                         .status(AppealStatus.APPROVED)
                         .build();
         setCreatedAt(saved, LocalDateTime.of(2026, 3, 10, 12, 0));
@@ -457,21 +513,21 @@ class AppealServiceImplTest {
                                         10L, 2L, LocalDate.now(FIXED_CLOCK).withDayOfMonth(1)))
                 .willReturn(java.util.Optional.of(customerQuota));
         given(policyAppealRepository.saveAndFlush(any(PolicyAppeal.class))).willReturn(saved);
+        given(policyAssignmentRepository.findByTargetAndType(10L, 2L, PolicyType.MONTHLY_LIMIT))
+                .willReturn(java.util.Optional.empty());
 
         EmergencyQuotaResult result = appealService.requestEmergencyQuota(auth, request);
 
         assertThat(result.appealId()).isEqualTo(55L);
         assertThat(result.status()).isEqualTo(AppealStatus.APPROVED);
-        assertThat(result.additionalBytes()).isEqualTo(104_857_600L);
-        assertThat(result.newMonthlyLimitBytes()).isEqualTo(604_857_600L);
-        assertThat(customerQuota.getMonthlyLimitBytes()).isEqualTo(604_857_600L);
+        assertThat(result.newMonthlyLimitBytes()).isEqualTo(814_572_800L);
     }
 
     @Test
     @DisplayName("이번 달 승인된 긴급 요청이 있으면 재요청을 거절한다")
     void requestEmergencyQuota_whenAlreadyApprovedThisMonth_thenThrowsLimit() {
         AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
-        EmergencyQuotaRequest request = new EmergencyQuotaRequest("데이터가 부족합니다", 104_857_600L);
+        EmergencyQuotaRequest request = new EmergencyQuotaRequest("데이터가 부족합니다");
         CustomerQuota customerQuota =
                 CustomerQuota.builder()
                         .familyId(10L)

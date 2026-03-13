@@ -206,10 +206,8 @@ class FamilyServiceImplTest {
 
         // then
         assertThat(result).hasSize(2);
-        assertThat(result).extracting(FamilyMemberInfo::role)
-                .containsOnly(RoleType.MEMBER);
-        assertThat(result).extracting(FamilyMemberInfo::name)
-                .containsExactly("아이1", "아이2");
+        assertThat(result).extracting(FamilyMemberInfo::role).containsOnly(RoleType.MEMBER);
+        assertThat(result).extracting(FamilyMemberInfo::name).containsExactly("아이1", "아이2");
         verify(familyMemberRepository).findFamilyIdByCustomerId(customerId);
         verify(familyQueryRepository).findMembersByFamilyId(familyId);
     }

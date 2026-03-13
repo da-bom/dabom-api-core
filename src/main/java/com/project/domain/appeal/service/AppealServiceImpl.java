@@ -479,7 +479,7 @@ public class AppealServiceImpl implements AppealService {
         }
     }
 
-/** 정책 타입 조회 */
+    /** 정책 타입 조회 */
     private PolicyType resolvePolicyType(PolicyAppeal appeal) {
         if (AppealType.EMERGENCY.equals(appeal.getType())
                 || appeal.getPolicyAssignmentId() == null) {
