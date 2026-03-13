@@ -160,7 +160,7 @@ class MissionControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("미션 생성과 완료 요청, 목록/로그 조회에서 reward 정보가 유지된다")
+    @DisplayName("미션 생성과 완료 요청, 목록과 로그 조회에서 reward 정보가 유지된다")
     void missionFlowKeepsRewardShape() throws Exception {
         String createBody =
                 objectMapper.writeValueAsString(
@@ -350,6 +350,44 @@ class MissionControllerIntegrationTest {
                         delete("/missions/{missionId}", mission.getId())
                                 .header("Authorization", "Bearer " + OWNER_TOKEN))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("미션 목록은 REJECTED 요청 이력이 있어도 ACTIVE 미션을 반환한다")
+    void missionListIncludesActiveMissionWithRejectedRequest() throws Exception {
+        missionRequestRepository.save(
+                MissionRequest.builder()
+                        .missionItemId(mission.getId())
+                        .requesterId(member.getId())
+                        .status(MissionRequestStatus.REJECTED)
+                        .resolvedById(owner.getId())
+                        .rejectReason("photo missing")
+                        .build());
+
+        MvcResult result =
+                mockMvc.perform(
+                                get("/missions")
+                                        .header("Authorization", "Bearer " + MEMBER_TOKEN)
+                                        .param("size", "20"))
+                        .andExpect(status().isOk())
+                        .andReturn();
+
+        JsonNode missions =
+                objectMapper
+                        .readTree(result.getResponse().getContentAsString())
+                        .path("data")
+                        .path("missions");
+        JsonNode foundMission = null;
+        for (JsonNode node : missions) {
+            if (node.path("missionItemId").asLong() == mission.getId()) {
+                foundMission = node;
+                break;
+            }
+        }
+
+        assertThat(foundMission).isNotNull();
+        assertThat(Objects.requireNonNull(foundMission).path("requestStatus").asText())
+                .isEqualTo("REJECTED");
     }
 
     @Test

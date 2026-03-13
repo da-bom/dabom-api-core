@@ -56,7 +56,7 @@ class MissionServiceImplTest {
     @InjectMocks private MissionServiceImpl missionService;
 
     @Test
-    @DisplayName("OWNER는 reward 스냅샷이 포함된 미션 목록을 조회한다")
+    @DisplayName("OWNER는 reward 정보가 포함된 미션 목록을 조회한다")
     void listMissions_ownerReadsFamilyScope() {
         AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
         MissionItem mission = mission(100L, 10L, 2L, 1L, reward(900L, 500L), "clean room");
@@ -91,20 +91,20 @@ class MissionServiceImplTest {
     }
 
     @Test
-    @DisplayName("미션 목록 조회 시 요청 상태가 APPROVED 인 미션은 제외하고 PENDING 또는 요청 이력 없는 미션만 반환한다")
-    void listMissions_returnsOnlyPendingOrNoRequestStatus() {
+    @DisplayName("미션 목록은 ACTIVE 미션을 반환하고 요청 상태는 표시 정보로만 사용한다")
+    void listMissions_returnsActiveMissionsIncludingRejectedAndNoRequest() {
         AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
         MissionItem pendingMission =
                 mission(100L, 10L, 2L, 1L, reward(900L, 500L), "pending mission");
-        MissionItem approvedMission =
-                mission(99L, 10L, 2L, 1L, reward(901L, 500L), "approved mission");
+        MissionItem rejectedMission =
+                mission(99L, 10L, 2L, 1L, reward(901L, 500L), "rejected mission");
         MissionItem noRequestMission =
                 mission(98L, 10L, 2L, 1L, reward(902L, 500L), "no request mission");
 
         given(
                         missionItemRepository.findByFamilyScope(
                                 10L, MissionStatus.ACTIVE, null, PageRequest.of(0, 21)))
-                .willReturn(List.of(pendingMission, approvedMission, noRequestMission));
+                .willReturn(List.of(pendingMission, rejectedMission, noRequestMission));
         given(
                         missionRequestRepository.findByMissionItemIdInOrderByCreatedAtDescIdDesc(
                                 java.util.Set.of(100L, 99L, 98L)))
@@ -120,7 +120,7 @@ class MissionServiceImplTest {
                                         .id(202L)
                                         .missionItemId(99L)
                                         .requesterId(2L)
-                                        .status(MissionRequestStatus.APPROVED)
+                                        .status(MissionRequestStatus.REJECTED)
                                         .build()));
         Customer owner = customer(1L, "owner");
         Customer member = customer(2L, "member");
@@ -128,14 +128,15 @@ class MissionServiceImplTest {
 
         var result = missionService.listMissions(auth, null, 20);
 
-        assertThat(result.missions()).hasSize(2);
+        assertThat(result.missions()).hasSize(3);
         assertThat(
                         result.missions().stream()
                                 .map(MissionListResult.MissionCard::missionItemId)
                                 .toList())
-                .containsExactly(100L, 98L);
+                .containsExactly(100L, 99L, 98L);
         assertThat(result.missions().get(0).requestStatus()).isEqualTo("PENDING");
-        assertThat(result.missions().get(1).requestStatus()).isNull();
+        assertThat(result.missions().get(1).requestStatus()).isEqualTo("REJECTED");
+        assertThat(result.missions().get(2).requestStatus()).isNull();
     }
 
     @Test
@@ -205,7 +206,7 @@ class MissionServiceImplTest {
     }
 
     @Test
-    @DisplayName("미션 생성 시 Reward 스냅샷을 먼저 저장하고 mission에 연결한다")
+    @DisplayName("미션 생성은 Reward 스냅샷을 먼저 저장하고 mission에 연결한다")
     void createMission_createsRewardSnapshot() {
         AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
         CreateMissionRequest request = new CreateMissionRequest("clean room", 2L, 500L);

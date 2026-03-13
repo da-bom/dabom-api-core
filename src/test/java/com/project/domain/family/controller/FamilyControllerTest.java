@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.family.entity.Family;
+import com.project.domain.family.model.FamilyMemberInfo;
 import com.project.domain.family.service.FamilyService;
 import com.project.domain.usagerecord.model.CustomerUsage;
 import com.project.domain.usagerecord.model.FamilyCustomersUsage;
@@ -134,6 +135,41 @@ class FamilyControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("{\"name\": \"\"}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("GET /families/members - OWNER 권한으로 가족 멤버 목록을 조회하면 200을 반환한다")
+    void getFamilyMembers_ownerRole_returnsOk() throws Exception {
+        List<FamilyMemberInfo> members =
+                List.of(
+                        new FamilyMemberInfo(201L, "아이1", RoleType.MEMBER),
+                        new FamilyMemberInfo(202L, "아이2", RoleType.MEMBER));
+
+        Claims ownerClaims = mockClaims(OWNER_ID, RoleType.OWNER);
+        given(jwtTokenUtil.getVerifiedClaims(OWNER_TOKEN)).willReturn(ownerClaims);
+        given(familyService.getFamilyMembers(OWNER_ID)).willReturn(members);
+
+        mockMvc.perform(get("/families/members").header("Authorization", "Bearer " + OWNER_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(2))
+                .andExpect(jsonPath("$.data[0].customerId").value(201L))
+                .andExpect(jsonPath("$.data[0].name").value("아이1"))
+                .andExpect(jsonPath("$.data[0].role").value("MEMBER"))
+                .andExpect(jsonPath("$.data[1].customerId").value(202L))
+                .andExpect(jsonPath("$.data[1].name").value("아이2"));
+    }
+
+    @Test
+    @DisplayName("GET /families/members - MEMBER 권한이면 403을 반환한다")
+    void getFamilyMembers_memberRole_returnsForbidden() throws Exception {
+        Claims memberClaims = mockClaims(MEMBER_ID, RoleType.MEMBER);
+        given(jwtTokenUtil.getVerifiedClaims(MEMBER_TOKEN)).willReturn(memberClaims);
+
+        mockMvc.perform(get("/families/members").header("Authorization", "Bearer " + MEMBER_TOKEN))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("CUSTOMER_005"));
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.project.domain.policy.repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -13,6 +14,8 @@ import com.project.domain.policy.enums.PolicyType;
 
 public interface PolicyAssignmentRepository extends JpaRepository<PolicyAssignment, Long> {
     Optional<PolicyAssignment> findByIdAndDeletedAtIsNull(Long id);
+
+    List<PolicyAssignment> findAllByIdInAndDeletedAtIsNull(Set<Long> ids);
 
     @Query(
             "SELECT p FROM PolicyAssignment p WHERE p.familyId = :familyId AND p.deletedAt"

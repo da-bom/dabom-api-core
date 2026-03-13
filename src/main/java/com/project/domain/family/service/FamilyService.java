@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import com.project.domain.family.dto.request.FamilySearchRequest;
 import com.project.domain.family.entity.Family;
 import com.project.domain.family.model.FamilyDetail;
+import com.project.domain.family.model.FamilyMemberInfo;
 import com.project.domain.family.model.FamilySearchResult;
 import com.project.domain.family.repository.projection.FamilyUsageCustomerRow;
 
@@ -21,6 +22,8 @@ public interface FamilyService {
     Family getFamilyById(Long familyId);
 
     List<FamilyUsageCustomerRow> getUsageReportCustomers(Long familyId, LocalDate targetMonth);
+
+    List<FamilyMemberInfo> getFamilyMembers(Long customerId);
 
     Family updateFamilyName(Long customerId, String name);
 }

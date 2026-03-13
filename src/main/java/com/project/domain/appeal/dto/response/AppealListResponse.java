@@ -7,6 +7,7 @@ import java.util.Map;
 import com.project.domain.appeal.enums.AppealStatus;
 import com.project.domain.appeal.enums.AppealType;
 import com.project.domain.appeal.model.AppealListResult;
+import com.project.domain.policy.enums.PolicyType;
 
 /** 이의제기 목록 조회 응답 */
 public record AppealListResponse(
@@ -25,6 +26,7 @@ public record AppealListResponse(
             Long appealId,
             AppealType type,
             Long policyAssignmentId,
+            PolicyType policyType,
             Long requesterId,
             String requesterName,
             String requestReason,
@@ -38,6 +40,7 @@ public record AppealListResponse(
                     appeal.appealId(),
                     appeal.type(),
                     appeal.policyAssignmentId(),
+                    appeal.policyType(),
                     appeal.requesterId(),
                     appeal.requesterName(),
                     appeal.requestReason(),

@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -26,6 +27,7 @@ import org.springframework.data.domain.PageRequest;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.MapType;
 import com.project.domain.appeal.dto.request.AppealCommentRequest;
 import com.project.domain.appeal.dto.request.AppealCreateRequest;
 import com.project.domain.appeal.dto.request.AppealRespondRequest;
@@ -100,12 +102,24 @@ class AppealServiceImplTest {
                 .willReturn(List.of(first, second));
         given(customerRepository.findAllById(anyIterable()))
                 .willReturn(List.of(customer(2L, "member-a"), customer(3L, "member-b")));
+        given(policyAssignmentRepository.findAllByIdInAndDeletedAtIsNull(Set.of(100L, 101L)))
+                .willReturn(
+                        List.of(
+                                policyAssignment(100L, 50L, 10L, 2L),
+                                policyAssignment(101L, 51L, 10L, 3L)));
+        given(policyRepository.findAllByIdInAndDeletedAtIsNull(Set.of(50L, 51L)))
+                .willReturn(
+                        List.of(
+                                policy(50L, PolicyType.MONTHLY_LIMIT),
+                                policy(51L, PolicyType.TIME_BLOCK)));
 
         AppealListResult result = appealService.getAppeals(auth, null, null, 20);
 
         assertThat(result.appeals()).hasSize(2);
         assertThat(result.appeals().get(0).requesterName()).isEqualTo("member-a");
+        assertThat(result.appeals().get(0).policyType()).isEqualTo(PolicyType.MONTHLY_LIMIT);
         assertThat(result.appeals().get(1).policyAssignmentId()).isEqualTo(101L);
+        assertThat(result.appeals().get(1).policyType()).isEqualTo(PolicyType.TIME_BLOCK);
         assertThat(result.hasNext()).isFalse();
         assertThat(result.nextCursor()).isNull();
     }
@@ -121,11 +135,16 @@ class AppealServiceImplTest {
                 .willReturn(List.of(appeal));
         given(customerRepository.findAllById(anyIterable()))
                 .willReturn(List.of(customer(2L, "member-a")));
+        given(policyAssignmentRepository.findAllByIdInAndDeletedAtIsNull(Set.of(100L)))
+                .willReturn(List.of(policyAssignment(100L, 50L, 10L, 2L)));
+        given(policyRepository.findAllByIdInAndDeletedAtIsNull(Set.of(50L)))
+                .willReturn(List.of(policy(50L, PolicyType.MONTHLY_LIMIT)));
 
         AppealListResult result = appealService.getAppeals(auth, AppealStatus.PENDING, null, 20);
 
         assertThat(result.appeals()).hasSize(1);
         assertThat(result.appeals().getFirst().requesterId()).isEqualTo(2L);
+        assertThat(result.appeals().getFirst().policyType()).isEqualTo(PolicyType.MONTHLY_LIMIT);
         assertThat(result.appeals().getFirst().status()).isEqualTo(AppealStatus.PENDING);
         verify(policyAppealRepository)
                 .findByRequesterIdAndFamilyId(
@@ -144,12 +163,41 @@ class AppealServiceImplTest {
                                 appeal(38L, 2L, 102L, AppealStatus.PENDING)));
         given(customerRepository.findAllById(anyIterable()))
                 .willReturn(List.of(customer(2L, "member-a")));
+        given(policyAssignmentRepository.findAllByIdInAndDeletedAtIsNull(Set.of(100L, 101L)))
+                .willReturn(
+                        List.of(
+                                policyAssignment(100L, 50L, 10L, 2L),
+                                policyAssignment(101L, 51L, 10L, 2L)));
+        given(policyRepository.findAllByIdInAndDeletedAtIsNull(Set.of(50L, 51L)))
+                .willReturn(
+                        List.of(
+                                policy(50L, PolicyType.MONTHLY_LIMIT),
+                                policy(51L, PolicyType.TIME_BLOCK)));
 
         AppealListResult result = appealService.getAppeals(auth, null, 50L, 2);
 
         assertThat(result.appeals()).hasSize(2);
+        assertThat(result.appeals().get(0).policyType()).isEqualTo(PolicyType.MONTHLY_LIMIT);
+        assertThat(result.appeals().get(1).policyType()).isEqualTo(PolicyType.TIME_BLOCK);
         assertThat(result.hasNext()).isTrue();
         assertThat(result.nextCursor()).isEqualTo("39");
+    }
+
+    @Test
+    @DisplayName("EMERGENCY 이의제기 목록은 policyType을 null로 반환한다")
+    void getAppeals_whenEmergencyAppeal_thenReturnsNullPolicyType() {
+        AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER, "owner");
+        PolicyAppeal emergencyAppeal = appeal(41L, 2L, null, AppealStatus.APPROVED);
+        given(policyAppealRepository.findAllByFamilyId(10L, null, null, PageRequest.of(0, 21)))
+                .willReturn(List.of(emergencyAppeal));
+        given(customerRepository.findAllById(anyIterable()))
+                .willReturn(List.of(customer(2L, "member-a")));
+
+        AppealListResult result = appealService.getAppeals(auth, null, null, 20);
+
+        assertThat(result.appeals()).hasSize(1);
+        assertThat(result.appeals().getFirst().policyAssignmentId()).isNull();
+        assertThat(result.appeals().getFirst().policyType()).isNull();
     }
 
     @Test
@@ -380,10 +428,11 @@ class AppealServiceImplTest {
     }
 
     @Test
-    @DisplayName("긴급 쿼터 요청은 월 한도를 즉시 증가시키고 승인 상태로 저장한다")
-    void requestEmergencyQuota_whenValid_thenUpdatesQuota() {
+    @DisplayName("긴급 쿼터 요청은 300MB를 즉시 증가시키고 PolicyAssignment rules도 동기화한다")
+    void requestEmergencyQuota_whenValid_thenUpdatesQuotaAndPolicyAssignment()
+            throws JsonProcessingException {
         AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
-        EmergencyQuotaRequest request = new EmergencyQuotaRequest("데이터가 부족합니다", 104_857_600L);
+        EmergencyQuotaRequest request = new EmergencyQuotaRequest("데이터가 부족합니다");
         CustomerQuota customerQuota =
                 CustomerQuota.builder()
                         .familyId(10L)
@@ -399,7 +448,61 @@ class AppealServiceImplTest {
                         .type(AppealType.EMERGENCY)
                         .requesterId(2L)
                         .requestReason("데이터가 부족합니다")
-                        .desiredRules(Map.of("additionalBytes", 104_857_600L))
+                        .desiredRules(Map.of("additionalBytes", 314_572_800L))
+                        .status(AppealStatus.APPROVED)
+                        .build();
+        setCreatedAt(saved, LocalDateTime.of(2026, 3, 10, 12, 0));
+
+        PolicyAssignment assignment = policyAssignment(100L, 50L, 10L, 2L);
+
+        given(
+                        customerQuotaRepository
+                                .findByFamilyIdAndCustomerIdAndCurrentMonthAndDeletedAtIsNull(
+                                        10L, 2L, LocalDate.now(FIXED_CLOCK).withDayOfMonth(1)))
+                .willReturn(java.util.Optional.of(customerQuota));
+        given(policyAppealRepository.saveAndFlush(any(PolicyAppeal.class))).willReturn(saved);
+        given(policyAssignmentRepository.findByTargetAndType(10L, 2L, PolicyType.MONTHLY_LIMIT))
+                .willReturn(java.util.Optional.of(assignment));
+        com.fasterxml.jackson.databind.type.TypeFactory typeFactory =
+                com.fasterxml.jackson.databind.type.TypeFactory.defaultInstance();
+        MapType mapType = typeFactory.constructMapType(Map.class, String.class, Object.class);
+        given(objectMapper.getTypeFactory()).willReturn(typeFactory);
+        given(objectMapper.readValue("{\"limitBytes\":1024}", mapType))
+                .willReturn(new java.util.HashMap<>(Map.of("limitBytes", 1024L)));
+        given(objectMapper.writeValueAsString(Map.of("limitBytes", 814_572_800L)))
+                .willReturn("{\"limitBytes\":814572800}");
+
+        EmergencyQuotaResult result = appealService.requestEmergencyQuota(auth, request);
+
+        assertThat(result.appealId()).isEqualTo(55L);
+        assertThat(result.status()).isEqualTo(AppealStatus.APPROVED);
+        assertThat(result.additionalBytes()).isEqualTo(314_572_800L);
+        assertThat(result.newMonthlyLimitBytes()).isEqualTo(814_572_800L);
+        assertThat(customerQuota.getMonthlyLimitBytes()).isEqualTo(814_572_800L);
+        assertThat(assignment.getRules()).isEqualTo("{\"limitBytes\":814572800}");
+    }
+
+    @Test
+    @DisplayName("긴급 쿼터 요청 시 MONTHLY_LIMIT 정책이 없으면 PolicyAssignment 동기화를 건너뛴다")
+    void requestEmergencyQuota_whenNoPolicyAssignment_thenSkipsSync() {
+        AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
+        EmergencyQuotaRequest request = new EmergencyQuotaRequest("데이터가 부족합니다");
+        CustomerQuota customerQuota =
+                CustomerQuota.builder()
+                        .familyId(10L)
+                        .customerId(2L)
+                        .monthlyLimitBytes(500_000_000L)
+                        .monthlyUsedBytes(100L)
+                        .currentMonth(LocalDate.now(FIXED_CLOCK).withDayOfMonth(1))
+                        .isBlocked(false)
+                        .build();
+        PolicyAppeal saved =
+                PolicyAppeal.builder()
+                        .id(55L)
+                        .type(AppealType.EMERGENCY)
+                        .requesterId(2L)
+                        .requestReason("데이터가 부족합니다")
+                        .desiredRules(Map.of("additionalBytes", 314_572_800L))
                         .status(AppealStatus.APPROVED)
                         .build();
         setCreatedAt(saved, LocalDateTime.of(2026, 3, 10, 12, 0));
@@ -410,21 +513,21 @@ class AppealServiceImplTest {
                                         10L, 2L, LocalDate.now(FIXED_CLOCK).withDayOfMonth(1)))
                 .willReturn(java.util.Optional.of(customerQuota));
         given(policyAppealRepository.saveAndFlush(any(PolicyAppeal.class))).willReturn(saved);
+        given(policyAssignmentRepository.findByTargetAndType(10L, 2L, PolicyType.MONTHLY_LIMIT))
+                .willReturn(java.util.Optional.empty());
 
         EmergencyQuotaResult result = appealService.requestEmergencyQuota(auth, request);
 
         assertThat(result.appealId()).isEqualTo(55L);
         assertThat(result.status()).isEqualTo(AppealStatus.APPROVED);
-        assertThat(result.additionalBytes()).isEqualTo(104_857_600L);
-        assertThat(result.newMonthlyLimitBytes()).isEqualTo(604_857_600L);
-        assertThat(customerQuota.getMonthlyLimitBytes()).isEqualTo(604_857_600L);
+        assertThat(result.newMonthlyLimitBytes()).isEqualTo(814_572_800L);
     }
 
     @Test
     @DisplayName("이번 달 승인된 긴급 요청이 있으면 재요청을 거절한다")
     void requestEmergencyQuota_whenAlreadyApprovedThisMonth_thenThrowsLimit() {
         AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
-        EmergencyQuotaRequest request = new EmergencyQuotaRequest("데이터가 부족합니다", 104_857_600L);
+        EmergencyQuotaRequest request = new EmergencyQuotaRequest("데이터가 부족합니다");
         CustomerQuota customerQuota =
                 CustomerQuota.builder()
                         .familyId(10L)
