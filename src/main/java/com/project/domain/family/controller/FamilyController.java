@@ -58,7 +58,7 @@ public class FamilyController {
 
     @OwnerOnly
     @GetMapping("/members")
-    @Operation(summary = "가족 구성원 목록 조회", description = "가족 구성원 목록을 조회합니다.")
+    @Operation(summary = "가족 구성원 중 멤버 목록 조회", description = "가족 구성원 목록을 조회합니다.")
     public ApiResponse<List<FamilyMemberInfoResponse>> getFamilyMembers(
             @Parameter(hidden = true) @CustomerId Long customerId) {
         List<FamilyMemberInfo> members = familyService.getFamilyMembers(customerId);
