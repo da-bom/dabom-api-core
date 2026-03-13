@@ -43,7 +43,7 @@ public class CustomerController {
     @Operation(summary = "사용자 로그인", description = "사용자 이메일/비밀번호로 로그인합니다.")
     public ApiResponse<SignInResponse> signIn(
             @Valid @RequestBody CustomerSignInRequest requestDto) {
-        return ApiResponse.success(customerService.signIn(requestDto));
+        return ApiResponse.success(SignInResponse.from(customerService.signIn(requestDto)));
     }
 
     @PostMapping("/signup")

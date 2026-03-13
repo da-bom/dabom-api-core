@@ -1,7 +1,9 @@
 package com.project.domain.reward.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -48,6 +50,8 @@ import com.project.domain.reward.enums.RewardCategory;
 import com.project.domain.reward.repository.RewardRepository;
 import com.project.domain.reward.repository.RewardTemplateRepository;
 import com.project.global.auth.JwtTokenUtil;
+
+import io.jsonwebtoken.Claims;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -139,13 +143,16 @@ class RewardControllerIntegrationTest {
                                 .status(MissionStatus.ACTIVE)
                                 .build());
 
-        lenient()
-                .when(jwtTokenUtil.verify(org.mockito.ArgumentMatchers.anyString()))
-                .thenReturn(null);
-        lenient().when(jwtTokenUtil.getMemberId(OWNER_TOKEN)).thenReturn(owner.getId());
-        lenient().when(jwtTokenUtil.getMemberId(MEMBER_TOKEN)).thenReturn(member.getId());
-        lenient().when(jwtTokenUtil.getRole(OWNER_TOKEN)).thenReturn(RoleType.OWNER);
-        lenient().when(jwtTokenUtil.getRole(MEMBER_TOKEN)).thenReturn(RoleType.MEMBER);
+        Claims ownerClaims = mock(Claims.class);
+        doReturn(owner.getId().toString()).when(ownerClaims).getSubject();
+        doReturn(RoleType.OWNER.name()).when(ownerClaims).get("role", String.class);
+
+        Claims memberClaims = mock(Claims.class);
+        doReturn(member.getId().toString()).when(memberClaims).getSubject();
+        doReturn(RoleType.MEMBER.name()).when(memberClaims).get("role", String.class);
+
+        lenient().when(jwtTokenUtil.getVerifiedClaims(OWNER_TOKEN)).thenReturn(ownerClaims);
+        lenient().when(jwtTokenUtil.getVerifiedClaims(MEMBER_TOKEN)).thenReturn(memberClaims);
     }
 
     @Test

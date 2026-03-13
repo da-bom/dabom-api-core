@@ -2,8 +2,10 @@ package com.project.domain.customer.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 
 import java.time.LocalDate;
 import java.util.Optional;
@@ -13,11 +15,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.project.domain.customer.dto.request.CustomerSignInRequest;
+import com.project.domain.customer.dto.request.CustomerSignUpRequest;
+import com.project.domain.customer.dto.response.SignUpResponse;
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.entity.CustomerQuota;
 import com.project.domain.customer.enums.RoleType;
@@ -25,12 +31,15 @@ import com.project.domain.customer.model.MyPageInfo;
 import com.project.domain.customer.repository.CustomerQuotaRepository;
 import com.project.domain.customer.repository.CustomerRepository;
 import com.project.domain.family.entity.Family;
+import com.project.domain.family.entity.FamilyMember;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.family.repository.FamilyRepository;
 import com.project.domain.policy.entity.PolicyAssignment;
 import com.project.domain.policy.enums.PolicyType;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.global.auth.JwtTokenUtil;
+import com.project.global.auth.PasswordHash;
+import com.project.global.auth.SignInResult;
 import com.project.global.auth.TokenRefreshResult;
 import com.project.global.auth.model.AuthContext;
 import com.project.global.exception.ApplicationException;
@@ -53,6 +62,115 @@ class CustomerServiceImplTest {
     @Mock private ObjectMapper objectMapper;
 
     @InjectMocks private CustomerServiceImpl customerService;
+
+    @Test
+    @DisplayName("signIn - 올바른 자격증명이면 토큰과 역할을 반환한다")
+    void signIn_validCredentials_returnsTokensAndRole() {
+        // given
+        Customer customer = new Customer("01012345678", "hashed-pw", "철수");
+        CustomerSignInRequest request = new CustomerSignInRequest("01012345678", "raw-pw");
+
+        given(customerRepository.findByPhoneNumber("01012345678")).willReturn(customer);
+        given(familyMemberRepository.findRoleById(customer.getId())).willReturn(RoleType.OWNER);
+        given(jwtTokenUtil.createToken(customer.getId(), RoleType.OWNER))
+                .willReturn("access-token");
+        given(jwtTokenUtil.createRefreshToken(customer.getId(), RoleType.OWNER))
+                .willReturn("refresh-token");
+
+        try (MockedStatic<PasswordHash> passwordHash = mockStatic(PasswordHash.class)) {
+            passwordHash.when(() -> PasswordHash.matches("raw-pw", "hashed-pw")).thenReturn(true);
+
+            // when
+            SignInResult result = customerService.signIn(request);
+
+            // then
+            assertThat(result.accessToken()).isEqualTo("access-token");
+            assertThat(result.refreshToken()).isEqualTo("refresh-token");
+            assertThat(result.role()).isEqualTo(RoleType.OWNER);
+        }
+    }
+
+    @Test
+    @DisplayName("signIn - 존재하지 않는 전화번호이면 예외를 던진다")
+    void signIn_customerNotFound_throwsException() {
+        // given
+        CustomerSignInRequest request = new CustomerSignInRequest("01099999999", "raw-pw");
+        given(customerRepository.findByPhoneNumber("01099999999")).willReturn(null);
+
+        // when & then
+        assertThatThrownBy(() -> customerService.signIn(request))
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(
+                        e ->
+                                assertThat(((ApplicationException) e).getCode())
+                                        .isEqualTo(CustomerErrorCode.CUSTOMER_NOT_FOUND));
+    }
+
+    @Test
+    @DisplayName("signIn - 비밀번호가 틀리면 예외를 던진다")
+    void signIn_wrongPassword_throwsException() {
+        // given
+        Customer customer = new Customer("01012345678", "hashed-pw", "철수");
+        CustomerSignInRequest request = new CustomerSignInRequest("01012345678", "wrong-pw");
+
+        given(customerRepository.findByPhoneNumber("01012345678")).willReturn(customer);
+
+        try (MockedStatic<PasswordHash> passwordHash = mockStatic(PasswordHash.class)) {
+            passwordHash
+                    .when(() -> PasswordHash.matches("wrong-pw", "hashed-pw"))
+                    .thenReturn(false);
+
+            // when & then
+            assertThatThrownBy(() -> customerService.signIn(request))
+                    .isInstanceOf(ApplicationException.class)
+                    .satisfies(
+                            e ->
+                                    assertThat(((ApplicationException) e).getCode())
+                                            .isEqualTo(CustomerErrorCode.CUSTOMER_SIGN_IN_FAILED));
+        }
+    }
+
+    @Test
+    @DisplayName("signUp - 정상 요청이면 고객을 저장하고 ID를 반환한다")
+    void signUp_validRequest_returnsCustomerId() {
+        // given
+        CustomerSignUpRequest request = new CustomerSignUpRequest("01012345678", "raw-pw", "철수");
+
+        given(customerRepository.existsByPhoneNumber("01012345678")).willReturn(false);
+
+        Customer savedCustomer = mock(Customer.class);
+        given(savedCustomer.getId()).willReturn(1L);
+        given(customerRepository.save(any(Customer.class))).willReturn(savedCustomer);
+
+        given(familyMemberRepository.save(any(FamilyMember.class)))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
+        try (MockedStatic<PasswordHash> passwordHash = mockStatic(PasswordHash.class)) {
+            passwordHash.when(() -> PasswordHash.hash("raw-pw")).thenReturn("hashed-pw");
+
+            // when
+            SignUpResponse result = customerService.signUp(request);
+
+            // then
+            assertThat(result.id()).isEqualTo(1L);
+        }
+    }
+
+    @Test
+    @DisplayName("signUp - 중복 전화번호이면 예외를 던진다")
+    void signUp_duplicatePhoneNumber_throwsException() {
+        // given
+        CustomerSignUpRequest request = new CustomerSignUpRequest("01012345678", "raw-pw", "철수");
+        given(customerRepository.existsByPhoneNumber("01012345678")).willReturn(true);
+
+        // when & then
+        assertThatThrownBy(() -> customerService.signUp(request))
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(
+                        e ->
+                                assertThat(((ApplicationException) e).getCode())
+                                        .isEqualTo(CustomerErrorCode.CUSTOMER_DUPLICATED));
+    }
 
     @Test
     @DisplayName("refreshToken - OWNER role의 유효한 refresh token이면 새 토큰 쌍을 반환한다")

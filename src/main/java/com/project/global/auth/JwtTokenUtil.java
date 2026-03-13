@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.project.domain.customer.enums.RoleType;
+import com.project.global.exception.ApplicationException;
+import com.project.global.exception.code.GlobalErrorCode;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -89,6 +91,17 @@ public class JwtTokenUtil {
     public RoleType getRole(String token) {
         String roleStr = verifyAccessToken(token).get("role", String.class);
         return RoleType.valueOf(roleStr);
+    }
+
+    public Claims getVerifiedClaims(String token) {
+        if (token == null || token.isBlank()) {
+            throw new ApplicationException(GlobalErrorCode.UNAUTHORIZED_TOKEN);
+        }
+        try {
+            return verifyAccessToken(token);
+        } catch (JwtException e) {
+            throw new ApplicationException(GlobalErrorCode.UNAUTHORIZED_TOKEN);
+        }
     }
 
     public Claims verifyAccessToken(String token) {

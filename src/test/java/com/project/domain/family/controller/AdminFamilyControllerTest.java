@@ -159,7 +159,7 @@ class AdminFamilyControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("FAMILY_002"));
+                .andExpect(jsonPath("$.error.code").value("FAMILY_002"));
     }
 
     @Test
@@ -173,7 +173,7 @@ class AdminFamilyControllerTest {
                         get("/admin/families/{familyId}", 999_999L)
                                 .header("Authorization", "Bearer " + ADMIN_TOKEN))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("FAMILY_001"));
+                .andExpect(jsonPath("$.error.code").value("FAMILY_001"));
     }
 
     @Test
@@ -189,6 +189,6 @@ class AdminFamilyControllerTest {
                         get("/admin/families/{familyId}", familyContext.family().getId())
                                 .header("Authorization", "Bearer " + MEMBER_TOKEN))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("ADMIN_003"));
+                .andExpect(jsonPath("$.error.code").value("ADMIN_003"));
     }
 }

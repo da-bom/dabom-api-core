@@ -15,6 +15,8 @@ import com.project.global.auth.JwtTokenUtil;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.CustomerErrorCode;
 
+import io.jsonwebtoken.Claims;
+
 import lombok.RequiredArgsConstructor;
 
 @Aspect
@@ -32,8 +34,8 @@ public class OwnerOnlyAspect {
                         .getRequest();
 
         String token = AuthorizationExtractor.extract(request);
-
-        RoleType role = jwtTokenUtil.getRole(token);
+        Claims claims = jwtTokenUtil.getVerifiedClaims(token);
+        RoleType role = RoleType.valueOf(claims.get("role", String.class));
 
         if (role == RoleType.MEMBER) {
             throw new ApplicationException(CustomerErrorCode.CUSTOMER_FORBIDDEN);

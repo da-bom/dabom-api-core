@@ -88,6 +88,10 @@ dependencies {
     //BCrypt
     implementation 'org.mindrot:jbcrypt:0.4'
 
+    // AWS SDK v2 - S3 (R2 compatible)
+    implementation platform('software.amazon.awssdk:bom:2.25.70')
+    implementation 'software.amazon.awssdk:s3'
+
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'

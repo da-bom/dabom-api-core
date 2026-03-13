@@ -5,15 +5,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.project.domain.admin.entity.Admin;
 import com.project.domain.admin.repository.AdminRepository;
-import com.project.domain.customer.dto.response.SignInResponse;
 import com.project.domain.customer.dto.response.SignUpResponse;
 import com.project.domain.customer.enums.RoleType;
 import com.project.global.auth.JwtTokenUtil;
 import com.project.global.auth.PasswordHash;
+import com.project.global.auth.SignInResult;
 import com.project.global.auth.TokenRefreshResult;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.AdminErrorCode;
-import com.project.global.exception.code.CustomerErrorCode;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -28,7 +27,7 @@ public class AdminServiceImpl implements AdminService {
     private final JwtTokenUtil jwtTokenUtil;
 
     @Override
-    public SignInResponse signIn(String email, String password) {
+    public SignInResult signIn(String email, String password) {
         Admin admin =
                 adminRepository
                         .findByEmail(email)
@@ -38,13 +37,13 @@ public class AdminServiceImpl implements AdminService {
                                                 AdminErrorCode.ADMIN_SIGN_IN_FAILED));
 
         if (!PasswordHash.matches(password, admin.getPasswordHash())) {
-            throw new ApplicationException(CustomerErrorCode.CUSTOMER_SIGN_IN_FAILED);
+            throw new ApplicationException(AdminErrorCode.ADMIN_SIGN_IN_FAILED);
         }
 
         String accessToken = jwtTokenUtil.createToken(admin.getId(), RoleType.ADMIN);
         String refreshToken = jwtTokenUtil.createRefreshToken(admin.getId(), RoleType.ADMIN);
 
-        return new SignInResponse(accessToken, refreshToken);
+        return new SignInResult(accessToken, refreshToken, RoleType.ADMIN);
     }
 
     @Override
@@ -54,9 +53,9 @@ public class AdminServiceImpl implements AdminService {
 
         Admin admin = Admin.builder().name("ADMIN").email(email).passwordHash(hashed).build();
 
-        adminRepository.save(admin);
+        Admin saved = adminRepository.save(admin);
 
-        return new SignUpResponse(admin.getId());
+        return new SignUpResponse(saved.getId());
     }
 
     @Override
