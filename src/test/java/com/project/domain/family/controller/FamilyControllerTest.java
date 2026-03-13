@@ -1,7 +1,8 @@
 package com.project.domain.family.controller;
 
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -10,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.LocalDate;
 import java.util.List;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +35,10 @@ import com.project.domain.usagerecord.service.UsageRecordService;
 import com.project.global.auth.JwtTokenUtil;
 import com.project.global.auth.aop.OwnerOnlyAspect;
 import com.project.global.config.WebConfig;
+import com.project.global.exception.ApplicationException;
+import com.project.global.exception.code.GlobalErrorCode;
+
+import io.jsonwebtoken.Claims;
 
 @WebMvcTest(FamilyController.class)
 @Import({WebConfig.class, OwnerOnlyAspect.class, FamilyControllerTest.AopTestConfig.class})
@@ -56,6 +62,19 @@ class FamilyControllerTest {
     @MockitoBean private UsageRecordService usageRecordService;
     @MockitoBean private JwtTokenUtil jwtTokenUtil;
 
+    @BeforeEach
+    void setUp() {
+        given(jwtTokenUtil.getVerifiedClaims(null))
+                .willThrow(new ApplicationException(GlobalErrorCode.UNAUTHORIZED_TOKEN));
+    }
+
+    private Claims mockClaims(Long memberId, RoleType role) {
+        Claims claims = mock(Claims.class);
+        doReturn(memberId.toString()).when(claims).getSubject();
+        doReturn(role.name()).when(claims).get("role", String.class);
+        return claims;
+    }
+
     @Test
     @DisplayName("PUT /families - OWNER 권한으로 가족 이름을 수정하면 200을 반환한다")
     void updateFamilyName_ownerRole_returnsOk() throws Exception {
@@ -68,9 +87,8 @@ class FamilyControllerTest {
                         .currentMonth(LocalDate.now().withDayOfMonth(1))
                         .build();
 
-        given(jwtTokenUtil.verify(anyString())).willReturn(null);
-        given(jwtTokenUtil.getMemberId(OWNER_TOKEN)).willReturn(OWNER_ID);
-        given(jwtTokenUtil.getRole(OWNER_TOKEN)).willReturn(RoleType.OWNER);
+        Claims ownerClaims = mockClaims(OWNER_ID, RoleType.OWNER);
+        given(jwtTokenUtil.getVerifiedClaims(OWNER_TOKEN)).willReturn(ownerClaims);
         given(familyService.updateFamilyName(OWNER_ID, "김씨 가족")).willReturn(family);
 
         mockMvc.perform(
@@ -89,8 +107,8 @@ class FamilyControllerTest {
     @Test
     @DisplayName("PUT /families - MEMBER 권한이면 403을 반환한다")
     void updateFamilyName_memberRole_returnsForbidden() throws Exception {
-        given(jwtTokenUtil.verify(anyString())).willReturn(null);
-        given(jwtTokenUtil.getRole(MEMBER_TOKEN)).willReturn(RoleType.MEMBER);
+        Claims memberClaims = mockClaims(MEMBER_ID, RoleType.MEMBER);
+        given(jwtTokenUtil.getVerifiedClaims(MEMBER_TOKEN)).willReturn(memberClaims);
 
         mockMvc.perform(
                         put("/families")
@@ -101,14 +119,14 @@ class FamilyControllerTest {
                                                 new com.project.domain.family.dto.request
                                                         .FamilyNameUpdateRequest("김씨 가족"))))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("CUSTOMER_005"));
+                .andExpect(jsonPath("$.error.code").value("CUSTOMER_005"));
     }
 
     @Test
     @DisplayName("PUT /families - 이름이 빈 값이면 400을 반환한다")
     void updateFamilyName_blankName_returnsBadRequest() throws Exception {
-        given(jwtTokenUtil.verify(anyString())).willReturn(null);
-        given(jwtTokenUtil.getRole(OWNER_TOKEN)).willReturn(RoleType.OWNER);
+        Claims ownerClaims = mockClaims(OWNER_ID, RoleType.OWNER);
+        given(jwtTokenUtil.getVerifiedClaims(OWNER_TOKEN)).willReturn(ownerClaims);
 
         mockMvc.perform(
                         put("/families")
@@ -123,8 +141,8 @@ class FamilyControllerTest {
     void getCurrentFamilyUsageReturnsOk() throws Exception {
         FamilyUsage familyUsage = new FamilyUsage(1L, "테스트 가족", 100_000L, 40_000L);
 
-        given(jwtTokenUtil.verify(anyString())).willReturn(null);
-        given(jwtTokenUtil.getMemberId(MEMBER_TOKEN)).willReturn(MEMBER_ID);
+        Claims memberClaims = mockClaims(MEMBER_ID, RoleType.MEMBER);
+        given(jwtTokenUtil.getVerifiedClaims(MEMBER_TOKEN)).willReturn(memberClaims);
         given(usageRecordService.getCurrentFamilyUsage(MEMBER_ID)).willReturn(familyUsage);
 
         mockMvc.perform(
@@ -147,8 +165,8 @@ class FamilyControllerTest {
         FamilyCustomersUsageSummary usageSummary =
                 new FamilyCustomersUsageSummary(1L, 2026, 2, List.of(me, other));
 
-        given(jwtTokenUtil.verify(anyString())).willReturn(null);
-        given(jwtTokenUtil.getMemberId(MEMBER_TOKEN)).willReturn(MEMBER_ID);
+        Claims memberClaims = mockClaims(MEMBER_ID, RoleType.MEMBER);
+        given(jwtTokenUtil.getVerifiedClaims(MEMBER_TOKEN)).willReturn(memberClaims);
         given(usageRecordService.getCustomersUsageSummaryReport(MEMBER_ID, 2026, 2))
                 .willReturn(usageSummary);
 
@@ -174,6 +192,28 @@ class FamilyControllerTest {
     }
 
     @Test
+    @DisplayName("GET /families/usage/current - 토큰 없이 요청하면 401을 반환한다")
+    void getCurrentFamilyUsage_noToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(get("/families/usage/current"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("GLOBAL_003"));
+    }
+
+    @Test
+    @DisplayName("PUT /families - 토큰 없이 요청하면 401을 반환한다")
+    void updateFamilyName_noToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(
+                        put("/families")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                new com.project.domain.family.dto.request
+                                                        .FamilyNameUpdateRequest("김씨 가족"))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("GLOBAL_003"));
+    }
+
+    @Test
     @DisplayName("GET /families/usage/dashboard returns dashboard usage response")
     void getCustomersUsageDashboardReturnsOk() throws Exception {
         CustomerUsage me = new CustomerUsage(101L, "다봄1", 12_000L, 50_000L, false, null, true);
@@ -183,8 +223,8 @@ class FamilyControllerTest {
                 new FamilyCustomersUsage(
                         1L, "다봄가족", 2026, 2, 100_000L, 58_000L, 42.0, List.of(me, other));
 
-        given(jwtTokenUtil.verify(anyString())).willReturn(null);
-        given(jwtTokenUtil.getMemberId(MEMBER_TOKEN)).willReturn(MEMBER_ID);
+        Claims memberClaims = mockClaims(MEMBER_ID, RoleType.MEMBER);
+        given(jwtTokenUtil.getVerifiedClaims(MEMBER_TOKEN)).willReturn(memberClaims);
         given(usageRecordService.getCustomersUsageReport(MEMBER_ID, 2026, 2))
                 .willReturn(usageReport);
 

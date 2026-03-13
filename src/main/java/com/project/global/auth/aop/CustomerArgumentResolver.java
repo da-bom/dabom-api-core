@@ -11,6 +11,8 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 import com.project.global.auth.AuthorizationExtractor;
 import com.project.global.auth.JwtTokenUtil;
 
+import io.jsonwebtoken.Claims;
+
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -36,8 +38,7 @@ public class CustomerArgumentResolver implements HandlerMethodArgumentResolver {
         HttpServletRequest request = (HttpServletRequest) webRequest.getNativeRequest();
 
         String token = AuthorizationExtractor.extract(request);
-        Long id = jwtTokenUtil.getMemberId(token);
-
-        return id;
+        Claims claims = jwtTokenUtil.getVerifiedClaims(token);
+        return Long.parseLong(claims.getSubject());
     }
 }
