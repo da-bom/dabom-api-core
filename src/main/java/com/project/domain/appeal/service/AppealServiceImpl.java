@@ -63,8 +63,7 @@ public class AppealServiceImpl implements AppealService {
     private static final int DEFAULT_CURSOR_SIZE = 20;
     private static final int MAX_CURSOR_SIZE = 100;
     private static final String UNKNOWN_NAME = "unknown";
-    private static final long MIN_EMERGENCY_BYTES = 104_857_600L;
-    private static final long MAX_EMERGENCY_BYTES = 314_572_800L;
+    private static final long EMERGENCY_ADDITIONAL_BYTES = 314_572_800L;
 
     private final Clock clock;
     private final PolicyAppealRepository policyAppealRepository;
@@ -320,9 +319,8 @@ public class AppealServiceImpl implements AppealService {
     @Transactional
     public EmergencyQuotaResult requestEmergencyQuota(
             AuthContext auth, EmergencyQuotaRequest request) {
-        // 1. MEMBER 역할과 요청 바이트 범위를 검증한다.
+        // 1. MEMBER 역할을 검증한다.
         validateMemberOnly(auth);
-        validateEmergencyBytes(request.additionalBytes());
 
         // 2. 당월 고객 쿼터를 조회하고 무제한 사용자 여부를 확인한다.
         LocalDate currentMonth = LocalDate.now(clock).withDayOfMonth(1);
@@ -349,7 +347,7 @@ public class AppealServiceImpl implements AppealService {
                                     .requesterId(auth.customerId())
                                     .requestReason(request.requestReason())
                                     .desiredRules(
-                                            Map.of("additionalBytes", request.additionalBytes()))
+                                            Map.of("additionalBytes", EMERGENCY_ADDITIONAL_BYTES))
                                     .status(AppealStatus.APPROVED)
                                     .emergencyGrantMonth(currentMonth)
                                     .build());
@@ -358,7 +356,7 @@ public class AppealServiceImpl implements AppealService {
         }
 
         // 4. 승인 저장이 확정되면 월 한도를 즉시 증가시킨다.
-        customerQuota.addMonthlyLimitBytes(request.additionalBytes());
+        customerQuota.addMonthlyLimitBytes(EMERGENCY_ADDITIONAL_BYTES);
 
         // 5. MONTHLY_LIMIT 정책 할당이 있으면 rules.limitBytes도 동기화한다.
         syncMonthlyLimitPolicyAssignment(
@@ -369,7 +367,7 @@ public class AppealServiceImpl implements AppealService {
                 appeal.getId(),
                 appeal.getType(),
                 appeal.getStatus(),
-                request.additionalBytes(),
+                EMERGENCY_ADDITIONAL_BYTES,
                 customerQuota.getMonthlyLimitBytes(),
                 appeal.getRequestReason(),
                 appeal.getCreatedAt());
@@ -481,14 +479,7 @@ public class AppealServiceImpl implements AppealService {
         }
     }
 
-    /** 긴급 요청 바이트 범위 검증 */
-    private void validateEmergencyBytes(Long additionalBytes) {
-        if (additionalBytes < MIN_EMERGENCY_BYTES || additionalBytes > MAX_EMERGENCY_BYTES) {
-            throw new ApplicationException(AppealErrorCode.APPEAL_EMERGENCY_INVALID_BYTES);
-        }
-    }
-
-    /** 정책 타입 조회 */
+/** 정책 타입 조회 */
     private PolicyType resolvePolicyType(PolicyAppeal appeal) {
         if (AppealType.EMERGENCY.equals(appeal.getType())
                 || appeal.getPolicyAssignmentId() == null) {
