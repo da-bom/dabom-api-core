@@ -19,6 +19,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 
+import com.project.common.auth.model.AuthContext;
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.code.MissionErrorCode;
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.customer.repository.CustomerRepository;
@@ -39,9 +42,6 @@ import com.project.domain.reward.entity.Reward;
 import com.project.domain.reward.entity.RewardTemplate;
 import com.project.domain.reward.enums.RewardCategory;
 import com.project.domain.reward.service.RewardSnapshotService;
-import com.project.common.auth.model.AuthContext;
-import com.project.common.exception.ApplicationException;
-import com.project.common.exception.code.MissionErrorCode;
 
 @ExtendWith(MockitoExtension.class)
 class MissionServiceImplTest {

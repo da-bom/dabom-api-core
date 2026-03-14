@@ -15,12 +15,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.project.common.api.response.ApiResponse;
+import com.project.common.auth.aop.AdminOnly;
 import com.project.domain.policy.dto.request.PolicyRequest;
 import com.project.domain.policy.dto.response.PolicyResponse;
 import com.project.domain.policy.entity.Policy;
 import com.project.domain.policy.service.PolicyService;
-import com.project.common.api.response.ApiResponse;
-import com.project.common.auth.aop.AdminOnly;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

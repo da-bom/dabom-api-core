@@ -31,6 +31,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.project.common.auth.JwtTokenUtil;
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.customer.repository.CustomerRepository;
@@ -49,7 +50,6 @@ import com.project.domain.reward.entity.RewardTemplate;
 import com.project.domain.reward.enums.RewardCategory;
 import com.project.domain.reward.repository.RewardRepository;
 import com.project.domain.reward.repository.RewardTemplateRepository;
-import com.project.common.auth.JwtTokenUtil;
 
 import io.jsonwebtoken.Claims;
 

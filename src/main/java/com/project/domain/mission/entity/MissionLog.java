@@ -10,8 +10,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 
-import com.project.domain.mission.enums.MissionLogActionType;
 import com.project.common.util.BaseEntity;
+import com.project.domain.mission.enums.MissionLogActionType;
 
 import lombok.AccessLevel;
 import lombok.Builder;

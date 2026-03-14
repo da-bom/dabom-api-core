@@ -16,9 +16,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.project.domain.upload.enums.UploadType;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.UploadErrorCode;
+import com.project.domain.upload.enums.UploadType;
 
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;

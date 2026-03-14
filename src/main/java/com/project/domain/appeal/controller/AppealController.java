@@ -14,6 +14,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.project.common.api.response.ApiResponse;
+import com.project.common.auth.aop.CustomerId;
+import com.project.common.auth.aop.OwnerOnly;
+import com.project.common.auth.model.AuthContext;
+import com.project.common.auth.service.AuthContextService;
 import com.project.domain.appeal.dto.request.AppealCommentRequest;
 import com.project.domain.appeal.dto.request.AppealCreateRequest;
 import com.project.domain.appeal.dto.request.AppealRespondRequest;
@@ -36,11 +41,6 @@ import com.project.domain.appeal.model.AppealRespondResult;
 import com.project.domain.appeal.model.AppealablePolicyListResult;
 import com.project.domain.appeal.model.EmergencyQuotaResult;
 import com.project.domain.appeal.service.AppealService;
-import com.project.common.api.response.ApiResponse;
-import com.project.common.auth.aop.CustomerId;
-import com.project.common.auth.aop.OwnerOnly;
-import com.project.common.auth.model.AuthContext;
-import com.project.common.auth.service.AuthContextService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

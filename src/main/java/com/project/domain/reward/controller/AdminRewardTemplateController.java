@@ -15,12 +15,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.project.common.api.response.ApiResponse;
+import com.project.common.auth.aop.AdminOnly;
 import com.project.domain.reward.dto.request.RewardTemplateRequest;
 import com.project.domain.reward.dto.response.RewardTemplateResponse;
 import com.project.domain.reward.entity.RewardTemplate;
 import com.project.domain.reward.service.RewardTemplateService;
-import com.project.common.api.response.ApiResponse;
-import com.project.common.auth.aop.AdminOnly;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

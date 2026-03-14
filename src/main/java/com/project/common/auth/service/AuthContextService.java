@@ -2,14 +2,14 @@ package com.project.common.auth.service;
 
 import org.springframework.stereotype.Component;
 
-import com.project.domain.customer.entity.Customer;
-import com.project.domain.customer.repository.CustomerRepository;
-import com.project.domain.family.entity.FamilyMember;
-import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.common.auth.model.AuthContext;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.CustomerErrorCode;
 import com.project.common.exception.code.FamilyErrorCode;
+import com.project.domain.customer.entity.Customer;
+import com.project.domain.customer.repository.CustomerRepository;
+import com.project.domain.family.entity.FamilyMember;
+import com.project.domain.family.repository.FamilyMemberRepository;
 
 import lombok.RequiredArgsConstructor;
 

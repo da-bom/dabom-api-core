@@ -20,6 +20,8 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.code.FamilyErrorCode;
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.family.dto.request.FamilySearchRequest;
 import com.project.domain.family.entity.Family;
@@ -30,8 +32,6 @@ import com.project.domain.family.model.FamilyMemberSummary;
 import com.project.domain.family.model.FamilySearchResult;
 import com.project.domain.family.repository.projection.FamilyUsageCustomerRow;
 import com.project.domain.family.util.FamilyUsageCalculator;
-import com.project.common.exception.ApplicationException;
-import com.project.common.exception.code.FamilyErrorCode;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;

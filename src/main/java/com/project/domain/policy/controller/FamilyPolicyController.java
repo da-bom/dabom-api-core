@@ -10,14 +10,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.project.domain.policy.dto.request.PolicyUpdateRequest;
-import com.project.domain.policy.dto.response.FamilyPolicyResponse;
-import com.project.domain.policy.dto.response.PolicyUpdateResponse;
-import com.project.domain.policy.service.FamilyPolicyService;
 import com.project.common.api.response.ApiResponse;
 import com.project.common.auth.aop.CustomerId;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.PolicyErrorCode;
+import com.project.domain.policy.dto.request.PolicyUpdateRequest;
+import com.project.domain.policy.dto.response.FamilyPolicyResponse;
+import com.project.domain.policy.dto.response.PolicyUpdateResponse;
+import com.project.domain.policy.service.FamilyPolicyService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

@@ -7,6 +7,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.code.FamilyErrorCode;
 import com.project.domain.family.dto.request.FamilySearchRequest;
 import com.project.domain.family.entity.Family;
 import com.project.domain.family.infra.cache.FamilyCacheRepository;
@@ -19,8 +21,6 @@ import com.project.domain.family.repository.FamilyQueryRepository;
 import com.project.domain.family.repository.FamilyRepository;
 import com.project.domain.family.repository.projection.FamilyUsageCustomerRow;
 import com.project.domain.family.util.FamilyUsageCalculator;
-import com.project.common.exception.ApplicationException;
-import com.project.common.exception.code.FamilyErrorCode;
 
 import lombok.RequiredArgsConstructor;
 

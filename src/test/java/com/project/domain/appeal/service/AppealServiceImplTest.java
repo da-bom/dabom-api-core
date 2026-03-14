@@ -28,6 +28,9 @@ import org.springframework.data.domain.PageRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.MapType;
+import com.project.common.auth.model.AuthContext;
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.code.AppealErrorCode;
 import com.project.domain.appeal.dto.request.AppealCommentRequest;
 import com.project.domain.appeal.dto.request.AppealCreateRequest;
 import com.project.domain.appeal.dto.request.AppealRespondRequest;
@@ -56,9 +59,6 @@ import com.project.domain.policy.enums.PolicyType;
 import com.project.domain.policy.model.AppliedPolicyQueryResult;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.domain.policy.repository.PolicyRepository;
-import com.project.common.auth.model.AuthContext;
-import com.project.common.exception.ApplicationException;
-import com.project.common.exception.code.AppealErrorCode;
 
 @ExtendWith(MockitoExtension.class)
 class AppealServiceImplTest {
