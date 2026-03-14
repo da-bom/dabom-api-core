@@ -10,5 +10,6 @@ public record AppealCreateResult(
         Long appealId,
         Long policyAssignmentId,
         AppealStatus status,
+        Boolean policyActive,
         Map<String, Object> desiredRules,
         LocalDateTime createdAt) {}

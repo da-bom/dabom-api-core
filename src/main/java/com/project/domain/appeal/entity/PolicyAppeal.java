@@ -66,6 +66,9 @@ public class PolicyAppeal extends BaseEntity {
     @Convert(converter = MapStringObjectConverter.class)
     private Map<String, Object> desiredRules;
 
+    @Column(name = "policy_active")
+    private Boolean policyActive;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
