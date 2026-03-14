@@ -4,9 +4,9 @@ import com.project.domain.customer.dto.request.CustomerSignInRequest;
 import com.project.domain.customer.dto.request.CustomerSignUpRequest;
 import com.project.domain.customer.dto.response.SignUpResponse;
 import com.project.domain.customer.model.MyPageInfo;
-import com.project.global.auth.SignInResult;
-import com.project.global.auth.TokenRefreshResult;
-import com.project.global.auth.model.AuthContext;
+import com.project.common.auth.SignInResult;
+import com.project.common.auth.TokenRefreshResult;
+import com.project.common.auth.model.AuthContext;
 
 public interface CustomerService {
     SignInResult signIn(CustomerSignInRequest requestDto);

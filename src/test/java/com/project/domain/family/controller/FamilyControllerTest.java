@@ -33,11 +33,11 @@ import com.project.domain.usagerecord.model.FamilyCustomersUsage;
 import com.project.domain.usagerecord.model.FamilyCustomersUsageSummary;
 import com.project.domain.usagerecord.model.FamilyUsage;
 import com.project.domain.usagerecord.service.UsageRecordService;
-import com.project.global.auth.JwtTokenUtil;
-import com.project.global.auth.aop.OwnerOnlyAspect;
-import com.project.global.config.WebConfig;
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.GlobalErrorCode;
+import com.project.common.auth.JwtTokenUtil;
+import com.project.common.auth.aop.OwnerOnlyAspect;
+import com.project.common.config.WebConfig;
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.code.GlobalErrorCode;
 
 import io.jsonwebtoken.Claims;
 

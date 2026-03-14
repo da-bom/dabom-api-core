@@ -36,11 +36,11 @@ import com.project.domain.appeal.model.AppealRespondResult;
 import com.project.domain.appeal.model.AppealablePolicyListResult;
 import com.project.domain.appeal.model.EmergencyQuotaResult;
 import com.project.domain.appeal.service.AppealService;
-import com.project.global.api.response.ApiResponse;
-import com.project.global.auth.aop.CustomerId;
-import com.project.global.auth.aop.OwnerOnly;
-import com.project.global.auth.model.AuthContext;
-import com.project.global.auth.service.AuthContextService;
+import com.project.common.api.response.ApiResponse;
+import com.project.common.auth.aop.CustomerId;
+import com.project.common.auth.aop.OwnerOnly;
+import com.project.common.auth.model.AuthContext;
+import com.project.common.auth.service.AuthContextService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

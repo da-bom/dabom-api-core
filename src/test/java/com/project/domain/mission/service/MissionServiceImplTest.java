@@ -39,9 +39,9 @@ import com.project.domain.reward.entity.Reward;
 import com.project.domain.reward.entity.RewardTemplate;
 import com.project.domain.reward.enums.RewardCategory;
 import com.project.domain.reward.service.RewardSnapshotService;
-import com.project.global.auth.model.AuthContext;
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.MissionErrorCode;
+import com.project.common.auth.model.AuthContext;
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.code.MissionErrorCode;
 
 @ExtendWith(MockitoExtension.class)
 class MissionServiceImplTest {

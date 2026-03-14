@@ -27,9 +27,9 @@ import com.project.domain.usagerecord.model.FamilyCustomersUsage;
 import com.project.domain.usagerecord.model.FamilyCustomersUsageSummary;
 import com.project.domain.usagerecord.model.FamilyUsage;
 import com.project.domain.usagerecord.service.UsageRecordService;
-import com.project.global.api.response.ApiResponse;
-import com.project.global.auth.aop.CustomerId;
-import com.project.global.auth.aop.OwnerOnly;
+import com.project.common.api.response.ApiResponse;
+import com.project.common.auth.aop.CustomerId;
+import com.project.common.auth.aop.OwnerOnly;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

@@ -33,7 +33,7 @@ import com.project.domain.policy.entity.PolicyAssignment;
 import com.project.domain.policy.enums.PolicyType;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.domain.policy.support.PolicyApiTestSupport;
-import com.project.global.auth.JwtTokenUtil;
+import com.project.common.auth.JwtTokenUtil;
 
 @SpringBootTest
 @AutoConfigureMockMvc

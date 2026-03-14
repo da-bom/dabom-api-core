@@ -32,7 +32,7 @@ import com.project.domain.customer.enums.RoleType;
 import com.project.domain.family.dto.request.FamilySearchRequest;
 import com.project.domain.family.infra.cache.FamilyCacheRepository;
 import com.project.domain.family.support.FamilyApiTestSupport;
-import com.project.global.auth.JwtTokenUtil;
+import com.project.common.auth.JwtTokenUtil;
 
 @SpringBootTest
 @AutoConfigureMockMvc

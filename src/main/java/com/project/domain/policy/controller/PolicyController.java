@@ -19,8 +19,8 @@ import com.project.domain.policy.dto.request.PolicyRequest;
 import com.project.domain.policy.dto.response.PolicyResponse;
 import com.project.domain.policy.entity.Policy;
 import com.project.domain.policy.service.PolicyService;
-import com.project.global.api.response.ApiResponse;
-import com.project.global.auth.aop.AdminOnly;
+import com.project.common.api.response.ApiResponse;
+import com.project.common.auth.aop.AdminOnly;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

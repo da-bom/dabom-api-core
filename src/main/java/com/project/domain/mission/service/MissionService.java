@@ -6,7 +6,7 @@ import com.project.domain.mission.model.MissionListResult;
 import com.project.domain.mission.model.MissionLogListResult;
 import com.project.domain.mission.model.MissionRequestHistoryListResult;
 import com.project.domain.mission.model.MissionRequestResult;
-import com.project.global.auth.model.AuthContext;
+import com.project.common.auth.model.AuthContext;
 
 /** 미션 도메인 비즈니스 로직 인터페이스다. */
 public interface MissionService {

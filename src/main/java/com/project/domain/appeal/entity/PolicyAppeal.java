@@ -17,8 +17,8 @@ import jakarta.persistence.UniqueConstraint;
 
 import com.project.domain.appeal.enums.AppealStatus;
 import com.project.domain.appeal.enums.AppealType;
-import com.project.global.util.BaseEntity;
-import com.project.global.util.MapStringObjectConverter;
+import com.project.common.util.BaseEntity;
+import com.project.common.util.MapStringObjectConverter;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;

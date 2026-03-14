@@ -14,8 +14,8 @@ import jakarta.persistence.Table;
 
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.policy.enums.PolicyType;
-import com.project.global.util.BaseEntity;
-import com.project.global.util.MapStringObjectConverter;
+import com.project.common.util.BaseEntity;
+import com.project.common.util.MapStringObjectConverter;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;

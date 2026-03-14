@@ -11,8 +11,8 @@ import com.project.domain.reward.entity.RewardGrant;
 import com.project.domain.reward.enums.RewardGrantSort;
 import com.project.domain.reward.enums.RewardGrantStatus;
 import com.project.domain.reward.service.AdminRewardGrantService;
-import com.project.global.api.response.ApiResponse;
-import com.project.global.auth.aop.AdminOnly;
+import com.project.common.api.response.ApiResponse;
+import com.project.common.auth.aop.AdminOnly;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

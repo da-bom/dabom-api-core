@@ -19,8 +19,8 @@ import com.project.domain.policy.entity.Policy;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.domain.policy.repository.PolicyRepository;
 import com.project.domain.policy.service.helper.RulesUtil;
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.PolicyErrorCode;
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.code.PolicyErrorCode;
 
 import lombok.RequiredArgsConstructor;
 

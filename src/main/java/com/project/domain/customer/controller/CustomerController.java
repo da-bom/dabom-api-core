@@ -17,12 +17,12 @@ import com.project.domain.customer.dto.response.SignInResponse;
 import com.project.domain.customer.dto.response.SignUpResponse;
 import com.project.domain.customer.model.MyPageInfo;
 import com.project.domain.customer.service.CustomerService;
-import com.project.global.api.response.ApiResponse;
-import com.project.global.api.response.TokenRefreshResponse;
-import com.project.global.auth.TokenRefreshResult;
-import com.project.global.auth.aop.CustomerId;
-import com.project.global.auth.model.AuthContext;
-import com.project.global.auth.service.AuthContextService;
+import com.project.common.api.response.ApiResponse;
+import com.project.common.api.response.TokenRefreshResponse;
+import com.project.common.auth.TokenRefreshResult;
+import com.project.common.auth.aop.CustomerId;
+import com.project.common.auth.model.AuthContext;
+import com.project.common.auth.service.AuthContextService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

@@ -7,8 +7,8 @@ import com.project.domain.reward.entity.Reward;
 import com.project.domain.reward.entity.RewardTemplate;
 import com.project.domain.reward.repository.RewardRepository;
 import com.project.domain.reward.repository.RewardTemplateRepository;
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.MissionErrorCode;
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.code.MissionErrorCode;
 
 import lombok.RequiredArgsConstructor;
 

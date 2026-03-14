@@ -14,7 +14,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
 import com.project.domain.mission.enums.MissionRequestStatus;
-import com.project.global.util.BaseEntity;
+import com.project.common.util.BaseEntity;
 
 import lombok.AccessLevel;
 import lombok.Builder;

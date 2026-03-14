@@ -52,7 +52,7 @@ import com.project.domain.reward.entity.RewardTemplate;
 import com.project.domain.reward.enums.RewardCategory;
 import com.project.domain.reward.repository.RewardRepository;
 import com.project.domain.reward.repository.RewardTemplateRepository;
-import com.project.global.auth.JwtTokenUtil;
+import com.project.common.auth.JwtTokenUtil;
 
 import io.jsonwebtoken.Claims;
 

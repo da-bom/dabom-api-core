@@ -13,7 +13,7 @@ import com.project.domain.appeal.model.AppealListResult;
 import com.project.domain.appeal.model.AppealRespondResult;
 import com.project.domain.appeal.model.AppealablePolicyListResult;
 import com.project.domain.appeal.model.EmergencyQuotaResult;
-import com.project.global.auth.model.AuthContext;
+import com.project.common.auth.model.AuthContext;
 
 /** 이의제기 서비스 명세 */
 public interface AppealService {

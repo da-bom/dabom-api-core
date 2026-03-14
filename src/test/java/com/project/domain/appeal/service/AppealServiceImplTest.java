@@ -56,9 +56,9 @@ import com.project.domain.policy.enums.PolicyType;
 import com.project.domain.policy.model.AppliedPolicyQueryResult;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.domain.policy.repository.PolicyRepository;
-import com.project.global.auth.model.AuthContext;
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.AppealErrorCode;
+import com.project.common.auth.model.AuthContext;
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.code.AppealErrorCode;
 
 @ExtendWith(MockitoExtension.class)
 class AppealServiceImplTest {

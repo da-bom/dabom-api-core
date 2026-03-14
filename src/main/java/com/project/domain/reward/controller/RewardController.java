@@ -24,11 +24,11 @@ import com.project.domain.reward.model.ReceivedRewardListResult;
 import com.project.domain.reward.model.RewardRespondResult;
 import com.project.domain.reward.service.RewardService;
 import com.project.domain.reward.service.RewardTemplateService;
-import com.project.global.api.response.ApiResponse;
-import com.project.global.auth.aop.CustomerId;
-import com.project.global.auth.aop.OwnerOnly;
-import com.project.global.auth.model.AuthContext;
-import com.project.global.auth.service.AuthContextService;
+import com.project.common.api.response.ApiResponse;
+import com.project.common.auth.aop.CustomerId;
+import com.project.common.auth.aop.OwnerOnly;
+import com.project.common.auth.model.AuthContext;
+import com.project.common.auth.service.AuthContextService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
