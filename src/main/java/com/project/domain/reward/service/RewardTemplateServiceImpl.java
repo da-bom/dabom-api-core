@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.project.domain.reward.dto.request.RewardTemplateRequest;
 import com.project.domain.reward.entity.RewardTemplate;
+import com.project.domain.reward.enums.RewardCategory;
 import com.project.domain.reward.repository.RewardTemplateRepository;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.RewardErrorCode;
@@ -23,6 +24,12 @@ public class RewardTemplateServiceImpl implements RewardTemplateService {
     @Override
     public List<RewardTemplate> getAllTemplates() {
         return rewardTemplateRepository.findAllByDeletedAtIsNull();
+    }
+
+    @Override
+    public List<RewardTemplate> getActiveTemplates(RewardCategory category) {
+        return rewardTemplateRepository
+                .findAllByDeletedAtIsNullAndIsActiveTrueAndCategoryOrderByIdAsc(category);
     }
 
     @Override

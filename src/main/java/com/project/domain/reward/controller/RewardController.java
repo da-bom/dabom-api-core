@@ -1,5 +1,7 @@
 package com.project.domain.reward.controller;
 
+import java.util.List;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -16,9 +18,12 @@ import org.springframework.web.bind.annotation.RestController;
 import com.project.domain.reward.dto.request.RespondRewardRequest;
 import com.project.domain.reward.dto.response.ReceivedRewardListResponse;
 import com.project.domain.reward.dto.response.RewardRespondResponse;
+import com.project.domain.reward.dto.response.RewardTemplateResponse;
+import com.project.domain.reward.enums.RewardCategory;
 import com.project.domain.reward.model.ReceivedRewardListResult;
 import com.project.domain.reward.model.RewardRespondResult;
 import com.project.domain.reward.service.RewardService;
+import com.project.domain.reward.service.RewardTemplateService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.CustomerId;
 import com.project.global.auth.aop.OwnerOnly;
@@ -40,7 +45,23 @@ import lombok.RequiredArgsConstructor;
 public class RewardController {
 
     private final RewardService rewardService;
+    private final RewardTemplateService rewardTemplateService;
     private final AuthContextService authContextService;
+
+    /** 사용자용 활성 보상 템플릿 목록을 조회한다. */
+    @OwnerOnly
+    @GetMapping("/templates")
+    @Operation(summary = "보상 템플릿 목록 조회")
+    public ApiResponse<List<RewardTemplateResponse.Public>> getRewardTemplates(
+            @Parameter(hidden = true) @CustomerId Long customerId,
+            @RequestParam RewardCategory category) {
+        authContextService.verifyUserAndFamilyMembership(customerId);
+        List<RewardTemplateResponse.Public> result =
+                rewardTemplateService.getActiveTemplates(category).stream()
+                        .map(RewardTemplateResponse.Public::from)
+                        .toList();
+        return ApiResponse.success(result);
+    }
 
     /** OWNER가 보상 요청을 승인/거절한다. */
     @OwnerOnly

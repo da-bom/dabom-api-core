@@ -156,7 +156,7 @@ class RewardControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("보상 요청 응답과 수령 내역 조회에서 reward 구조가 유지된다")
+    @DisplayName("蹂댁긽 ?붿껌 ?묐떟怨??섎졊 ?댁뿭 議고쉶?먯꽌 reward 援ъ“媛 ?좎??쒕떎")
     void rewardFlowKeepsRewardShape() throws Exception {
         MvcResult requestResult =
                 mockMvc.perform(
@@ -245,6 +245,87 @@ class RewardControllerIntegrationTest {
         assertThat(receivedData.has("hasNext")).isTrue();
         assertThat(receivedData.has("nextCursor")).isTrue();
         assertThat(receivedData.path("rewards").get(0).path("missionItem").has("reward")).isTrue();
+    }
+
+    @Test
+    @DisplayName("DATA 카테고리 템플릿 조회 시, 활성화된 DATA 템플릿만 반환한다")
+    void getRewardTemplates_withDataCategory_returnsOnlyActiveDataTemplates() throws Exception {
+        RewardTemplate activeGifticonTemplate =
+                createTemplate("gifticon reward", RewardCategory.GIFTICON, 3000, true, true);
+        RewardTemplate inactiveDataTemplate =
+                createTemplate("inactive data reward", RewardCategory.DATA, 2000, true, false);
+        RewardTemplate deletedDataTemplate =
+                createTemplate("deleted data reward", RewardCategory.DATA, 1000, false, true);
+        deletedDataTemplate.delete();
+
+        MvcResult result =
+                mockMvc.perform(
+                                get("/rewards/templates")
+                                        .header("Authorization", "Bearer " + OWNER_TOKEN)
+                                        .param("category", RewardCategory.DATA.name()))
+                        .andExpect(status().isOk())
+                        .andReturn();
+
+        JsonNode templates =
+                objectMapper.readTree(result.getResponse().getContentAsString()).path("data");
+
+        assertThat(templates.isArray()).isTrue();
+        assertThat(templates.size()).isEqualTo(1);
+        assertThat(templates.get(0).path("id").asLong()).isEqualTo(rewardTemplate.getId());
+        assertThat(templates.get(0).path("name").asText()).isEqualTo("data reward");
+        assertThat(templates.get(0).path("category").asText())
+                .isEqualTo(RewardCategory.DATA.name());
+        assertThat(templates.toString()).doesNotContain(activeGifticonTemplate.getName());
+        assertThat(templates.toString()).doesNotContain(inactiveDataTemplate.getName());
+        assertThat(templates.toString()).doesNotContain(deletedDataTemplate.getName());
+    }
+
+    @Test
+    @DisplayName("GIFTICON 카테고리 템플릿 조회 시, 활성화된 GIFTICON 템플릿만 반환한다")
+    void getRewardTemplates_withGifticonCategory_returnsOnlyActiveGifticonTemplates()
+            throws Exception {
+        RewardTemplate activeGifticonTemplate =
+                createTemplate("gifticon reward", RewardCategory.GIFTICON, 3000, true, true);
+        RewardTemplate inactiveGifticonTemplate =
+                createTemplate(
+                        "inactive gifticon reward", RewardCategory.GIFTICON, 2500, true, false);
+        RewardTemplate deletedGifticonTemplate =
+                createTemplate(
+                        "deleted gifticon reward", RewardCategory.GIFTICON, 1500, false, true);
+        deletedGifticonTemplate.delete();
+
+        MvcResult result =
+                mockMvc.perform(
+                                get("/rewards/templates")
+                                        .header("Authorization", "Bearer " + OWNER_TOKEN)
+                                        .param("category", RewardCategory.GIFTICON.name()))
+                        .andExpect(status().isOk())
+                        .andReturn();
+
+        JsonNode templates =
+                objectMapper.readTree(result.getResponse().getContentAsString()).path("data");
+
+        assertThat(templates.isArray()).isTrue();
+        assertThat(templates.size()).isEqualTo(1);
+        assertThat(templates.get(0).path("name").asText())
+                .isEqualTo(activeGifticonTemplate.getName());
+        assertThat(templates.get(0).path("category").asText())
+                .isEqualTo(RewardCategory.GIFTICON.name());
+        assertThat(templates.toString()).doesNotContain(rewardTemplate.getName());
+        assertThat(templates.toString()).doesNotContain(inactiveGifticonTemplate.getName());
+        assertThat(templates.toString()).doesNotContain(deletedGifticonTemplate.getName());
+    }
+
+    private RewardTemplate createTemplate(
+            String name, RewardCategory category, int price, boolean isSystem, boolean isActive) {
+        return rewardTemplateRepository.save(
+                RewardTemplate.builder()
+                        .name(name)
+                        .category(category)
+                        .price(price)
+                        .isSystem(isSystem)
+                        .isActive(isActive)
+                        .build());
     }
 
     private void assertRewardNode(JsonNode rewardNode, long templateId, String expectedName) {

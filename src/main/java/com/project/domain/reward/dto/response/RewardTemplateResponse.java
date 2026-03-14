@@ -7,6 +7,19 @@ import com.project.domain.reward.enums.RewardCategory;
 
 public class RewardTemplateResponse {
 
+    public record Public(
+            Long id, String name, RewardCategory category, String thumbnailUrl, Integer price) {
+
+        public static Public from(RewardTemplate template) {
+            return new Public(
+                    template.getId(),
+                    template.getName(),
+                    template.getCategory(),
+                    template.getThumbnailUrl(),
+                    template.getPrice());
+        }
+    }
+
     public record Detail(
             Long id,
             String name,
