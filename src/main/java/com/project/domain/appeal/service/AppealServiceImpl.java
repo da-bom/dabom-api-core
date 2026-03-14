@@ -250,7 +250,7 @@ public class AppealServiceImpl implements AppealService {
         AppealStatus action = parseRespondAction(request.action());
         LocalDateTime now = LocalDateTime.now(clock);
 
-        // 5. APPROVED면 승인 처리하고 desiredRules가 있으면 정책 규칙에도 반영한다.
+        // 5. APPROVED면 승인 처리하고 변경사항이 있으면 정책 규칙에도 반영한다.
         if (AppealStatus.APPROVED.equals(action)) {
             appeal.approve(auth.customerId(), now);
             applyAppealChangeIfPresent(appeal, auth.customerId());
