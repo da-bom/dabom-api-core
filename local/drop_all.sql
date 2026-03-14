@@ -17,6 +17,7 @@ DROP TABLE IF EXISTS `reward`;
 DROP TABLE IF EXISTS `reward_template`;
 DROP TABLE IF EXISTS `usage_record`;
 DROP TABLE IF EXISTS `customer_quota`;
+DROP TABLE IF EXISTS `family_quota`;
 DROP TABLE IF EXISTS `family_member`;
 DROP TABLE IF EXISTS `family`;
 DROP TABLE IF EXISTS `policy`;
