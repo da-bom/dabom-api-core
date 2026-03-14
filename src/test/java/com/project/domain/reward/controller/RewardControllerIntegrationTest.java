@@ -261,7 +261,7 @@ class RewardControllerIntegrationTest {
         MvcResult result =
                 mockMvc.perform(
                                 get("/rewards/templates")
-                                        .header("Authorization", "Bearer " + MEMBER_TOKEN)
+                                        .header("Authorization", "Bearer " + OWNER_TOKEN)
                                         .param("category", RewardCategory.DATA.name()))
                         .andExpect(status().isOk())
                         .andReturn();
@@ -297,7 +297,7 @@ class RewardControllerIntegrationTest {
         MvcResult result =
                 mockMvc.perform(
                                 get("/rewards/templates")
-                                        .header("Authorization", "Bearer " + MEMBER_TOKEN)
+                                        .header("Authorization", "Bearer " + OWNER_TOKEN)
                                         .param("category", RewardCategory.GIFTICON.name()))
                         .andExpect(status().isOk())
                         .andReturn();
