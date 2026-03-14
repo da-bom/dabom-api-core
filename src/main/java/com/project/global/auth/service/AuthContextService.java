@@ -37,4 +37,14 @@ public class AuthContextService {
         return new AuthContext(
                 customerId, member.getFamilyId(), member.getRole(), customer.getName());
     }
+
+    // 고객의 존재 여부와 가족 구성원 여부만 확인
+    public void verifyUserAndFamilyMembership(Long customerId) {
+        if (!customerRepository.existsById(customerId)) {
+            throw new ApplicationException(CustomerErrorCode.CUSTOMER_NOT_FOUND);
+        }
+        if (!familyMemberRepository.existsByCustomerId(customerId)) {
+            throw new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND);
+        }
+    }
 }

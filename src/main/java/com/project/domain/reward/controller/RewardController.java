@@ -49,12 +49,13 @@ public class RewardController {
     private final AuthContextService authContextService;
 
     /** 사용자용 활성 보상 템플릿 목록을 조회한다. */
+    @OwnerOnly
     @GetMapping("/templates")
     @Operation(summary = "보상 템플릿 목록 조회")
     public ApiResponse<List<RewardTemplateResponse.Public>> getRewardTemplates(
             @Parameter(hidden = true) @CustomerId Long customerId,
             @RequestParam RewardCategory category) {
-        authContextService.resolve(customerId);
+        authContextService.verifyUserAndFamilyMembership(customerId);
         List<RewardTemplateResponse.Public> result =
                 rewardTemplateService.getActiveTemplates(category).stream()
                         .map(RewardTemplateResponse.Public::from)
