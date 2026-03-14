@@ -287,7 +287,8 @@ class RewardControllerIntegrationTest {
         RewardTemplate activeGifticonTemplate =
                 createTemplate("gifticon reward", RewardCategory.GIFTICON, 3000, true, true);
         RewardTemplate inactiveGifticonTemplate =
-                createTemplate("inactive gifticon reward", RewardCategory.GIFTICON, 2500, true, false);
+                createTemplate(
+                        "inactive gifticon reward", RewardCategory.GIFTICON, 2500, true, false);
         RewardTemplate deletedGifticonTemplate =
                 createTemplate(
                         "deleted gifticon reward", RewardCategory.GIFTICON, 1500, false, true);
@@ -326,6 +327,7 @@ class RewardControllerIntegrationTest {
                         .isActive(isActive)
                         .build());
     }
+
     private void assertRewardNode(JsonNode rewardNode, long templateId, String expectedName) {
         assertThat(rewardNode.has("rewardId")).isTrue();
         assertThat(rewardNode.path("templateId").asLong()).isEqualTo(templateId);
