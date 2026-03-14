@@ -3,16 +3,16 @@ package com.project.domain.admin.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.project.common.auth.JwtTokenUtil;
+import com.project.common.auth.PasswordHash;
+import com.project.common.auth.SignInResult;
+import com.project.common.auth.TokenRefreshResult;
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.code.AdminErrorCode;
 import com.project.domain.admin.entity.Admin;
 import com.project.domain.admin.repository.AdminRepository;
 import com.project.domain.customer.dto.response.SignUpResponse;
 import com.project.domain.customer.enums.RoleType;
-import com.project.global.auth.JwtTokenUtil;
-import com.project.global.auth.PasswordHash;
-import com.project.global.auth.SignInResult;
-import com.project.global.auth.TokenRefreshResult;
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.AdminErrorCode;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;

@@ -14,13 +14,13 @@ import com.dabom.messaging.kafka.event.dto.policy.PolicyUpdatedPayload;
 import com.dabom.messaging.kafka.event.publisher.KafkaEventPublisher;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.code.PolicyErrorCode;
 import com.project.domain.policy.dto.request.PolicyRequest;
 import com.project.domain.policy.entity.Policy;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.domain.policy.repository.PolicyRepository;
 import com.project.domain.policy.service.helper.RulesUtil;
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.PolicyErrorCode;
 
 import lombok.RequiredArgsConstructor;
 

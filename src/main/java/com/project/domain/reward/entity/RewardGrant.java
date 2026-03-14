@@ -15,10 +15,10 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import com.project.common.util.BaseEntity;
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.mission.entity.MissionItem;
 import com.project.domain.reward.enums.RewardGrantStatus;
-import com.project.global.util.BaseEntity;
 
 import lombok.AccessLevel;
 import lombok.Builder;

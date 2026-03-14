@@ -8,9 +8,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.code.UploadErrorCode;
 import com.project.domain.upload.enums.UploadType;
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.UploadErrorCode;
 
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;

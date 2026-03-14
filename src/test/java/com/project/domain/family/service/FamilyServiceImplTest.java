@@ -20,6 +20,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.code.FamilyErrorCode;
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.family.dto.request.FamilySearchRequest;
 import com.project.domain.family.entity.Family;
@@ -32,8 +34,6 @@ import com.project.domain.family.model.FamilySearchResult;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.family.repository.FamilyQueryRepository;
 import com.project.domain.family.repository.FamilyRepository;
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.FamilyErrorCode;
 
 @ExtendWith(MockitoExtension.class)
 class FamilyServiceImplTest {

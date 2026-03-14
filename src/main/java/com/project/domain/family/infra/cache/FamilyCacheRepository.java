@@ -7,10 +7,10 @@ import java.util.Optional;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
+import com.project.common.util.RedisKeyGenerator;
 import com.project.domain.family.dto.response.FamilyDetailResponse;
 import com.project.domain.family.entity.Family;
 import com.project.domain.family.infra.cache.dto.FamilyCacheDto;
-import com.project.global.util.RedisKeyGenerator;
 
 import lombok.RequiredArgsConstructor;
 

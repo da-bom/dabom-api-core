@@ -1,6 +1,6 @@
 package com.project.domain.customer.dto.response;
 
-import com.project.global.auth.SignInResult;
+import com.project.common.auth.SignInResult;
 
 public record SignInResponse(String accessToken, String refreshToken, String role) {
 

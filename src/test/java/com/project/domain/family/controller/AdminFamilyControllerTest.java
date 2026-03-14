@@ -28,11 +28,11 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.project.common.auth.JwtTokenUtil;
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.family.dto.request.FamilySearchRequest;
 import com.project.domain.family.infra.cache.FamilyCacheRepository;
 import com.project.domain.family.support.FamilyApiTestSupport;
-import com.project.global.auth.JwtTokenUtil;
 
 @SpringBootTest
 @AutoConfigureMockMvc

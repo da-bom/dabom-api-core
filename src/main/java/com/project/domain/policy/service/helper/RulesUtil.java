@@ -2,9 +2,9 @@ package com.project.domain.policy.service.helper;
 
 import org.springframework.stereotype.Component;
 
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.code.PolicyErrorCode;
 import com.project.domain.policy.enums.PolicyType;
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.PolicyErrorCode;
 
 @Component
 public class RulesUtil {

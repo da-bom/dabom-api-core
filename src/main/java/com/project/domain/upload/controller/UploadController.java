@@ -9,11 +9,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.project.common.api.response.ApiResponse;
+import com.project.common.auth.aop.AdminOnly;
 import com.project.domain.upload.dto.response.UploadResponse;
 import com.project.domain.upload.enums.UploadType;
 import com.project.domain.upload.service.UploadService;
-import com.project.global.api.response.ApiResponse;
-import com.project.global.auth.aop.AdminOnly;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

@@ -23,6 +23,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.project.common.auth.model.AuthContext;
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.code.MissionErrorCode;
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.customer.repository.CustomerRepository;
@@ -39,9 +42,6 @@ import com.project.domain.reward.entity.Reward;
 import com.project.domain.reward.entity.RewardTemplate;
 import com.project.domain.reward.enums.RewardCategory;
 import com.project.domain.reward.repository.RewardGrantRepository;
-import com.project.global.auth.model.AuthContext;
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.MissionErrorCode;
 
 @ExtendWith(MockitoExtension.class)
 class RewardServiceImplTest {

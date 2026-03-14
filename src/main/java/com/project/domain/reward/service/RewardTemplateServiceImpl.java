@@ -5,12 +5,12 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.code.RewardErrorCode;
 import com.project.domain.reward.dto.request.RewardTemplateRequest;
 import com.project.domain.reward.entity.RewardTemplate;
 import com.project.domain.reward.enums.RewardCategory;
 import com.project.domain.reward.repository.RewardTemplateRepository;
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.RewardErrorCode;
 
 import lombok.RequiredArgsConstructor;
 

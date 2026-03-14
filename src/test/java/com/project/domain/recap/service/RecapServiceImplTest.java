@@ -19,13 +19,13 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.code.RecapErrorCode;
 import com.project.domain.family.entity.Family;
 import com.project.domain.family.service.FamilyService;
 import com.project.domain.recap.entity.FamilyRecapMonthly;
 import com.project.domain.recap.model.MonthlyRecap;
 import com.project.domain.recap.repository.FamilyRecapMonthlyRepository;
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.RecapErrorCode;
 
 @ExtendWith(MockitoExtension.class)
 class RecapServiceImplTest {

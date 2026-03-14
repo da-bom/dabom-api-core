@@ -15,10 +15,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
+import com.project.common.util.BaseEntity;
+import com.project.common.util.MapStringObjectConverter;
 import com.project.domain.appeal.enums.AppealStatus;
 import com.project.domain.appeal.enums.AppealType;
-import com.project.global.util.BaseEntity;
-import com.project.global.util.MapStringObjectConverter;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;

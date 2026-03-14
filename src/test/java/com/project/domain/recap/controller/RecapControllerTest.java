@@ -20,13 +20,13 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.project.common.auth.JwtTokenUtil;
+import com.project.common.config.WebConfig;
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.ExceptionAdvice;
+import com.project.common.exception.code.RecapErrorCode;
 import com.project.domain.recap.model.MonthlyRecap;
 import com.project.domain.recap.service.RecapService;
-import com.project.global.auth.JwtTokenUtil;
-import com.project.global.config.WebConfig;
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.ExceptionAdvice;
-import com.project.global.exception.code.RecapErrorCode;
 
 import io.jsonwebtoken.Claims;
 
