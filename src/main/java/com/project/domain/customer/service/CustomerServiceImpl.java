@@ -41,6 +41,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class CustomerServiceImpl implements CustomerService {
 
     private final CustomerRepository customerRepository;
