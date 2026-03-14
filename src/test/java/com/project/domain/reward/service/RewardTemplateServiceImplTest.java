@@ -211,4 +211,34 @@ class RewardTemplateServiceImplTest {
                                 assertThat(((ApplicationException) e).getCode())
                                         .isEqualTo(RewardErrorCode.REWARD_TEMPLATE_NOT_FOUND));
     }
+
+    @Test
+    @DisplayName("getActiveTemplates - 활성 + 미삭제 + 카테고리 일치 템플릿만 반환한다")
+    void getActiveTemplates_returnsOnlyActiveTemplatesByCategory() {
+        // given
+        List<RewardTemplate> templates =
+                List.of(
+                        RewardTemplate.builder()
+                                .name("활성 템플릿")
+                                .category(RewardCategory.DATA)
+                                .price(5000)
+                                .isSystem(true)
+                                .isActive(true)
+                                .build());
+        given(
+                        rewardTemplateRepository
+                                .findAllByDeletedAtIsNullAndIsActiveTrueAndCategoryOrderByIdAsc(
+                                        RewardCategory.DATA))
+                .willReturn(templates);
+
+        // when
+        List<RewardTemplate> result = rewardTemplateService.getActiveTemplates(RewardCategory.DATA);
+
+        // then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getName()).isEqualTo("활성 템플릿");
+        verify(rewardTemplateRepository)
+                .findAllByDeletedAtIsNullAndIsActiveTrueAndCategoryOrderByIdAsc(
+                        RewardCategory.DATA);
+    }
 }
