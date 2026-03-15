@@ -68,7 +68,6 @@ public class AppealServiceImpl implements AppealService {
     private static final int MAX_CURSOR_SIZE = 100;
     private static final String UNKNOWN_NAME = "unknown";
     private static final long EMERGENCY_ADDITIONAL_BYTES = 314_572_800L;
-
     private final Clock clock;
     private final PolicyAppealRepository policyAppealRepository;
     private final PolicyAppealCommentRepository policyAppealCommentRepository;
@@ -216,6 +215,7 @@ public class AppealServiceImpl implements AppealService {
                                 .requesterId(auth.customerId())
                                 .requestReason(request.requestReason())
                                 .desiredRules(request.desiredRules())
+                                .policyActive(request.policyActive())
                                 .status(AppealStatus.PENDING)
                                 .build());
 
@@ -224,6 +224,7 @@ public class AppealServiceImpl implements AppealService {
                 appeal.getId(),
                 appeal.getPolicyAssignmentId(),
                 appeal.getStatus(),
+                appeal.getPolicyActive(),
                 appeal.getDesiredRules(),
                 appeal.getCreatedAt());
     }
@@ -249,10 +250,10 @@ public class AppealServiceImpl implements AppealService {
         AppealStatus action = parseRespondAction(request.action());
         LocalDateTime now = LocalDateTime.now(clock);
 
-        // 5. APPROVED면 승인 처리하고 desiredRules가 있으면 정책 규칙에도 반영한다.
+        // 5. APPROVED면 승인 처리하고 변경사항이 있으면 정책 규칙에도 반영한다.
         if (AppealStatus.APPROVED.equals(action)) {
             appeal.approve(auth.customerId(), now);
-            applyDesiredRulesIfPresent(appeal, auth.customerId());
+            applyAppealChangeIfPresent(appeal, auth.customerId());
         } else {
             // 6. REJECTED면 거절 사유를 검증한 뒤 거절 처리한다.
             if (request.rejectReason() == null || request.rejectReason().isBlank()) {
@@ -519,13 +520,17 @@ public class AppealServiceImpl implements AppealService {
         return policy.getPolicyType();
     }
 
-    private void applyDesiredRulesIfPresent(PolicyAppeal appeal, Long actorId) {
-        if (appeal.getDesiredRules() == null || appeal.getDesiredRules().isEmpty()) {
-            return;
-        }
+    private void applyAppealChangeIfPresent(PolicyAppeal appeal, Long actorId) {
         if (appeal.getPolicyAssignmentId() == null) {
             return;
         }
+        Map<String, Object> desiredRules = appeal.getDesiredRules();
+        Boolean policyActive = appeal.getPolicyActive();
+
+        if ((desiredRules == null || desiredRules.isEmpty()) && policyActive == null) {
+            return;
+        }
+
         PolicyAssignment assignment =
                 policyAssignmentRepository
                         .findByIdAndDeletedAtIsNull(appeal.getPolicyAssignmentId())
@@ -534,8 +539,11 @@ public class AppealServiceImpl implements AppealService {
                                         new ApplicationException(
                                                 PolicyErrorCode.POLICY_ASSIGNMENT_NOT_FOUND));
         try {
-            assignment.update(
-                    objectMapper.writeValueAsString(appeal.getDesiredRules()), null, actorId);
+            String serializedRules =
+                    desiredRules == null || desiredRules.isEmpty()
+                            ? null
+                            : objectMapper.writeValueAsString(desiredRules);
+            assignment.update(serializedRules, policyActive, actorId);
         } catch (JsonProcessingException e) {
             throw new ApplicationException(AppealErrorCode.APPEAL_INVALID_DESIRED_RULES);
         }

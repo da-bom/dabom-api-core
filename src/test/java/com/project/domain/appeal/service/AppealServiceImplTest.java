@@ -294,7 +294,7 @@ class AppealServiceImplTest {
     void createAppeal_whenMember_thenCreatesAppeal() {
         AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
         AppealCreateRequest request =
-                new AppealCreateRequest(100L, "규칙 변경 요청", Map.of("limitBytes", 2048L));
+                new AppealCreateRequest(100L, "규칙 변경 요청", true, Map.of("limitBytes", 2048L));
         PolicyAssignment assignment = policyAssignment(100L, 50L, 10L, 2L);
         PolicyAppeal saved =
                 PolicyAppeal.builder()
@@ -304,6 +304,7 @@ class AppealServiceImplTest {
                         .requesterId(2L)
                         .requestReason("규칙 변경 요청")
                         .desiredRules(Map.of("limitBytes", 2048L))
+                        .policyActive(true)
                         .status(AppealStatus.PENDING)
                         .build();
         setCreatedAt(saved, LocalDateTime.of(2026, 3, 10, 10, 0));
@@ -322,6 +323,7 @@ class AppealServiceImplTest {
         assertThat(result.appealId()).isEqualTo(40L);
         assertThat(result.policyAssignmentId()).isEqualTo(100L);
         assertThat(result.status()).isEqualTo(AppealStatus.PENDING);
+        assertThat(result.policyActive()).isTrue();
         assertThat(result.desiredRules()).containsEntry("limitBytes", 2048L);
     }
 
@@ -329,7 +331,7 @@ class AppealServiceImplTest {
     @DisplayName("OWNER는 일반 이의제기를 생성할 수 없다")
     void createAppeal_whenOwner_thenThrowsForbidden() {
         AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
-        AppealCreateRequest request = new AppealCreateRequest(100L, "규칙 변경 요청", null);
+        AppealCreateRequest request = new AppealCreateRequest(100L, "규칙 변경 요청", true, null);
 
         assertThatThrownBy(() -> appealService.createAppeal(auth, request))
                 .isInstanceOf(ApplicationException.class)
@@ -342,7 +344,7 @@ class AppealServiceImplTest {
     void createAppeal_whenPendingAppealExists_thenThrowsConflict() {
         AuthContext auth = new AuthContext(2L, 10L, RoleType.MEMBER);
         AppealCreateRequest request =
-                new AppealCreateRequest(100L, "규칙 변경 요청", Map.of("limitBytes", 2048L));
+                new AppealCreateRequest(100L, "규칙 변경 요청", false, Map.of("limitBytes", 2048L));
         PolicyAssignment assignment = policyAssignment(100L, 50L, 10L, 2L);
 
         given(policyAssignmentRepository.findByIdAndDeletedAtIsNull(100L))
@@ -388,6 +390,34 @@ class AppealServiceImplTest {
         assertThat(result.status()).isEqualTo(AppealStatus.APPROVED);
         assertThat(result.resolvedById()).isEqualTo(1L);
         assertThat(assignment.getRules()).isEqualTo("{\"limitBytes\":1024}");
+    }
+
+    @Test
+    @DisplayName("OWNER가 PENDING 이의제기를 승인하면 요청된 정책 활성 상태를 반영한다")
+    void respondAppeal_whenApprovedWithPolicyActive_thenUpdatesAssignmentActiveState() {
+        AuthContext auth = new AuthContext(1L, 10L, RoleType.OWNER);
+        PolicyAppeal appeal = appeal(31L, 2L, 100L, AppealStatus.PENDING);
+        setField(appeal, PolicyAppeal.class, "policyActive", false);
+        PolicyAssignment assignment = policyAssignment(100L, 50L, 10L, 2L);
+
+        given(policyAppealRepository.findByIdAndDeletedAtIsNull(31L))
+                .willReturn(java.util.Optional.of(appeal));
+        given(familyMemberRepository.findByCustomerId(2L))
+                .willReturn(
+                        java.util.Optional.of(
+                                FamilyMember.builder()
+                                        .familyId(10L)
+                                        .customerId(2L)
+                                        .role(RoleType.MEMBER)
+                                        .build()));
+        given(policyAssignmentRepository.findByIdAndDeletedAtIsNull(100L))
+                .willReturn(java.util.Optional.of(assignment));
+
+        AppealRespondResult result =
+                appealService.respondAppeal(auth, 31L, new AppealRespondRequest("APPROVED", null));
+
+        assertThat(result.status()).isEqualTo(AppealStatus.APPROVED);
+        assertThat(assignment.isActive()).isFalse();
     }
 
     @Test

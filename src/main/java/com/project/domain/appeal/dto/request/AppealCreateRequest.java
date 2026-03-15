@@ -10,4 +10,5 @@ import jakarta.validation.constraints.Positive;
 public record AppealCreateRequest(
         @NotNull @Positive Long policyAssignmentId,
         @NotBlank String requestReason,
+        @NotNull Boolean policyActive,
         Map<String, Object> desiredRules) {}

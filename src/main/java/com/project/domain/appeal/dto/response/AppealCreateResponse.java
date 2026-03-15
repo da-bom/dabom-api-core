@@ -11,6 +11,7 @@ public record AppealCreateResponse(
         Long appealId,
         Long policyAssignmentId,
         AppealStatus status,
+        Boolean policyActive,
         Map<String, Object> desiredRules,
         LocalDateTime createdAt) {
 
@@ -20,6 +21,7 @@ public record AppealCreateResponse(
                 result.appealId(),
                 result.policyAssignmentId(),
                 result.status(),
+                result.policyActive(),
                 result.desiredRules(),
                 result.createdAt());
     }
