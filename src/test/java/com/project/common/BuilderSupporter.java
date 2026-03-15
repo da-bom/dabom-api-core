@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import com.project.domain.customer.repository.CustomerQuotaRepository;
 import com.project.domain.customer.repository.CustomerRepository;
 import com.project.domain.family.repository.FamilyMemberRepository;
+import com.project.domain.family.repository.FamilyQuotaRepository;
 import com.project.domain.family.repository.FamilyRepository;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.domain.policy.repository.PolicyRepository;
@@ -17,10 +18,10 @@ public class BuilderSupporter {
 
     @Autowired private FamilyMemberRepository familyMemberRepository;
     @Autowired private FamilyRepository familyRepository;
+    @Autowired private FamilyQuotaRepository familyQuotaRepository;
 
     @Autowired private CustomerQuotaRepository customerQuotaRepository;
 
-    // 정책 (Policy)
     @Autowired private PolicyRepository policyRepository;
     @Autowired private PolicyAssignmentRepository policyAssignmentRepository;
 
@@ -34,6 +35,10 @@ public class BuilderSupporter {
 
     public FamilyRepository familyRepository() {
         return familyRepository;
+    }
+
+    public FamilyQuotaRepository familyQuotaRepository() {
+        return familyQuotaRepository;
     }
 
     public CustomerQuotaRepository customerQuotaRepository() {
