@@ -9,6 +9,7 @@ import com.project.common.fixtures.CustomerFixtures;
 import com.project.common.fixtures.CustomerQuotaFixtures;
 import com.project.common.fixtures.FamilyFixtures;
 import com.project.common.fixtures.FamilyMemberFixtures;
+import com.project.common.fixtures.FamilyQuotaFixtures;
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.family.entity.Family;
 import com.project.domain.family.entity.FamilyMember;
@@ -55,6 +56,9 @@ public class FamilyApiTestSupport {
         testFixtureBuilder.buildCustomerQuota(
                 CustomerQuotaFixtures.quota(
                         familyContext.family().getId(), familyContext.kid().getId(), kidUsed));
+        testFixtureBuilder.buildFamilyQuota(
+                FamilyQuotaFixtures.quota(
+                        familyContext.family().getId(), dadUsed + momUsed + kidUsed));
     }
 
     private Customer createCustomer(String name) {

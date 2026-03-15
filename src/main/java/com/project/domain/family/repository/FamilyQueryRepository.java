@@ -4,6 +4,7 @@ import static com.project.domain.customer.entity.QCustomer.customer;
 import static com.project.domain.customer.entity.QCustomerQuota.customerQuota;
 import static com.project.domain.family.entity.QFamily.family;
 import static com.project.domain.family.entity.QFamilyMember.familyMember;
+import static com.project.domain.family.entity.QFamilyQuota.familyQuota;
 
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -25,6 +26,7 @@ import com.project.common.exception.code.FamilyErrorCode;
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.family.dto.request.FamilySearchRequest;
 import com.project.domain.family.entity.Family;
+import com.project.domain.family.entity.FamilyQuota;
 import com.project.domain.family.model.FamilyDetail;
 import com.project.domain.family.model.FamilyMemberDetail;
 import com.project.domain.family.model.FamilyMemberInfo;
@@ -50,17 +52,25 @@ public class FamilyQueryRepository {
 
     private final JPAQueryFactory queryFactory;
 
-    public Page<FamilySearchResult> search(FamilySearchRequest request) {
+    public Page<FamilySearchResult> search(FamilySearchRequest request, LocalDate targetMonth) {
         PageRequest pageable = PageRequest.of(request.getPage(), request.getSize());
         FamilySearchRequest.Filters filters = request.filters();
 
         List<Family> families =
                 queryFactory
                         .selectFrom(family)
+                        .leftJoin(familyQuota)
+                        .on(
+                                familyQuota
+                                        .familyId
+                                        .eq(family.id)
+                                        .and(familyQuota.currentMonth.eq(targetMonth))
+                                        .and(familyQuota.deletedAt.isNull()))
                         .where(
                                 createMemberNameFilter(filters != null ? filters.name() : null),
                                 createMemberPhoneFilter(filters != null ? filters.phone() : null),
-                                createUsageRateFilter(filters != null ? filters.usageRate() : null))
+                                createUsageRateFilter(filters != null ? filters.usageRate() : null),
+                                family.deletedAt.isNull())
                         .offset(pageable.getOffset())
                         .limit(pageable.getPageSize())
                         .orderBy(getSortOrder(request.sort()))
@@ -70,10 +80,18 @@ public class FamilyQueryRepository {
                 queryFactory
                         .select(family.count())
                         .from(family)
+                        .leftJoin(familyQuota)
+                        .on(
+                                familyQuota
+                                        .familyId
+                                        .eq(family.id)
+                                        .and(familyQuota.currentMonth.eq(targetMonth))
+                                        .and(familyQuota.deletedAt.isNull()))
                         .where(
                                 createMemberNameFilter(filters != null ? filters.name() : null),
                                 createMemberPhoneFilter(filters != null ? filters.phone() : null),
-                                createUsageRateFilter(filters != null ? filters.usageRate() : null))
+                                createUsageRateFilter(filters != null ? filters.usageRate() : null),
+                                family.deletedAt.isNull())
                         .fetchOne();
 
         total = (total == null) ? 0L : total;
@@ -96,13 +114,25 @@ public class FamilyQueryRepository {
         return new PageImpl<>(content, pageable, total);
     }
 
-    public Optional<FamilyDetail> findDetailById(Long familyId) {
+    public Optional<FamilyDetail> findDetailById(Long familyId, LocalDate targetMonth) {
         Family familyEntity =
-                queryFactory.selectFrom(family).where(family.id.eq(familyId)).fetchOne();
+                queryFactory
+                        .selectFrom(family)
+                        .where(family.id.eq(familyId), family.deletedAt.isNull())
+                        .fetchOne();
 
         if (familyEntity == null) {
             return Optional.empty();
         }
+
+        FamilyQuota familyQuotaEntity =
+                queryFactory
+                        .selectFrom(familyQuota)
+                        .where(
+                                familyQuota.familyId.eq(familyId),
+                                familyQuota.currentMonth.eq(targetMonth),
+                                familyQuota.deletedAt.isNull())
+                        .fetchOne();
 
         List<Tuple> results =
                 queryFactory
@@ -114,36 +144,43 @@ public class FamilyQueryRepository {
                                 customerQuota.monthlyUsedBytes)
                         .from(familyMember)
                         .join(customer)
-                        .on(familyMember.customerId.eq(customer.id))
+                        .on(customer.id.eq(familyMember.customerId))
                         .leftJoin(customerQuota)
                         .on(
                                 customerQuota
                                         .customerId
                                         .eq(customer.id)
                                         .and(customerQuota.familyId.eq(familyId))
-                                        .and(
-                                                customerQuota.currentMonth.eq(
-                                                        familyEntity.getCurrentMonth())))
-                        .where(familyMember.familyId.eq(familyId))
+                                        .and(customerQuota.currentMonth.eq(targetMonth))
+                                        .and(customerQuota.deletedAt.isNull()))
+                        .where(familyMember.familyId.eq(familyId), familyMember.deletedAt.isNull())
                         .fetch();
 
         List<FamilyMemberDetail> customers =
                 results.stream()
                         .map(
-                                t ->
+                                tuple ->
                                         new FamilyMemberDetail(
-                                                t.get(customer.id),
-                                                t.get(customer.name),
-                                                t.get(familyMember.role),
-                                                t.get(customerQuota.monthlyLimitBytes),
-                                                t.get(customerQuota.monthlyUsedBytes) != null
-                                                        ? t.get(customerQuota.monthlyUsedBytes)
+                                                tuple.get(customer.id),
+                                                tuple.get(customer.name),
+                                                tuple.get(familyMember.role),
+                                                tuple.get(customerQuota.monthlyLimitBytes),
+                                                tuple.get(customerQuota.monthlyUsedBytes) != null
+                                                        ? tuple.get(customerQuota.monthlyUsedBytes)
                                                         : 0L))
                         .toList();
 
-        double usedPercent =
-                FamilyUsageCalculator.calculateUsedPercent(
-                        familyEntity.getUsedBytes(), familyEntity.getTotalQuotaBytes());
+        long usedBytes =
+                customers.stream()
+                        .map(FamilyMemberDetail::monthlyUsedBytes)
+                        .filter(
+                                monthlyUsedBytes ->
+                                        monthlyUsedBytes != null && monthlyUsedBytes > 0)
+                        .mapToLong(Long::longValue)
+                        .sum();
+        long totalQuotaBytes =
+                familyQuotaEntity != null ? familyQuotaEntity.getTotalQuotaBytes() : 0L;
+        double usedPercent = FamilyUsageCalculator.calculateUsedPercent(usedBytes, totalQuotaBytes);
 
         return Optional.of(
                 new FamilyDetail(
@@ -151,10 +188,10 @@ public class FamilyQueryRepository {
                         familyEntity.getName(),
                         familyEntity.getCreatedById(),
                         customers,
-                        familyEntity.getTotalQuotaBytes(),
-                        familyEntity.getUsedBytes(),
+                        totalQuotaBytes,
+                        usedBytes,
                         usedPercent,
-                        familyEntity.getCurrentMonth(),
+                        targetMonth,
                         familyEntity.getCreatedAt(),
                         familyEntity.getUpdatedAt()));
     }
@@ -197,8 +234,9 @@ public class FamilyQueryRepository {
                                         .customerId
                                         .eq(customer.id)
                                         .and(customerQuota.familyId.eq(familyId))
-                                        .and(customerQuota.currentMonth.eq(targetMonth)))
-                        .where(familyMember.familyId.eq(familyId))
+                                        .and(customerQuota.currentMonth.eq(targetMonth))
+                                        .and(customerQuota.deletedAt.isNull()))
+                        .where(familyMember.familyId.eq(familyId), familyMember.deletedAt.isNull())
                         .fetch();
 
         return results.stream()
@@ -233,7 +271,7 @@ public class FamilyQueryRepository {
                         .from(familyMember)
                         .join(customer)
                         .on(familyMember.customerId.eq(customer.id))
-                        .where(customerMatch));
+                        .where(customerMatch, familyMember.deletedAt.isNull()));
     }
 
     private BooleanExpression createMemberPhoneFilter(FamilySearchRequest.StringCondition cond) {
@@ -253,7 +291,7 @@ public class FamilyQueryRepository {
                         .from(familyMember)
                         .join(customer)
                         .on(familyMember.customerId.eq(customer.id))
-                        .where(customerMatch));
+                        .where(customerMatch, familyMember.deletedAt.isNull()));
     }
 
     private BooleanExpression createUsageRateFilter(FamilySearchRequest.RangeCondition cond) {
@@ -340,29 +378,31 @@ public class FamilyQueryRepository {
                         .from(familyMember)
                         .join(customer)
                         .on(familyMember.customerId.eq(customer.id))
-                        .where(familyMember.familyId.in(familyIds))
+                        .where(familyMember.familyId.in(familyIds), familyMember.deletedAt.isNull())
                         .fetch();
 
         return results.stream()
                 .collect(
                         Collectors.groupingBy(
-                                t ->
+                                tuple ->
                                         Objects.requireNonNull(
-                                                t.get(familyMember.familyId),
+                                                tuple.get(familyMember.familyId),
                                                 "familyId must not be null"),
                                 Collectors.mapping(
-                                        t ->
+                                        tuple ->
                                                 new FamilyMemberSummary(
-                                                        t.get(customer.id), t.get(customer.name)),
+                                                        tuple.get(customer.id),
+                                                        tuple.get(customer.name)),
                                         Collectors.toList())));
     }
 
     private NumberExpression<Double> usageRateExpression() {
         return Expressions.numberTemplate(
                 Double.class,
-                "case when {0} = 0 then 0.0 else ({1} * 100.0 / {0}) end",
-                family.totalQuotaBytes,
-                family.usedBytes);
+                "case when coalesce({0}, 0) = 0 then 0.0 else (coalesce({1}, 0) * 100.0 /"
+                        + " coalesce({0}, 0)) end",
+                familyQuota.totalQuotaBytes,
+                familyQuota.usedBytes);
     }
 
     private ApplicationException invalidInput() {

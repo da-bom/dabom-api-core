@@ -9,6 +9,7 @@ import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.entity.CustomerQuota;
 import com.project.domain.family.entity.Family;
 import com.project.domain.family.entity.FamilyMember;
+import com.project.domain.family.entity.FamilyQuota;
 import com.project.domain.policy.entity.Policy;
 import com.project.domain.policy.entity.PolicyAssignment;
 
@@ -45,6 +46,14 @@ public class TestFixtureBuilder {
         return bs.familyRepository().saveAll(families);
     }
 
+    public FamilyQuota buildFamilyQuota(FamilyQuota familyQuota) {
+        return bs.familyQuotaRepository().save(familyQuota);
+    }
+
+    public List<FamilyQuota> buildFamilyQuotas(List<FamilyQuota> familyQuotas) {
+        return bs.familyQuotaRepository().saveAll(familyQuotas);
+    }
+
     public CustomerQuota buildCustomerQuota(CustomerQuota customerQuota) {
         return bs.customerQuotaRepository().save(customerQuota);
     }
@@ -57,7 +66,6 @@ public class TestFixtureBuilder {
         bs.customerQuotaRepository().delete(customerQuota);
     }
 
-    // 정책 (Policy)
     public Policy buildPolicy(Policy policy) {
         return bs.policyRepository().save(policy);
     }

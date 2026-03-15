@@ -1,11 +1,15 @@
 package com.project.domain.usagerecord.service;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
 import com.project.domain.family.entity.Family;
+import com.project.domain.family.entity.FamilyQuota;
+import com.project.domain.family.repository.FamilyQuotaRepository;
 import com.project.domain.family.repository.projection.FamilyUsageCustomerRow;
 import com.project.domain.family.service.FamilyService;
 import com.project.domain.family.util.FamilyUsageCalculator;
@@ -21,17 +25,18 @@ import lombok.RequiredArgsConstructor;
 public class UsageRecordServiceImpl implements UsageRecordService {
 
     private final FamilyService familyService;
+    private final FamilyQuotaRepository familyQuotaRepository;
+    private final Clock clock;
 
     // 현재 가족의 총 할당량/사용량을 조회한다.
     @Override
     public FamilyUsage getCurrentFamilyUsage(Long customerId) {
         Long familyId = familyService.getFamilyIdByCustomerId(customerId);
         Family familyEntity = familyService.getFamilyById(familyId);
+        Optional<FamilyQuota> familyQuotaOpt = findFamilyQuota(familyId, currentMonth());
 
-        long totalQuotaBytes =
-                familyEntity.getTotalQuotaBytes() != null ? familyEntity.getTotalQuotaBytes() : 0L;
-        long totalUsedBytes =
-                familyEntity.getUsedBytes() != null ? familyEntity.getUsedBytes() : 0L;
+        long totalQuotaBytes = familyQuotaOpt.map(FamilyQuota::getTotalQuotaBytes).orElse(0L);
+        long totalUsedBytes = familyQuotaOpt.map(FamilyQuota::getUsedBytes).orElse(0L);
 
         return new FamilyUsage(
                 familyEntity.getId(), familyEntity.getName(), totalQuotaBytes, totalUsedBytes);
@@ -57,6 +62,7 @@ public class UsageRecordServiceImpl implements UsageRecordService {
         LocalDate targetMonth = LocalDate.of(year, month, 1);
         List<FamilyUsageCustomerRow> rows =
                 familyService.getUsageReportCustomers(familyId, targetMonth);
+        Optional<FamilyQuota> familyQuotaOpt = findFamilyQuota(familyId, targetMonth);
 
         long totalUsedBytes =
                 rows.stream()
@@ -67,9 +73,7 @@ public class UsageRecordServiceImpl implements UsageRecordService {
                         .mapToLong(Long::longValue)
                         .sum();
 
-        long totalQuotaBytes =
-                familyEntity.getTotalQuotaBytes() != null ? familyEntity.getTotalQuotaBytes() : 0L;
-
+        long totalQuotaBytes = familyQuotaOpt.map(FamilyQuota::getTotalQuotaBytes).orElse(0L);
         long remainingBytes = Math.max(totalQuotaBytes - totalUsedBytes, 0L);
         double usedPercent =
                 FamilyUsageCalculator.calculateUsedPercent(totalUsedBytes, totalQuotaBytes);
@@ -102,5 +106,13 @@ public class UsageRecordServiceImpl implements UsageRecordService {
                                         row.blockReason(),
                                         row.customerId().equals(customerId)))
                 .toList();
+    }
+
+    private LocalDate currentMonth() {
+        return LocalDate.now(clock).withDayOfMonth(1);
+    }
+
+    private Optional<FamilyQuota> findFamilyQuota(Long familyId, LocalDate targetMonth) {
+        return familyQuotaRepository.findActiveByFamilyIdAndCurrentMonth(familyId, targetMonth);
     }
 }

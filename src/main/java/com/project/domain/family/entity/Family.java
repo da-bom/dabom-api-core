@@ -32,15 +32,6 @@ public class Family extends BaseEntity {
     @Column(name = "created_by_id", nullable = false)
     private Long createdById;
 
-    @Column(name = "total_quota_bytes", nullable = false)
-    private Long totalQuotaBytes;
-
-    @Column(name = "used_bytes", nullable = false)
-    private Long usedBytes;
-
-    @Column(name = "current_month", nullable = false)
-    private LocalDate currentMonth;
-
     @Builder
     public Family(
             Long id,
@@ -52,9 +43,6 @@ public class Family extends BaseEntity {
         this.id = id;
         this.name = name;
         this.createdById = createdById;
-        this.totalQuotaBytes = totalQuotaBytes;
-        this.usedBytes = usedBytes;
-        this.currentMonth = currentMonth;
     }
 
     public void changeName(String name) {

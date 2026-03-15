@@ -9,7 +9,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
-import java.util.Optional;
 
 import jakarta.transaction.Transactional;
 
@@ -31,7 +30,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.common.auth.JwtTokenUtil;
 import com.project.domain.customer.enums.RoleType;
 import com.project.domain.family.dto.request.FamilySearchRequest;
-import com.project.domain.family.infra.cache.FamilyCacheRepository;
 import com.project.domain.family.support.FamilyApiTestSupport;
 
 @SpringBootTest
@@ -53,7 +51,6 @@ class AdminFamilyControllerTest {
 
     @MockitoBean private KafkaTemplate<String, String> kafkaTemplate;
     @MockitoBean private JwtTokenUtil jwtTokenUtil;
-    @MockitoBean private FamilyCacheRepository familyCacheRepository;
 
     @Test
     @DisplayName("POST /admin/families - 가족 검색 결과를 반환한다")
@@ -104,6 +101,48 @@ class AdminFamilyControllerTest {
     }
 
     @Test
+    @DisplayName("POST /admin/families - usageRate 정렬과 필터를 현재월 family_quota 기준으로 적용한다")
+    void searchFamilies_usageRateSortAndFilter_usesFamilyQuota() throws Exception {
+        FamilyApiTestSupport.FamilyContext lowUsageFamily =
+                familyApiTestSupport.buildFamilyContext("낮은 사용량 가족");
+        FamilyApiTestSupport.FamilyContext highUsageFamily =
+                familyApiTestSupport.buildFamilyContext("높은 사용량 가족");
+        familyApiTestSupport.buildQuotas(lowUsageFamily, 500L, 500L, 500L);
+        familyApiTestSupport.buildQuotas(highUsageFamily, 2_000L, 1_500L, 1_000L);
+
+        FamilySearchRequest request =
+                new FamilySearchRequest(
+                        0,
+                        20,
+                        new FamilySearchRequest.Filters(
+                                null,
+                                null,
+                                new FamilySearchRequest.RangeCondition("between", 40.0, 50.0)),
+                        List.of(new FamilySearchRequest.SortCondition("usageRate", "desc")));
+
+        given(jwtTokenUtil.getRole(ADMIN_TOKEN)).willReturn(RoleType.ADMIN);
+
+        MvcResult mvcResult =
+                mockMvc.perform(
+                                post("/admin/families")
+                                        .header("Authorization", "Bearer " + ADMIN_TOKEN)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(request)))
+                        .andExpect(status().isOk())
+                        .andReturn();
+
+        JsonNode content =
+                objectMapper
+                        .readTree(mvcResult.getResponse().getContentAsString())
+                        .path("data")
+                        .path("content");
+
+        assertThat(content).hasSize(1);
+        assertThat(content.get(0).path("familyId").asLong())
+                .isEqualTo(highUsageFamily.family().getId());
+    }
+
+    @Test
     @DisplayName("GET /admin/families/{familyId} - 가족 상세 조회 결과를 반환한다")
     void getFamilyDetail_validFamilyId_returnsFamilyDetail() throws Exception {
         FamilyApiTestSupport.FamilyContext familyContext =
@@ -111,18 +150,6 @@ class AdminFamilyControllerTest {
         familyApiTestSupport.buildQuotas(familyContext, 1_200L, 800L, 500L);
 
         given(jwtTokenUtil.getRole(ADMIN_TOKEN)).willReturn(RoleType.ADMIN);
-        given(
-                        familyCacheRepository.findCustomerMonthlyUsageBytes(
-                                familyContext.family().getId(), familyContext.dad().getId()))
-                .willReturn(Optional.empty());
-        given(
-                        familyCacheRepository.findCustomerMonthlyUsageBytes(
-                                familyContext.family().getId(), familyContext.mom().getId()))
-                .willReturn(Optional.empty());
-        given(
-                        familyCacheRepository.findCustomerMonthlyUsageBytes(
-                                familyContext.family().getId(), familyContext.kid().getId()))
-                .willReturn(Optional.empty());
 
         MvcResult mvcResult =
                 mockMvc.perform(
@@ -165,10 +192,8 @@ class AdminFamilyControllerTest {
     @Test
     @DisplayName("GET /admin/families/{familyId} - 존재하지 않는 가족이면 404를 반환한다")
     void getFamilyDetail_notFoundFamily_returnsNotFound() throws Exception {
-        // given
         given(jwtTokenUtil.getRole(ADMIN_TOKEN)).willReturn(RoleType.ADMIN);
 
-        // when & then
         mockMvc.perform(
                         get("/admin/families/{familyId}", 999_999L)
                                 .header("Authorization", "Bearer " + ADMIN_TOKEN))
@@ -179,12 +204,10 @@ class AdminFamilyControllerTest {
     @Test
     @DisplayName("GET /admin/families/{familyId} - 관리자 권한이 아니면 403을 반환한다")
     void getFamilyDetail_nonAdminRole_returnsForbidden() throws Exception {
-        // given
         FamilyApiTestSupport.FamilyContext familyContext =
                 familyApiTestSupport.buildFamilyContext("다봄 가족");
         given(jwtTokenUtil.getRole(MEMBER_TOKEN)).willReturn(RoleType.MEMBER);
 
-        // when & then
         mockMvc.perform(
                         get("/admin/families/{familyId}", familyContext.family().getId())
                                 .header("Authorization", "Bearer " + MEMBER_TOKEN))

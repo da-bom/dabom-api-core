@@ -2,11 +2,11 @@ package com.project.domain.policy.repository;
 
 import static com.project.domain.customer.entity.QCustomer.customer;
 import static com.project.domain.customer.entity.QCustomerQuota.customerQuota;
-import static com.project.domain.family.entity.QFamily.family;
 import static com.project.domain.family.entity.QFamilyMember.familyMember;
 import static com.project.domain.policy.entity.QPolicy.policy;
 import static com.project.domain.policy.entity.QPolicyAssignment.policyAssignment;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,7 +27,7 @@ public class PolicyQueryRepository {
     private final JPAQueryFactory queryFactory;
 
     public List<FamilyPolicyResponse.FlatPolicyRow> findAllFamilyPoliciesByCustomerId(
-            Long customerId) {
+            Long customerId, LocalDate targetMonth) {
         QFamilyMember subMember = new QFamilyMember("subMember");
 
         List<Tuple> results =
@@ -48,15 +48,13 @@ public class PolicyQueryRepository {
                         .from(familyMember)
                         .join(customer)
                         .on(familyMember.customerId.eq(customer.id))
-                        .join(family)
-                        .on(familyMember.familyId.eq(family.id).and(family.deletedAt.isNull()))
                         .leftJoin(customerQuota)
                         .on(
                                 customerQuota
                                         .familyId
                                         .eq(familyMember.familyId)
                                         .and(customerQuota.customerId.eq(familyMember.customerId))
-                                        .and(customerQuota.currentMonth.eq(family.currentMonth))
+                                        .and(customerQuota.currentMonth.eq(targetMonth))
                                         .and(customerQuota.deletedAt.isNull()))
                         .leftJoin(policyAssignment)
                         .on(
@@ -92,20 +90,20 @@ public class PolicyQueryRepository {
 
         return results.stream()
                 .map(
-                        t ->
+                        tuple ->
                                 new FamilyPolicyResponse.FlatPolicyRow(
-                                        t.get(familyMember.familyId),
-                                        t.get(familyMember.customerId),
-                                        t.get(customer.name),
-                                        t.get(customer.phoneNumber),
-                                        t.get(familyMember.role.stringValue()),
-                                        t.get(customerQuota.monthlyUsedBytes),
-                                        t.get(policyAssignment.id),
-                                        t.get(policy.id),
-                                        t.get(policy.name),
-                                        t.get(policy.policyType),
-                                        t.get(policyAssignment.isActive),
-                                        t.get(policyAssignment.rules)))
+                                        tuple.get(familyMember.familyId),
+                                        tuple.get(familyMember.customerId),
+                                        tuple.get(customer.name),
+                                        tuple.get(customer.phoneNumber),
+                                        tuple.get(familyMember.role.stringValue()),
+                                        tuple.get(customerQuota.monthlyUsedBytes),
+                                        tuple.get(policyAssignment.id),
+                                        tuple.get(policy.id),
+                                        tuple.get(policy.name),
+                                        tuple.get(policy.policyType),
+                                        tuple.get(policyAssignment.isActive),
+                                        tuple.get(policyAssignment.rules)))
                 .toList();
     }
 
