@@ -1,5 +1,7 @@
 package com.project.domain.policy.service;
 
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -31,15 +33,14 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
     private final PolicyAssignmentRepository policyAssignmentRepository;
     private final PolicyQueryRepository policyQueryRepository;
     private final FamilyMemberRepository familyMemberRepository;
-
     private final RulesUtil rulesUtil;
-
     private final KafkaEventPublisher kafkaEventPublisher;
+    private final Clock clock;
 
     @Override
     public FamilyPolicyResponse getFamilyPolicyResponse(Long customerId) {
         List<FamilyPolicyResponse.FlatPolicyRow> flatList =
-                policyQueryRepository.findAllFamilyPoliciesByCustomerId(customerId);
+                policyQueryRepository.findAllFamilyPoliciesByCustomerId(customerId, currentMonth());
         return FamilyPolicyResponse.from(flatList);
     }
 
@@ -79,5 +80,9 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
                 KafkaEventTypes.POLICY_UPDATED,
                 new PolicyUpdatedPayload(
                         familyId, targetCustomerId, policyKey, newRules, isActive));
+    }
+
+    private LocalDate currentMonth() {
+        return LocalDate.now(clock).withDayOfMonth(1);
     }
 }
