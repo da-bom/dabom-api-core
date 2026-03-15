@@ -1,5 +1,6 @@
 package com.project.domain.family.service;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -11,7 +12,6 @@ import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.FamilyErrorCode;
 import com.project.domain.family.dto.request.FamilySearchRequest;
 import com.project.domain.family.entity.Family;
-import com.project.domain.family.infra.cache.FamilyCacheRepository;
 import com.project.domain.family.model.FamilyDetail;
 import com.project.domain.family.model.FamilyMemberDetail;
 import com.project.domain.family.model.FamilyMemberInfo;
@@ -30,52 +30,27 @@ import lombok.RequiredArgsConstructor;
 public class FamilyServiceImpl implements FamilyService {
 
     private final FamilyQueryRepository familyQueryRepository;
-    private final FamilyCacheRepository familyCacheRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final FamilyRepository familyRepository;
+    private final Clock clock;
 
     @Override
     public Page<FamilySearchResult> searchFamilies(FamilySearchRequest familySearchRequest) {
-        return familyQueryRepository.search(familySearchRequest);
+        return familyQueryRepository.search(familySearchRequest, currentMonth());
     }
 
     @Override
     public FamilyDetail getFamilyDetail(Long familyId) {
-        // 가족 상세 데이터는 DB에서 조회
+        LocalDate targetMonth = currentMonth();
         FamilyDetail familyDetail =
                 familyQueryRepository
-                        .findDetailById(familyId)
+                        .findDetailById(familyId, targetMonth)
                         .orElseThrow(
                                 () -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
 
         Long totalQuotaBytes = familyDetail.totalQuotaBytes();
+        List<FamilyMemberDetail> customers = familyDetail.customers();
 
-        List<FamilyMemberDetail> customers =
-                familyDetail.customers().stream()
-                        .map(
-                                c ->
-                                        // 구성원별 실시간 사용량은 Redis 값이 있으면 덮어씀
-                                        familyCacheRepository
-                                                .findCustomerMonthlyUsageBytes(
-                                                        familyId, c.customerId())
-                                                .map(
-                                                        realtimeUsage ->
-                                                                new FamilyMemberDetail(
-                                                                        c.customerId(),
-                                                                        c.name(),
-                                                                        c.role(),
-                                                                        c.monthlyLimitBytes(),
-                                                                        realtimeUsage))
-                                                .orElse(
-                                                        new FamilyMemberDetail(
-                                                                c.customerId(),
-                                                                c.name(),
-                                                                c.role(),
-                                                                c.monthlyLimitBytes(),
-                                                                c.monthlyUsedBytes())))
-                        .toList();
-
-        // 응답 usedBytes/usedPercent는 보정된 구성원 사용량 합계를 기준으로 계산
         long finalUsedBytes =
                 customers.stream()
                         .map(FamilyMemberDetail::monthlyUsedBytes)
@@ -88,7 +63,6 @@ public class FamilyServiceImpl implements FamilyService {
         double usedPercent =
                 FamilyUsageCalculator.calculateUsedPercent(finalUsedBytes, totalQuotaBytes);
 
-        // 가족 메타 정보(name, quota, currentMonth 등)는 DB 조회 결과를 그대로 사용
         return new FamilyDetail(
                 familyDetail.familyId(),
                 familyDetail.familyName(),
@@ -97,7 +71,7 @@ public class FamilyServiceImpl implements FamilyService {
                 totalQuotaBytes,
                 finalUsedBytes,
                 usedPercent,
-                familyDetail.currentMonth(),
+                targetMonth,
                 familyDetail.createdAt(),
                 familyDetail.updatedAt());
     }
@@ -135,5 +109,9 @@ public class FamilyServiceImpl implements FamilyService {
         Family family = getFamilyById(familyId);
         family.changeName(name);
         return family;
+    }
+
+    private LocalDate currentMonth() {
+        return LocalDate.now(clock).withDayOfMonth(1);
     }
 }
