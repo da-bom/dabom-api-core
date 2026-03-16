@@ -8,10 +8,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.dabom.messaging.kafka.contract.KafkaEventTypes;
-import com.dabom.messaging.kafka.contract.KafkaTopics;
-import com.dabom.messaging.kafka.event.dto.policy.PolicyUpdatedPayload;
-import com.dabom.messaging.kafka.event.publisher.KafkaEventPublisher;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.common.exception.ApplicationException;
@@ -20,7 +16,6 @@ import com.project.domain.policy.dto.request.PolicyRequest;
 import com.project.domain.policy.entity.Policy;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.domain.policy.repository.PolicyRepository;
-import com.project.domain.policy.service.helper.RulesUtil;
 
 import lombok.RequiredArgsConstructor;
 
@@ -33,8 +28,7 @@ public class PolicyServiceImpl implements PolicyService {
     private final PolicyAssignmentRepository policyAssignmentRepository;
     private final ObjectMapper objectMapper;
 
-    private final KafkaEventPublisher kafkaEventPublisher;
-    private final RulesUtil rulesUtil;
+    private final PolicyRedisService policyRedisService;
 
     // 정책 상세 정보 조회
     @Override
@@ -63,21 +57,13 @@ public class PolicyServiceImpl implements PolicyService {
 
         // 2) 덮어쓰기가 True일 경우 가족 구성원에게 부여된 정책들 즉시 수정
         if (updatePolicyRequest.overWrite()) {
-            String policyKey = rulesUtil.toPolicyKey(policy.getPolicyType());
-
-            try {
-                String rule =
-                        (policy.getDefaultRules() != null)
-                                ? objectMapper.writeValueAsString(policy.getDefaultRules())
-                                : null;
-                applyToExistingAssignments(policy);
-                kafkaEventPublisher.publish(
-                        KafkaTopics.POLICY_UPDATED,
-                        KafkaEventTypes.POLICY_UPDATED,
-                        new PolicyUpdatedPayload(null, null, policyKey, rule, policy.isActive()));
-            } catch (JsonProcessingException e) {
-                throw new ApplicationException(PolicyErrorCode.POLICY_RULES_SERIALIZATION_FAILED);
-            }
+            applyToExistingAssignments(policy);
+            policyRedisService.syncToRedis(
+                    null,
+                    null,
+                    policy.getPolicyType(),
+                    policy.getDefaultRules(),
+                    policy.isActive());
         }
 
         return policy;
