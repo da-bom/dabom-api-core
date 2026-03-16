@@ -5,5 +5,4 @@ public enum PolicyType {
     TIME_BLOCK,
     MANUAL_BLOCK,
     APP_BLOCK,
-    WEBSITE_BLOCK;
 }
