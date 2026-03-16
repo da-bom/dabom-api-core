@@ -15,7 +15,6 @@ import com.project.common.exception.code.PolicyErrorCode;
 import com.project.common.util.LogSanitizer;
 import com.project.common.util.RedisKeyGenerator;
 import com.project.domain.family.repository.FamilyMemberRepository;
-import com.project.domain.policy.constant.PolicyConstraintKeyConstants;
 import com.project.domain.policy.enums.PolicyType;
 import com.project.domain.policy.service.helper.PolicyConstraintValueNormalizer;
 import com.project.domain.policy.service.helper.RulesUtil;
@@ -29,6 +28,8 @@ import lombok.extern.slf4j.Slf4j;
 public class PolicyRedisServiceImpl implements PolicyRedisService {
     private static final String VALUE_LOG_SUFFIX = ", value={}";
     private static final String SKIP_REASON_MISSING_CONSTRAINTS_KEY = "MISSING_CONSTRAINTS_KEY";
+    public static final String BLOCK_APP = "BLOCK:APP";
+    public static final String BLOCK_APP_PREFIX = "BLOCK:APP:";
 
     private final RedisTemplate<String, String> familyStringRedisTemplate;
     private final RedisKeyGenerator redisKeyGenerator;
@@ -162,7 +163,7 @@ public class PolicyRedisServiceImpl implements PolicyRedisService {
             return false;
         }
 
-        if (PolicyConstraintKeyConstants.BLOCK_APP.equals(policyKey)) {
+        if (BLOCK_APP.equals(policyKey)) {
             boolean changed =
                     syncBlockedAppsToCustomer(
                             familyId, customerId, normalizedPolicyValue.normalizedBlockedApps());
@@ -210,12 +211,12 @@ public class PolicyRedisServiceImpl implements PolicyRedisService {
         }
 
         for (String appId : appsToDelete) {
-            String appField = PolicyConstraintKeyConstants.BLOCK_APP_PREFIX + appId;
+            String appField = BLOCK_APP_PREFIX + appId;
             deleteConstraint(familyId, customerId, appField);
         }
 
         for (String appId : appsToAdd) {
-            String appField = PolicyConstraintKeyConstants.BLOCK_APP_PREFIX + appId;
+            String appField = BLOCK_APP_PREFIX + appId;
             setConstraint(familyId, customerId, appField, "1");
         }
 
@@ -230,11 +231,8 @@ public class PolicyRedisServiceImpl implements PolicyRedisService {
 
         return fields.stream()
                 .map(String::valueOf)
-                .filter(field -> field.startsWith(PolicyConstraintKeyConstants.BLOCK_APP_PREFIX))
-                .map(
-                        field ->
-                                field.substring(
-                                        PolicyConstraintKeyConstants.BLOCK_APP_PREFIX.length()))
+                .filter(field -> field.startsWith(BLOCK_APP_PREFIX))
+                .map(field -> field.substring(BLOCK_APP_PREFIX.length()))
                 .filter(appId -> !appId.isBlank())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
