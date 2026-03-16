@@ -33,6 +33,7 @@ import com.project.domain.customer.enums.RoleType;
 import com.project.domain.policy.entity.PolicyAssignment;
 import com.project.domain.policy.enums.PolicyType;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
+import com.project.domain.policy.service.PolicyRedisService;
 import com.project.domain.policy.support.PolicyApiTestSupport;
 
 @SpringBootTest
@@ -58,6 +59,7 @@ class PolicyControllerIntegrationTest {
 
     @MockitoBean private KafkaTemplate<String, String> kafkaTemplate;
     @MockitoBean private JwtTokenUtil jwtTokenUtil;
+    @MockitoBean private PolicyRedisService policyRedisService;
 
     @Test
     @DisplayName("GET /policies - page 메타정보와 정책들을 반환합니다.")

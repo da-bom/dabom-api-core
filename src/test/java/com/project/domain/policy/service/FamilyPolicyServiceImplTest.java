@@ -17,12 +17,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.dabom.messaging.kafka.event.publisher.KafkaEventPublisher;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.policy.dto.response.FamilyPolicyResponse;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.domain.policy.repository.PolicyQueryRepository;
-import com.project.domain.policy.service.helper.RulesUtil;
 
 @ExtendWith(MockitoExtension.class)
 class FamilyPolicyServiceImplTest {
@@ -34,8 +33,8 @@ class FamilyPolicyServiceImplTest {
     @Mock private PolicyAssignmentRepository policyAssignmentRepository;
     @Mock private PolicyQueryRepository policyQueryRepository;
     @Mock private FamilyMemberRepository familyMemberRepository;
-    @Mock private RulesUtil rulesUtil;
-    @Mock private KafkaEventPublisher kafkaEventPublisher;
+    @Mock private ObjectMapper objectMapper;
+    @Mock private PolicyRedisService policyRedisService;
 
     private FamilyPolicyServiceImpl familyPolicyService;
 
@@ -46,8 +45,8 @@ class FamilyPolicyServiceImplTest {
                         policyAssignmentRepository,
                         policyQueryRepository,
                         familyMemberRepository,
-                        rulesUtil,
-                        kafkaEventPublisher,
+                        objectMapper,
+                        policyRedisService,
                         FIXED_CLOCK);
     }
 
