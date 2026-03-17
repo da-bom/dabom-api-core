@@ -274,16 +274,14 @@ class FamilyServiceImplTest {
                         .build();
 
         given(familyRepository.findById(familyId)).willReturn(Optional.of(family));
-        given(familyMemberRepository.findByFamilyIdAndCustomerIdAndDeletedAtIsNull(
-                        familyId, customerId))
-                .willReturn(Optional.of(member));
-        given(customerQuotaRepository
-                        .findByFamilyIdAndCustomerIdAndCurrentMonthAndDeletedAtIsNull(
-                                familyId, customerId, TARGET_MONTH))
-                .willReturn(Optional.of(quota));
-        given(policyAssignmentRepository.findByTargetAndType(
-                        familyId, customerId, PolicyType.MONTHLY_LIMIT))
-                .willReturn(Optional.of(assignment));
+        given(familyMemberRepository.findAllByFamilyId(familyId))
+                .willReturn(List.of(member));
+        given(customerQuotaRepository.findAllByFamilyIdAndCurrentMonthAndDeletedAtIsNull(
+                        familyId, TARGET_MONTH))
+                .willReturn(List.of(quota));
+        given(policyAssignmentRepository.findAllByFamilyIdAndType(
+                        familyId, PolicyType.MONTHLY_LIMIT))
+                .willReturn(List.of(assignment));
 
         List<AdminFamilyUpdateRequest.MemberUpdate> members =
                 List.of(new AdminFamilyUpdateRequest.MemberUpdate(customerId, RoleType.OWNER, 50_000L));
@@ -321,9 +319,14 @@ class FamilyServiceImplTest {
         Family family = Family.builder().name("다봄 가족").createdById(1L).build();
 
         given(familyRepository.findById(familyId)).willReturn(Optional.of(family));
-        given(familyMemberRepository.findByFamilyIdAndCustomerIdAndDeletedAtIsNull(
-                        familyId, customerId))
-                .willReturn(Optional.empty());
+        given(familyMemberRepository.findAllByFamilyId(familyId))
+                .willReturn(List.of());
+        given(customerQuotaRepository.findAllByFamilyIdAndCurrentMonthAndDeletedAtIsNull(
+                        familyId, TARGET_MONTH))
+                .willReturn(List.of());
+        given(policyAssignmentRepository.findAllByFamilyIdAndType(
+                        familyId, PolicyType.MONTHLY_LIMIT))
+                .willReturn(List.of());
 
         List<AdminFamilyUpdateRequest.MemberUpdate> members =
                 List.of(new AdminFamilyUpdateRequest.MemberUpdate(customerId, RoleType.OWNER, 50_000L));

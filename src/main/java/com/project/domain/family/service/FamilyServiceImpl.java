@@ -3,6 +3,10 @@ package com.project.domain.family.service;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -11,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.FamilyErrorCode;
 import com.project.common.exception.code.PolicyErrorCode;
+import com.project.domain.customer.entity.CustomerQuota;
 import com.project.domain.customer.repository.CustomerQuotaRepository;
 import com.project.domain.family.dto.request.AdminFamilyUpdateRequest;
 import com.project.domain.family.dto.request.FamilySearchRequest;
@@ -128,21 +133,41 @@ public class FamilyServiceImpl implements FamilyService {
 
         LocalDate targetMonth = currentMonth();
 
+        Map<Long, FamilyMember> memberMap =
+                familyMemberRepository.findAllByFamilyId(familyId).stream()
+                        .collect(
+                                Collectors.toMap(
+                                        FamilyMember::getCustomerId, Function.identity()));
+
+        Map<Long, CustomerQuota> quotaMap =
+                customerQuotaRepository
+                        .findAllByFamilyIdAndCurrentMonthAndDeletedAtIsNull(familyId, targetMonth)
+                        .stream()
+                        .collect(
+                                Collectors.toMap(
+                                        CustomerQuota::getCustomerId, Function.identity()));
+
+        Map<Long, PolicyAssignment> assignmentMap =
+                policyAssignmentRepository
+                        .findAllByFamilyIdAndType(familyId, PolicyType.MONTHLY_LIMIT)
+                        .stream()
+                        .collect(
+                                Collectors.toMap(
+                                        PolicyAssignment::getTargetCustomerId,
+                                        Function.identity()));
+
         for (AdminFamilyUpdateRequest.MemberUpdate update : members) {
             Long customerId = update.customerId();
 
             FamilyMember member =
-                    familyMemberRepository
-                            .findByFamilyIdAndCustomerIdAndDeletedAtIsNull(familyId, customerId)
+                    Optional.ofNullable(memberMap.get(customerId))
                             .orElseThrow(
                                     () ->
                                             new ApplicationException(
                                                     FamilyErrorCode.FAMILY_MEMBER_NOT_FOUND));
             member.changeRole(update.role());
 
-            customerQuotaRepository
-                    .findByFamilyIdAndCustomerIdAndCurrentMonthAndDeletedAtIsNull(
-                            familyId, customerId, targetMonth)
+            Optional.ofNullable(quotaMap.get(customerId))
                     .orElseThrow(
                             () ->
                                     new ApplicationException(
@@ -150,8 +175,7 @@ public class FamilyServiceImpl implements FamilyService {
                     .changeMonthlyLimitBytes(update.monthlyLimitBytes());
 
             PolicyAssignment assignment =
-                    policyAssignmentRepository
-                            .findByTargetAndType(familyId, customerId, PolicyType.MONTHLY_LIMIT)
+                    Optional.ofNullable(assignmentMap.get(customerId))
                             .orElseThrow(
                                     () ->
                                             new ApplicationException(

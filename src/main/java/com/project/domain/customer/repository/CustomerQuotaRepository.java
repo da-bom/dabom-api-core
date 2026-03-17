@@ -12,6 +12,9 @@ public interface CustomerQuotaRepository extends JpaRepository<CustomerQuota, Lo
     Optional<CustomerQuota> findByFamilyIdAndCustomerIdAndCurrentMonthAndDeletedAtIsNull(
             Long familyId, Long customerId, LocalDate currentMonth);
 
+    List<CustomerQuota> findAllByFamilyIdAndCurrentMonthAndDeletedAtIsNull(
+            Long familyId, LocalDate currentMonth);
+
     long countByIsBlockedTrueAndCurrentMonthAndDeletedAtIsNull(LocalDate currentMonth);
 
     List<CustomerQuota>

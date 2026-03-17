@@ -59,6 +59,16 @@ public interface PolicyAssignmentRepository extends JpaRepository<PolicyAssignme
 
     List<PolicyAssignment> findAllByTargetCustomerIdAndDeletedAtIsNull(Long customerId);
 
+    @Query(
+            "SELECT pa FROM PolicyAssignment pa "
+                    + "JOIN Policy p ON pa.policyId = p.id "
+                    + "WHERE pa.familyId = :familyId "
+                    + "AND p.policyType = :type "
+                    + "AND p.deletedAt IS NULL "
+                    + "AND pa.deletedAt IS NULL")
+    List<PolicyAssignment> findAllByFamilyIdAndType(
+            @Param("familyId") Long familyId, @Param("type") PolicyType type);
+
     // 특정 고객에게 현재 적용 중인 정책 목록과 정책 메타 정보를 함께 조회
     @Query(
             """
