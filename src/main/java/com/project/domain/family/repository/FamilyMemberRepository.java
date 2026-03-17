@@ -21,4 +21,9 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
     Optional<Long> findFamilyIdByCustomerId(Long customerId);
 
     boolean existsByCustomerId(Long customerId);
+
+    @Query(
+            "SELECT COUNT(DISTINCT fm.familyId) FROM FamilyMember fm"
+                    + " WHERE fm.deletedAt IS NULL")
+    long countDistinctActiveFamilies();
 }
