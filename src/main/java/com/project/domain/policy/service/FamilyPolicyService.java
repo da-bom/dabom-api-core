@@ -1,5 +1,7 @@
 package com.project.domain.policy.service;
 
+import java.util.Map;
+
 import com.project.domain.policy.dto.response.FamilyPolicyResponse;
 import com.project.domain.policy.enums.PolicyType;
 
@@ -9,7 +11,7 @@ public interface FamilyPolicyService {
     void updateMemberPolicy(
             Long targetCustomerId,
             PolicyType type,
-            String newRules,
+            Map<String, Object> rules,
             Boolean isActive,
             Long actorId);
 }
