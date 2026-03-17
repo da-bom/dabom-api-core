@@ -3,14 +3,11 @@ package com.project.domain.policy.service;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.dabom.messaging.kafka.contract.KafkaEventTypes;
-import com.dabom.messaging.kafka.contract.KafkaTopics;
-import com.dabom.messaging.kafka.event.dto.policy.PolicyUpdatedPayload;
-import com.dabom.messaging.kafka.event.publisher.KafkaEventPublisher;
 import com.project.common.auth.enums.RoleType;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.FamilyErrorCode;
@@ -21,7 +18,7 @@ import com.project.domain.policy.entity.PolicyAssignment;
 import com.project.domain.policy.enums.PolicyType;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.domain.policy.repository.PolicyQueryRepository;
-import com.project.domain.policy.service.helper.RulesUtil;
+import com.project.domain.policy.service.helper.PolicyConstraintValueNormalizer;
 
 import lombok.RequiredArgsConstructor;
 
@@ -33,8 +30,8 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
     private final PolicyAssignmentRepository policyAssignmentRepository;
     private final PolicyQueryRepository policyQueryRepository;
     private final FamilyMemberRepository familyMemberRepository;
-    private final RulesUtil rulesUtil;
-    private final KafkaEventPublisher kafkaEventPublisher;
+    private final PolicyConstraintValueNormalizer policyConstraintValueNormalizer;
+    private final PolicyRedisService policyRedisService;
     private final Clock clock;
 
     @Override
@@ -49,7 +46,7 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
     public void updateMemberPolicy(
             Long targetCustomerId,
             PolicyType type,
-            String newRules,
+            Map<String, Object> rules,
             Boolean isActive,
             Long actorId) {
 
@@ -72,14 +69,12 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
                                         new ApplicationException(
                                                 PolicyErrorCode.POLICY_ASSIGNMENT_NOT_FOUND));
 
-        assignment.update(newRules, isActive, actorId);
+        // rules 객체를 JSON 문자열로 변환 (null 허용)
+        String rulesJson =
+                rules == null ? null : policyConstraintValueNormalizer.rulesToJson(rules);
+        assignment.update(rulesJson, isActive, actorId);
 
-        String policyKey = rulesUtil.toPolicyKey(type);
-        kafkaEventPublisher.publish(
-                KafkaTopics.POLICY_UPDATED,
-                KafkaEventTypes.POLICY_UPDATED,
-                new PolicyUpdatedPayload(
-                        familyId, targetCustomerId, policyKey, newRules, isActive));
+        policyRedisService.syncToRedis(familyId, targetCustomerId, type, rules, isActive);
     }
 
     private LocalDate currentMonth() {

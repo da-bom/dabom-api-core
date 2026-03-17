@@ -8,12 +8,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.common.api.response.ApiResponse;
 import com.project.common.auth.aop.CustomerId;
-import com.project.common.exception.ApplicationException;
-import com.project.common.exception.code.PolicyErrorCode;
 import com.project.domain.policy.dto.request.PolicyUpdateRequest;
 import com.project.domain.policy.dto.response.FamilyPolicyResponse;
 import com.project.domain.policy.dto.response.PolicyUpdateResponse;
@@ -31,7 +27,6 @@ import lombok.RequiredArgsConstructor;
 @Tag(name = "Family Policy", description = "가족 구성원 정책 조회/수정 API")
 public class FamilyPolicyController {
     private final FamilyPolicyService familyPolicyService;
-    private final ObjectMapper objectMapper;
 
     @GetMapping
     @Operation(summary = "가족 정책 조회", description = "로그인한 고객이 속한 가족의 구성원별 정책 목록을 조회합니다.")
@@ -48,21 +43,12 @@ public class FamilyPolicyController {
             @RequestBody @Valid PolicyUpdateRequest request) {
 
         var updateInfo = request.updateInfo();
-        try {
-            String rulesJson =
-                    (updateInfo.rules() != null)
-                            ? objectMapper.writeValueAsString(updateInfo.rules())
-                            : null;
-
-            familyPolicyService.updateMemberPolicy(
-                    updateInfo.customerId(),
-                    updateInfo.type(),
-                    rulesJson,
-                    updateInfo.isActive(),
-                    actorId);
-        } catch (JsonProcessingException e) {
-            throw new ApplicationException(PolicyErrorCode.POLICY_RULES_SERIALIZATION_FAILED);
-        }
+        familyPolicyService.updateMemberPolicy(
+                updateInfo.customerId(),
+                updateInfo.type(),
+                updateInfo.rules(),
+                updateInfo.isActive(),
+                actorId);
 
         return ApiResponse.success(
                 PolicyUpdateResponse.success(updateInfo.customerId(), updateInfo.type()));
