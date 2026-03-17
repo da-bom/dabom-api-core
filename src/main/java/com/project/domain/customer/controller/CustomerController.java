@@ -73,7 +73,7 @@ public class CustomerController {
     @Operation(summary = "내 정보 조회", description = "로그인한 사용자의 기본 프로필 정보를 반환합니다.")
     public ApiResponse<CustomerMeResponse> getMe(
             @Parameter(hidden = true) @CustomerId Long customerId) {
-        return ApiResponse.success(customerService.getMe(customerId));
+        return ApiResponse.success(CustomerMeResponse.from(customerService.getMe(customerId)));
     }
 
     @GetMapping("/mypage")

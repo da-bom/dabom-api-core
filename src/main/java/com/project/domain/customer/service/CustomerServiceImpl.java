@@ -21,11 +21,11 @@ import com.project.common.exception.code.GlobalErrorCode;
 import com.project.common.exception.code.PolicyErrorCode;
 import com.project.domain.customer.dto.request.CustomerSignInRequest;
 import com.project.domain.customer.dto.request.CustomerSignUpRequest;
-import com.project.domain.customer.dto.response.CustomerMeResponse;
 import com.project.domain.customer.dto.response.SignUpResponse;
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.entity.CustomerQuota;
 import com.project.domain.customer.enums.RoleType;
+import com.project.domain.customer.model.CustomerMe;
 import com.project.domain.customer.model.MyPageInfo;
 import com.project.domain.customer.repository.CustomerQuotaRepository;
 import com.project.domain.customer.repository.CustomerRepository;
@@ -187,7 +187,7 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     @Transactional(readOnly = true)
-    public CustomerMeResponse getMe(Long customerId) {
+    public CustomerMe getMe(Long customerId) {
         Customer customer =
                 customerRepository
                         .findById(customerId)
@@ -202,7 +202,12 @@ public class CustomerServiceImpl implements CustomerService {
                         .orElseThrow(
                                 () -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
 
-        return CustomerMeResponse.of(customer, familyMember);
+        return new CustomerMe(
+                customer.getId(),
+                customer.getName(),
+                customer.getPhoneNumber(),
+                familyMember.getFamilyId(),
+                familyMember.getRole());
     }
 
     private LocalDate resolveTargetMonth(int year, int month) {

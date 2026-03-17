@@ -2,7 +2,7 @@ package com.project.domain.admin.service;
 
 import com.project.common.auth.SignInResult;
 import com.project.common.auth.TokenRefreshResult;
-import com.project.domain.admin.dto.response.AdminMeResponse;
+import com.project.domain.admin.entity.Admin;
 import com.project.domain.customer.dto.response.SignUpResponse;
 
 public interface AdminService {
@@ -12,5 +12,5 @@ public interface AdminService {
 
     TokenRefreshResult refreshToken(String refreshToken);
 
-    AdminMeResponse getMe(Long adminId);
+    Admin getMe(Long adminId);
 }

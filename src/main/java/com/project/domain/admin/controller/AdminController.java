@@ -63,7 +63,7 @@ public class AdminController {
     @AdminOnly
     @Operation(summary = "관리자 내 정보 조회", description = "로그인한 관리자의 기본 프로필 정보를 반환합니다.")
     public ApiResponse<AdminMeResponse> getMe(@Parameter(hidden = true) @AdminId Long adminId) {
-        return ApiResponse.success(adminService.getMe(adminId));
+        return ApiResponse.success(AdminMeResponse.from(adminService.getMe(adminId)));
     }
 
     @PostMapping("/logout")

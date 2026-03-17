@@ -9,7 +9,6 @@ import com.project.common.auth.SignInResult;
 import com.project.common.auth.TokenRefreshResult;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.AdminErrorCode;
-import com.project.domain.admin.dto.response.AdminMeResponse;
 import com.project.domain.admin.entity.Admin;
 import com.project.domain.admin.repository.AdminRepository;
 import com.project.domain.customer.dto.response.SignUpResponse;
@@ -83,15 +82,9 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional(readOnly = true)
-    public AdminMeResponse getMe(Long adminId) {
-        Admin admin =
-                adminRepository
-                        .findById(adminId)
-                        .orElseThrow(
-                                () ->
-                                        new ApplicationException(
-                                                AdminErrorCode.ADMIN_SIGN_IN_FAILED));
-
-        return AdminMeResponse.from(admin);
+    public Admin getMe(Long adminId) {
+        return adminRepository
+                .findById(adminId)
+                .orElseThrow(() -> new ApplicationException(AdminErrorCode.ADMIN_SIGN_IN_FAILED));
     }
 }

@@ -1,18 +1,17 @@
 package com.project.domain.customer.dto.response;
 
-import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.enums.RoleType;
-import com.project.domain.family.entity.FamilyMember;
+import com.project.domain.customer.model.CustomerMe;
 
 public record CustomerMeResponse(
         Long customerId, String name, String phoneNumber, Long familyId, RoleType role) {
 
-    public static CustomerMeResponse of(Customer customer, FamilyMember familyMember) {
+    public static CustomerMeResponse from(CustomerMe customerMe) {
         return new CustomerMeResponse(
-                customer.getId(),
-                customer.getName(),
-                customer.getPhoneNumber(),
-                familyMember.getFamilyId(),
-                familyMember.getRole());
+                customerMe.customerId(),
+                customerMe.name(),
+                customerMe.phoneNumber(),
+                customerMe.familyId(),
+                customerMe.role());
     }
 }
