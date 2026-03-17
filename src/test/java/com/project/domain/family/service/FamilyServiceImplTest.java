@@ -44,6 +44,7 @@ import com.project.domain.family.repository.FamilyRepository;
 import com.project.domain.policy.entity.PolicyAssignment;
 import com.project.domain.policy.enums.PolicyType;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
+import com.project.domain.policy.service.helper.RulesUtil;
 
 @ExtendWith(MockitoExtension.class)
 class FamilyServiceImplTest {
@@ -58,7 +59,7 @@ class FamilyServiceImplTest {
     @Mock private CustomerQuotaRepository customerQuotaRepository;
     @Mock private PolicyAssignmentRepository policyAssignmentRepository;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final RulesUtil rulesUtil = new RulesUtil(new ObjectMapper());
 
     private FamilyServiceImpl familyService;
 
@@ -71,7 +72,7 @@ class FamilyServiceImplTest {
                         familyRepository,
                         customerQuotaRepository,
                         policyAssignmentRepository,
-                        objectMapper,
+                        rulesUtil,
                         FIXED_CLOCK);
     }
 

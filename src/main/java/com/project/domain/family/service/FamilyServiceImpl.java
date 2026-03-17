@@ -12,8 +12,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.FamilyErrorCode;
 import com.project.common.exception.code.PolicyErrorCode;
@@ -35,6 +33,7 @@ import com.project.domain.family.util.FamilyUsageCalculator;
 import com.project.domain.policy.entity.PolicyAssignment;
 import com.project.domain.policy.enums.PolicyType;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
+import com.project.domain.policy.service.helper.RulesUtil;
 
 import lombok.RequiredArgsConstructor;
 
@@ -48,7 +47,7 @@ public class FamilyServiceImpl implements FamilyService {
     private final FamilyRepository familyRepository;
     private final CustomerQuotaRepository customerQuotaRepository;
     private final PolicyAssignmentRepository policyAssignmentRepository;
-    private final ObjectMapper objectMapper;
+    private final RulesUtil rulesUtil;
     private final Clock clock;
 
     @Override
@@ -132,6 +131,7 @@ public class FamilyServiceImpl implements FamilyService {
     @Transactional
     public int updateFamilyByAdmin(
             Long familyId, List<AdminFamilyUpdateRequest.MemberUpdate> members) {
+        validateNoDuplicateCustomerIds(members);
         getFamilyById(familyId);
 
         LocalDate targetMonth = currentMonth();
@@ -140,30 +140,23 @@ public class FamilyServiceImpl implements FamilyService {
                 members.stream().map(AdminFamilyUpdateRequest.MemberUpdate::customerId).toList();
 
         Map<Long, FamilyMember> memberMap =
-                familyMemberRepository
-                        .findAllByFamilyIdAndCustomerIdInAndDeletedAtIsNull(familyId, customerIds)
-                        .stream()
-                        .collect(
-                                Collectors.toMap(FamilyMember::getCustomerId, Function.identity()));
+                toEntityMap(
+                        familyMemberRepository.findAllByFamilyIdAndCustomerIdInAndDeletedAtIsNull(
+                                familyId, customerIds),
+                        FamilyMember::getCustomerId);
 
         Map<Long, CustomerQuota> quotaMap =
-                customerQuotaRepository
-                        .findAllByFamilyIdAndCustomerIdInAndCurrentMonthAndDeletedAtIsNull(
-                                familyId, customerIds, targetMonth)
-                        .stream()
-                        .collect(
-                                Collectors.toMap(
-                                        CustomerQuota::getCustomerId, Function.identity()));
+                toEntityMap(
+                        customerQuotaRepository
+                                .findAllByFamilyIdAndCustomerIdInAndCurrentMonthAndDeletedAtIsNull(
+                                        familyId, customerIds, targetMonth),
+                        CustomerQuota::getCustomerId);
 
         Map<Long, PolicyAssignment> assignmentMap =
-                policyAssignmentRepository
-                        .findAllByFamilyIdAndCustomerIdsAndType(
-                                familyId, customerIds, PolicyType.MONTHLY_LIMIT)
-                        .stream()
-                        .collect(
-                                Collectors.toMap(
-                                        PolicyAssignment::getTargetCustomerId,
-                                        Function.identity()));
+                toEntityMap(
+                        policyAssignmentRepository.findAllByFamilyIdAndCustomerIdsAndType(
+                                familyId, customerIds, PolicyType.MONTHLY_LIMIT),
+                        PolicyAssignment::getTargetCustomerId);
 
         for (AdminFamilyUpdateRequest.MemberUpdate update : members) {
             Long customerId = update.customerId();
@@ -189,22 +182,31 @@ public class FamilyServiceImpl implements FamilyService {
                                     () ->
                                             new ApplicationException(
                                                     PolicyErrorCode.POLICY_ASSIGNMENT_NOT_FOUND));
-            String newRules = serializeMonthlyLimitRule(update.monthlyLimitBytes());
+            String newRules = rulesUtil.serializeMonthlyLimitRule(update.monthlyLimitBytes());
             assignment.update(newRules, null, null);
         }
 
         return members.size();
     }
 
-    private String serializeMonthlyLimitRule(Long limitBytes) {
-        try {
-            return objectMapper.writeValueAsString(new MonthlyLimitRule(limitBytes));
-        } catch (JsonProcessingException e) {
-            throw new ApplicationException(PolicyErrorCode.POLICY_RULES_SERIALIZATION_FAILED);
+    private void validateNoDuplicateCustomerIds(
+            List<AdminFamilyUpdateRequest.MemberUpdate> members) {
+        long uniqueCount =
+                members.stream()
+                        .map(AdminFamilyUpdateRequest.MemberUpdate::customerId)
+                        .distinct()
+                        .count();
+        if (uniqueCount != members.size()) {
+            throw new ApplicationException(FamilyErrorCode.FAMILY_DUPLICATE_CUSTOMER_ID);
         }
     }
 
-    private record MonthlyLimitRule(Long limitBytes) {}
+    private <T> Map<Long, T> toEntityMap(List<T> entities, Function<T, Long> keyExtractor) {
+        return entities.stream()
+                .collect(
+                        Collectors.toMap(
+                                keyExtractor, Function.identity(), (first, second) -> first));
+    }
 
     private LocalDate currentMonth() {
         return LocalDate.now(clock).withDayOfMonth(1);
