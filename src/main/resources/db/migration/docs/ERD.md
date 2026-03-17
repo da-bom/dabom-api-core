@@ -1,18 +1,19 @@
 # 실시간 가족 데이터 통합 관리 시스템 - ERD 설계서
 
-> **문서 버전**: v23.3
-> **작성일**: 2026-03-15
+> **문서 버전**: v24.0
+> **작성일**: 2026-03-17
 > **작성자**: DABOM 팀
 > **변경 이력**:
 >
-> - v23.3 - POLICY_APPEAL에 `policy_active` 물리 컬럼 추가(Flyway V11). NORMAL 이의제기 생성 시 정책 활성/비활성 의도를 컬럼에 저장하고, 부모 승인 시 `desired_rules`와 함께 `policy_assignment.is_active`를 반영하도록 정리.
-> - v23.2 - POLICY_APPEAL 생성 로직 확장: NORMAL 이의제기 생성 시 정책 활성/비활성 의도를 `desired_rules` 내부 키 `_policyActive`로 함께 저장하도록 명시. 부모 승인 시 `desired_rules`의 정책 rule과 `_policyActive`를 함께 반영해 `policy_assignment.rules` 및 `policy_assignment.is_active`를 동기화. DB 물리 컬럼 추가 없이 JSON 내부 필드(논리 컬럼)로 관리.
+> - v24.0 - usage-events 처리 흐름과 notification outbox 구조를 통합 반영: `usage-persist`/`usage-realtime` 제거, processor-usage가 Redis/Lua 이후 `usage_record`·`customer_quota`·`family_quota`를 직접 DB 정산하는 구조로 정리, `usage_event_outbox` 신규 테이블 추가, notification payload 평탄화, 배치 서버의 `notification-events` 큐 발행 흐름, FK(`family_id`, `customer_id`), UNIQUE(`event_id`), 재시도 인덱스(`status`, `next_retry_at`)를 반영하고 엔티티 총 23→24개로 확장
+> - v23.3 - policy_appeal에 policy_active 컬럼 추가, uk_policy_appeal_emergency_month UNIQUE(requester_id, emergency_grant_month)로 정리, mission_request에 active_request_mission_id와 uk_mission_request_active_request_mission UNIQUE 추가로 미션별 활성 보상 요청 1건 제약 명시
+> - v23.2 - API_SPECIFICATION v23.1 동기화: `notification_log`에 `title` 컬럼 추가 (PWA Push title+body 분리), `push_subscription` 테이블 신설 (PWA Web Push 구독 관리), 데이터 생명주기 설명 갱신 (커서 무한스크롤, 30일 보존 정책, type 쿼리 파라미터 통합). 엔티티 총 22→23개
 > - v23.1 - `family`를 가족 메타 정보 전용으로 축소하고 `FAMILY_QUOTA`를 월별 가족 총량 스냅샷 엔티티로 재도입. 가족 총량 조회 기준을 `family_quota`로 정리하고, Family Redis 키(`info`, `remaining`, `alert`)에 `{yyyyMM}` suffix 규칙을 반영.
 > - v22.1 - API_SPECIFICATION v22.3 동기화: 가족 리캡 집계 기준 정합화: `FAMILY_RECAP_WEEKLY`의 이의제기 카운트 의미를 주간 요청/처리 이벤트 기준으로 재정의하고, `FAMILY_RECAP_MONTHLY`의 mission/appeal summary를 월 내부 full week weekly snapshot 합계 + 좌우 partial raw 보강 구조로 정리. `communication_score`는 carry-in 포함 처리율/이행률 공식으로 갱신. 엔티티 총 21개 유지
 > - v22.0 - API_SPECIFICATION v22.2 Major 버전 동기화
 > - v21.4 - FAMILY_RECAP_WEEKLY에 `approved_appeal_count`, `rejected_appeal_count` 컬럼 추가. 주간 리캡에서 NORMAL 이의제기의 총계뿐 아니라 승인/거절 건수도 함께 스냅샷으로 저장하여 월간 리캡 이의제기 요약 집계 소스로 재사용 가능하도록 확장.
 > - v21.3 - MISSION_LOG `action_type` ENUM 재정의: 역할 분리 원칙 적용 — 요청 처리 결과는 `mission_request.status`가 담당, 미션 상태 변화 타임라인은 `mission_log.action_type`이 담당. `MISSION_APPROVED`·`MISSION_REJECTED` 제거 (→ `mission_request.status=APPROVED/REJECTED`로 추적), `MISSION_CANCELLED` 추가. 최종 ENUM: `MISSION_CREATED`, `MISSION_REQUESTED`, `MISSION_COMPLETED`, `MISSION_CANCELLED`.
-> - v21.2 - POLICY_APPEAL 긴급 요청 동시성 문제 해결: `emergency_grant_month` 컬럼 추가 (DATE, NULL). EMERGENCY 타입일 때 해당 월 1일 값 저장, NORMAL은 NULL. `uk_appeal_emergency_month` UNIQUE 제약 (`requester_id`, `emergency_grant_month`)으로 DB 레벨 월 1회 중복 방지. 기존 `idx_appeal_emergency_monthly` 인덱스는 조회 최적화용으로 유지.
+> - v21.2 - POLICY_APPEAL 긴급 요청 동시성 문제 해결: `emergency_grant_month` 컬럼 추가 (DATE, NULL). EMERGENCY 타입일 때 해당 월 1일 값 저장, NORMAL은 NULL. `uk_policy_appeal_emergency_month` UNIQUE 제약 (`requester_id`, `emergency_grant_month`)으로 DB 레벨 월 1회 중복 방지. 기존 `idx_appeal_emergency_monthly` 인덱스는 조회 최적화용으로 유지.
 > - v21.1 - BaseEntity 일관성 확보: 전체 21개 엔티티에 created_at/updated_at/deleted_at 3개 필드 통일. 이력성/불변 테이블 deleted_at 예외 조항 변경 (BaseEntity 상속에 따라 컬럼 존재, 운영상 미사용). 13개 테이블에서 총 19개 누락 컬럼 추가.
 > - v21.0 - Figma 디자인 반영: REWARD_TEMPLATE에서 default_value·unit 컬럼 제거, thumbnail_url 추가.
 >   REWARD에서 template_default_value·value·unit 컬럼 제거, thumbnail_url 추가.
@@ -59,36 +60,39 @@
 | 원칙                 | 설명                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Source of Truth**  | MySQL이 모든 영속 데이터의 원본 (Redis는 캐시/실시간 상태용)                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| **Write-Behind**     | 실시간 경로(Redis) → 비동기 저장(Kafka usage-persist → MySQL)                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| **직접 DB 정산**     | 실시간 경로(Redis/Lua) 이후 processor-usage가 동일 처리 흐름 안에서 MySQL 정산까지 직접 수행                                                                                                                                                                                                                                                                                                                                                                                                               |
 | **Idempotency**      | `event_id` UNIQUE 제약으로 중복 Insert 방지                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | **Soft Delete**      | 영속 엔티티에 `deleted_at` 컬럼 적용. NULL = 활성, NOT NULL = 삭제. UNIQUE 제약에 `deleted_at` 포함하여 삭제 후 재생성 허용. 모든 엔티티가 `BaseEntity`를 상속하므로 `created_at`, `updated_at`, `deleted_at` 3개 필드를 공통으로 가짐. 이력성/불변 테이블(`POLICY_APPEAL`, `REWARD`, `REWARD_GRANT`, `MISSION_ITEM`, `MISSION_REQUEST`, `MISSION_LOG`, `FAMILY_RECAP_MONTHLY`, `FAMILY_RECAP_WEEKLY`)은 운영상 Soft Delete를 사용하지 않으나, BaseEntity 상속에 따라 `deleted_at` 컬럼은 존재 (항상 NULL) |
 | **바이트 단위 통일** | 모든 데이터량 필드는 `BIGINT` 바이트 단위                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 ### 1.2 엔티티 목록
 
-| #   | 엔티티                  | 설명                                           | 예상 레코드 수  |
-| --- | ----------------------- | ---------------------------------------------- | --------------- |
-| 1   | `customer`              | 시스템 사용자 (가족 구성원)                    | ~1,000,000      |
-| 2   | `admin`                 | 백오피스 운영자                                | ~100            |
-| 3   | `family`                | 가족 그룹                                      | ~250,000        |
-| 4   | `family_member`         | 가족-사용자 매핑 (N:M 해소)                    | ~1,000,000      |
-| 5   | `customer_quota`        | 구성원별 월별 한도/사용량/차단 상태            | ~1,000,000/월   |
-| 6   | `usage_record`          | 데이터 사용 이력 (Write-Behind 저장)           | ~432,000,000/일 |
-| 7   | `policy`                | 정책 템플릿 정의                               | ~100            |
-| 8   | `policy_assignment`     | 정책 적용 매핑                                 | ~500,000        |
-| 9   | `notification_log`      | 알림 발송 이력                                 | ~수백만/월      |
-| 10  | `audit_log`             | 감사 로그 (정책 변경, 차단 이력 등)            | ~수십만/월      |
-| 11  | `invite`                | 가족 초대                                      | ~수만           |
-| 12  | `reward_template`       | 시스템 제공 보상 템플릿                        | ~100            |
-| 13  | `reward`                | 보상 인스턴스 (템플릿 스냅샷 + 커스텀 값)      | ~수만           |
-| 14  | `mission_item`          | 부모 생성 미션 항목 (대상 자녀 지정)           | ~수만           |
-| 15  | `mission_request`       | 자녀의 미션 보상 요청                          | ~수만/월        |
-| 16  | `family_recap_monthly`  | 월간 가족 리캡 스냅샷                          | ~250,000/월     |
-| 17  | `policy_appeal`         | 자녀의 정책 이의제기                           | ~수만           |
-| 18  | `policy_appeal_comment` | 이의제기 댓글 (부모-자녀 소통)                 | ~수만           |
-| 19  | `mission_log`           | 미션 이벤트 타임라인 로그                      | ~수십만         |
-| 20  | `family_recap_weekly`   | 주간 가족 리캡 스냅샷 (내부 집계용)            | ~1,000,000/년   |
-| 21  | `reward_grant`          | 보상 지급 이력 (쿠폰 코드/URL, 사용 상태 관리) | ~수만           |
+| #   | 엔티티                  | 설명                                              | 예상 레코드 수  |
+| --- | ----------------------- | ------------------------------------------------- | --------------- |
+| 1   | `customer`              | 시스템 사용자 (가족 구성원)                       | ~1,000,000      |
+| 2   | `admin`                 | 백오피스 운영자                                   | ~100            |
+| 3   | `family`                | 가족 그룹                                         | ~250,000        |
+| 4   | `family_member`         | 가족-사용자 매핑 (N:M 해소)                       | ~1,000,000      |
+| 5   | `customer_quota`        | 구성원별 월별 한도/사용량/차단 상태               | ~1,000,000/월   |
+| 6   | `usage_record`          | 데이터 사용 이력 (processor-usage 직접 정산 저장) | ~432,000,000/일 |
+| 7   | `policy`                | 정책 템플릿 정의                                  | ~100            |
+| 8   | `policy_assignment`     | 정책 적용 매핑                                    | ~500,000        |
+| 9   | `notification_log`      | 알림 발송 이력                                    | ~수백만/월      |
+| 10  | `audit_log`             | 감사 로그 (정책 변경, 차단 이력 등)               | ~수십만/월      |
+| 11  | `invite`                | 가족 초대                                         | ~수만           |
+| 12  | `reward_template`       | 시스템 제공 보상 템플릿                           | ~100            |
+| 13  | `reward`                | 보상 인스턴스 (템플릿 스냅샷 + 커스텀 값)         | ~수만           |
+| 14  | `mission_item`          | 부모 생성 미션 항목 (대상 자녀 지정)              | ~수만           |
+| 15  | `mission_request`       | 자녀의 미션 보상 요청                             | ~수만/월        |
+| 16  | `family_recap_monthly`  | 월간 가족 리캡 스냅샷                             | ~250,000/월     |
+| 17  | `policy_appeal`         | 자녀의 정책 이의제기                              | ~수만           |
+| 18  | `policy_appeal_comment` | 이의제기 댓글 (부모-자녀 소통)                    | ~수만           |
+| 19  | `mission_log`           | 미션 이벤트 타임라인 로그                         | ~수십만         |
+| 20  | `family_recap_weekly`   | 주간 가족 리캡 스냅샷 (내부 집계용)               | ~1,000,000/년   |
+| 21  | `reward_grant`          | 보상 지급 이력 (쿠폰 코드/URL, 사용 상태 관리)    | ~수만           |
+| 22  | `family_quota`          | 가족 월별 총량 스냅샷                             | ~250,000/월     |
+| 23  | `push_subscription`     | PWA Web Push 구독 정보                            | ~1,000,000      |
+| 24  | `usage_event_outbox`    | notification 발행 복구용 outbox                   | ~수백만/월      |
 
 ---
 
@@ -110,6 +114,7 @@ erDiagram
     CUSTOMER ||--o{ POLICY_ASSIGNMENT : "targeted by"
     CUSTOMER ||--o{ NOTIFICATION_LOG : "receives"
     FAMILY ||--o{ NOTIFICATION_LOG : "scoped to"
+    CUSTOMER ||--o| PUSH_SUBSCRIPTION : "subscribes"
     FAMILY ||--o{ INVITE : "has"
     CUSTOMER ||--o{ AUDIT_LOG : "performs"
     FAMILY ||--o{ MISSION_ITEM : "owns"
@@ -246,6 +251,7 @@ erDiagram
         bigint customer_id FK "NOT NULL → customer.id"
         bigint family_id FK "NOT NULL → family.id"
         enum type "THRESHOLD_ALERT | BLOCKED | UNBLOCKED | POLICY_CHANGED | MISSION_CREATED | REWARD_REQUESTED | REWARD_APPROVED | REWARD_REJECTED | APPEAL_CREATED | APPEAL_APPROVED | APPEAL_REJECTED | EMERGENCY_APPROVED"
+        varchar title "NOT NULL, 알림 제목 (PWA Push title)"
         text message "NOT NULL, 알림 메시지"
         json payload "NULL, 추가 데이터"
         boolean is_read "NOT NULL DEFAULT FALSE"
@@ -269,6 +275,16 @@ erDiagram
         datetime deleted_at "NULL, Soft Delete"
     }
 
+    PUSH_SUBSCRIPTION {
+        bigint id PK "AUTO_INCREMENT"
+        bigint customer_id FK "NOT NULL → customer.id"
+        text endpoint "NOT NULL UNIQUE, Push Service URL"
+        varchar p256dh "NOT NULL, ECDH 공개키"
+        varchar auth "NOT NULL, 인증 시크릿"
+        datetime created_at "DEFAULT CURRENT_TIMESTAMP"
+        datetime updated_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
     INVITE {
         bigint id PK "AUTO_INCREMENT"
         bigint family_id FK "NOT NULL → family.id"
@@ -283,13 +299,13 @@ erDiagram
 
     POLICY_APPEAL {
         bigint id PK "AUTO_INCREMENT"
+        boolean policy_active "NULL, NORMAL 생성 시 정책 활성 여부 snapshot"
         enum type "NORMAL | EMERGENCY, DEFAULT NORMAL"
         bigint policy_assignment_id FK "NULL → policy_assignment.id (EMERGENCY는 NULL)"
         bigint requester_id FK "NOT NULL → customer.id, 요청자(자녀)"
         text request_reason "NOT NULL, 이의제기/긴급요청 사유"
         text reject_reason "NULL, 거절 사유 (REJECTED 시)"
         json desired_rules "NULL, 원하는 정책 값 JSON (EMERGENCY: additionalBytes)"
-        boolean policy_active "NULL, NORMAL 이의제기 시 요청 정책 활성/비활성 의도"
         enum status "PENDING | APPROVED | REJECTED | CANCELLED"
         date emergency_grant_month "NULL, EMERGENCY 시 해당 월 1일 (UK)"
         bigint resolved_by_id FK "NULL → customer.id (EMERGENCY는 NULL=시스템)"
@@ -375,6 +391,7 @@ erDiagram
 
     MISSION_REQUEST {
         bigint id PK "AUTO_INCREMENT"
+        bigint active_request_mission_id "NULL, PENDING active request only (UK)"
         bigint mission_item_id FK "NOT NULL → mission_item.id"
         bigint requester_id FK "NOT NULL → customer.id"
         enum status "PENDING | APPROVED | REJECTED"
@@ -548,13 +565,13 @@ erDiagram
 
     POLICY_APPEAL {
         bigint id PK
+        boolean policy_active "NULL (EMERGENCY는 NULL)"
         enum type "NORMAL | EMERGENCY"
         bigint policy_assignment_id FK "NULL (EMERGENCY)"
         bigint requester_id FK
         text request_reason
         text reject_reason "NULL"
         json desired_rules "NULL"
-        boolean policy_active "NULL, NORMAL 요청 의도"
         enum status "PENDING | APPROVED | REJECTED | CANCELLED"
         date emergency_grant_month "NULL, EMERGENCY 시 해당 월 1일 (UK)"
         bigint resolved_by_id FK "NULL (EMERGENCY=시스템)"
@@ -654,6 +671,7 @@ erDiagram
 
     MISSION_REQUEST {
         bigint id PK
+        bigint active_request_mission_id "NULL, PENDING active request only (UK)"
         bigint mission_item_id FK
         bigint requester_id FK
         enum status "PENDING | APPROVED | REJECTED"
@@ -898,13 +916,13 @@ CUSTOMER와 FAMILY 간 N:M 관계를 해소하는 매핑 테이블.
 
 구성원별 월별 데이터 한도와 사용량, 차단 상태를 관리.
 
-**설계 의도**: 개인별 월별 데이터 한도 및 차단 상태를 월 단위로 스냅샷하는 엔티티. Owner가 자녀에게 월 5GB 한도를 설정하거나, 시간대 차단/수동 차단을 적용한 결과가 이 테이블에 반영됨. Redis의 실시간 상태를 Write-Behind로 동기화하여 이력 조회와 리포트 생성을 지원.
+**설계 의도**: 개인별 월별 데이터 한도 및 차단 상태를 월 단위로 스냅샷하는 엔티티. Owner가 자녀에게 월 5GB 한도를 설정하거나, 시간대 차단/수동 차단을 적용한 결과가 이 테이블에 반영됨. Redis의 실시간 상태를 processor-usage가 직접 DB 정산하여 동기화하고, 이력 조회와 리포트 생성을 지원.
 
 **데이터 생명주기**:
 
 - **생성**: 해당 월에 첫 데이터 사용 이벤트 발생 시 자동 생성 (월별 1건)
 - **조회**: 마이페이지(`GET /customers/usage`), 대시보드(`GET /families/dashboard/usage`)
-- **수정**: processor-usage가 Write-Behind로 `monthly_used_bytes`, `is_blocked`, `block_reason` 업데이트. Owner의 즉시 차단(`PATCH /families/policies`) 시 `is_blocked`/`block_reason` 직접 변경
+- **수정**: processor-usage가 usage-events 처리 중 `monthly_used_bytes`, `is_blocked`, `block_reason`를 직접 업데이트. Owner의 즉시 차단(`PATCH /families/policies`) 시 `is_blocked`/`block_reason` 직접 변경
 - **삭제**: Soft Delete — 일반적으로 삭제되지 않으나 데이터 보정 시 사용
 
 **핵심 설계 결정**:
@@ -949,13 +967,13 @@ CUSTOMER와 FAMILY 간 N:M 관계를 해소하는 매핑 테이블.
 
 ### 3.7 USAGE_RECORD (데이터 사용 이력)
 
-데이터 사용 이벤트의 영속 저장소. processor-usage가 `usage-persist` 토픽을 자기소비하여 Bulk Insert.
+데이터 사용 이벤트의 영속 저장소. processor-usage가 `usage-events` 처리 중 직접 정산하여 저장한다.
 
 **설계 의도**: 시스템에서 가장 높은 쓰기 부하를 받는 이벤트 로그 테이블. 실시간 경로(Redis)에서는 집계값만 관리하고, 개별 이벤트 원본은 이 테이블에 비동기 저장하여 상세 리포트와 감사 추적을 지원. Idempotency 키(`event_id`)로 Kafka 재처리 시 중복 Insert를 방지.
 
 **데이터 생명주기**:
 
-- **생성**: processor-usage → Kafka `usage-persist` 토픽 → 자기소비 → MySQL Bulk Insert (5초 또는 100건 배치)
+- **생성**: processor-usage가 Lua 결과를 해석한 뒤 MySQL에 직접 INSERT/UPSERT
 - **조회**: 개인 사용량(`GET /customers/usage`), 가족 리포트(`GET /families/reports/usage`), 관리자 대시보드(`GET /admin/dashboard`)
 - **수정**: 불변(Immutable) — 한 번 저장된 이벤트는 수정되지 않음
 - **삭제/아카이브**: 90일 후 S3(Parquet)로 아카이브 후 MySQL에서 파티션 단위 DROP
@@ -1110,30 +1128,31 @@ CUSTOMER와 FAMILY 간 N:M 관계를 해소하는 매핑 테이블.
 **데이터 생명주기**:
 
 - **생성**: api-notification이 `notification-events` 토픽을 소비 → SSE Push + MySQL 저장 동시 수행
-- **조회**: 전체 알림(`GET /notifications`), 임계치 알림 필터(`GET /notifications/alert`), 차단 알림 필터(`GET /notifications/block`)
+- **조회**: `GET /notifications?type=...` 단일 엔드포인트 (커서 무한스크롤, 30일 제한). `type` 쿼리 파라미터(콤마 구분 다중 선택)가 기존 `/alert`, `/block` 전용 엔드포인트를 대체.
 - **수정**: 읽음 처리 시 `is_read = TRUE`로 업데이트
 - **삭제**: Soft Delete — 사용자가 알림 삭제 시
 
 **핵심 설계 결정**:
 
-- `type` 기반 필터링을 위해 `idx_notif_customer_type` 복합 인덱스 추가 — REST API 타입별 엔드포인트 성능 보장
+- `type` 기반 필터링을 위해 `idx_notif_customer_type` 복합 인덱스 추가 — `WHERE type IN (...) AND sent_at >= ...` 범위 쿼리 지원 (커서 무한스크롤 + 30일 보존 정책)
 - `payload` JSON에 타입별 상세 데이터 저장 (예: THRESHOLD_ALERT → `{"threshold": 50, "remaining": "5GB"}`, BLOCKED → `{"reason": "MONTHLY_LIMIT_EXCEEDED"}`)
 - `is_read` 플래그로 읽지 않은 알림 카운트 표시 (PWA 배지 등)
 - Kafka eventType(`QUOTA_UPDATED`, `USER_BLOCKED`, `THRESHOLD_ALERT`)과 DB ENUM(`THRESHOLD_ALERT`, `BLOCKED`, `UNBLOCKED`, `POLICY_CHANGED`)은 의미 단위가 다름 — 변환 로직은 api-notification에서 처리
 
-| 컬럼          | 타입     | 제약조건                   | 설명                               |
-| ------------- | -------- | -------------------------- | ---------------------------------- |
-| `id`          | BIGINT   | PK, AUTO_INCREMENT         | 알림 고유 ID                       |
-| `customer_id` | BIGINT   | NOT NULL, FK → customer.id | 수신자                             |
-| `family_id`   | BIGINT   | NOT NULL, FK → family.id   | 소속 가족                          |
-| `type`        | ENUM     | NOT NULL                   | 알림 유형                          |
-| `message`     | TEXT     | NOT NULL                   | 알림 메시지 본문                   |
-| `payload`     | JSON     | NULL                       | 추가 데이터 (임계치, 차단 사유 등) |
-| `is_read`     | BOOLEAN  | NOT NULL, DEFAULT FALSE    | 읽음 여부                          |
-| `sent_at`     | DATETIME | DEFAULT CURRENT_TIMESTAMP  | 발송 시각                          |
-| `created_at`  | DATETIME | DEFAULT CURRENT_TIMESTAMP  | 생성일시                           |
-| `updated_at`  | DATETIME | DEFAULT CURRENT_TIMESTAMP  | 수정일시                           |
-| `deleted_at`  | DATETIME | NULL                       | Soft Delete (NULL = 활성)          |
+| 컬럼          | 타입         | 제약조건                   | 설명                               |
+| ------------- | ------------ | -------------------------- | ---------------------------------- |
+| `id`          | BIGINT       | PK, AUTO_INCREMENT         | 알림 고유 ID                       |
+| `customer_id` | BIGINT       | NOT NULL, FK → customer.id | 수신자                             |
+| `family_id`   | BIGINT       | NOT NULL, FK → family.id   | 소속 가족                          |
+| `type`        | ENUM         | NOT NULL                   | 알림 유형                          |
+| `title`       | VARCHAR(100) | NOT NULL                   | 알림 제목 (PWA Push title 용)      |
+| `message`     | TEXT         | NOT NULL                   | 알림 메시지 본문                   |
+| `payload`     | JSON         | NULL                       | 추가 데이터 (임계치, 차단 사유 등) |
+| `is_read`     | BOOLEAN      | NOT NULL, DEFAULT FALSE    | 읽음 여부                          |
+| `sent_at`     | DATETIME     | DEFAULT CURRENT_TIMESTAMP  | 발송 시각                          |
+| `created_at`  | DATETIME     | DEFAULT CURRENT_TIMESTAMP  | 생성일시                           |
+| `updated_at`  | DATETIME     | DEFAULT CURRENT_TIMESTAMP  | 수정일시                           |
+| `deleted_at`  | DATETIME     | NULL                       | Soft Delete (NULL = 활성)          |
 
 **ENUM 값 (`type`)**:
 
@@ -1155,12 +1174,63 @@ CUSTOMER와 FAMILY 간 N:M 관계를 해소하는 매핑 테이블.
 **인덱스**:
 
 - `idx_notif_customer` : (`customer_id`, `sent_at` DESC) (사용자 알림 목록)
-- `idx_notif_customer_type` : (`customer_id`, `type`, `sent_at` DESC) (타입별 알림 필터 — `/notifications/alert`, `/notifications/block`)
+- `idx_notif_customer_type` : (`customer_id`, `type`, `sent_at` DESC) (타입별 알림 필터 — `GET /notifications?type=...` 범위 쿼리)
 - `idx_notif_family` : (`family_id`, `sent_at` DESC) (가족 알림 목록)
 
 ---
 
-### 3.11 AUDIT_LOG (감사 로그)
+### 3.11 PUSH_SUBSCRIPTION (Push 구독)
+
+PWA Web Push 구독 정보. api-notification의 `WebPushController`가 관리. 구독 등록/갱신/해제를 처리하며, Push 발송 시 `customer_id`로 조회.
+
+**설계 의도**: PWA Web Push 표준(RFC 8030)의 구독 정보(endpoint, p256dh, auth)를 고객별로 저장. 구독 해제 시 이력 보존 불필요하므로 Hard Delete 적용 (Soft Delete 미적용). 고객 1인당 구독 1건 (기기 변경 시 갱신).
+
+**데이터 생명주기**:
+
+- **생성/갱신**: `POST /push/subscribe` — 동일 endpoint + 동일 customer → 키 갱신, 동일 endpoint + 다른 customer → 재할당, 신규 endpoint → 생성
+- **조회**: Push 발송 시 `customer_id`로 조회
+- **삭제**: `DELETE /push/subscribe` → Hard Delete (구독 해제 이력 보존 불필요)
+
+**핵심 설계 결정**:
+
+- `deleted_at` 없음 — BaseEntity 미상속, Hard Delete 전용
+- `endpoint` UNIQUE 제약 — 동일 브라우저/기기의 중복 구독 방지
+- `idx_push_sub_customer` 인덱스 — 사용자별 구독 조회 최적화
+
+| 컬럼          | 타입         | 제약조건                   | 설명             |
+| ------------- | ------------ | -------------------------- | ---------------- |
+| `id`          | BIGINT       | PK, AUTO_INCREMENT         | 구독 고유 ID     |
+| `customer_id` | BIGINT       | NOT NULL, FK → customer.id | 구독자           |
+| `endpoint`    | TEXT         | NOT NULL, UNIQUE           | Push Service URL |
+| `p256dh`      | VARCHAR(255) | NOT NULL                   | ECDH 공개키      |
+| `auth`        | VARCHAR(255) | NOT NULL                   | 인증 시크릿      |
+| `created_at`  | DATETIME     | DEFAULT CURRENT_TIMESTAMP  | 생성일시         |
+| `updated_at`  | DATETIME     | DEFAULT CURRENT_TIMESTAMP  | 수정일시         |
+
+**인덱스**:
+
+- `idx_push_sub_customer` : (`customer_id`) (사용자별 구독 조회)
+
+```sql
+CREATE TABLE push_subscription (
+    id          BIGINT       NOT NULL AUTO_INCREMENT,
+    customer_id BIGINT       NOT NULL,
+    endpoint    TEXT         NOT NULL,
+    p256dh      VARCHAR(255) NOT NULL,
+    auth        VARCHAR(255) NOT NULL,
+    created_at  DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_push_sub_endpoint (endpoint(512)),
+    CONSTRAINT fk_push_sub_customer FOREIGN KEY (customer_id) REFERENCES customer (id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_push_sub_customer ON push_subscription (customer_id);
+```
+
+---
+
+### 3.12 AUDIT_LOG (감사 로그)
 
 정책 변경, 차단/해제, 권한 변경, 보상/미션 관련 주요 액션에 대한 감사 추적.
 
@@ -1412,38 +1482,40 @@ MISSION_ITEM → COMPLETED
 
 ### 3.16 MISSION_REQUEST (미션 보상 요청)
 
-자녀가 미션 달성 후 부모에게 보상을 요청하는 엔티티.
+자녀가 미션 완료 후 부모에게 보상 승인을 요청하는 엔티티입니다.
 
-**설계 의도**: 미션 완료를 자녀가 자발적으로 신고하고, 부모가 확인 후 승인/거절하는 2단계 검증 구조. 거절 시 재요청 가능, 승인 시 MISSION_ITEM이 COMPLETED로 전이.
+**설계 의도**: 자녀가 보상 요청을 생성하고 부모가 승인/거절하는 2단계 검증 구조입니다. 거절 후에는 동일 미션으로 재요청할 수 있으며, 승인 시 `MISSION_ITEM.status=COMPLETED`로 전이됩니다.
 
 **데이터 생명주기**:
 
-- **생성**: 자녀가 보상 요청(`POST /missions/{missionId}/request`) — `MISSION_ITEM.status=ACTIVE`인 경우만 가능
+- **생성**: 자녀가 보상 요청(`POST /missions/{missionId}/request`) 시 생성, `MISSION_ITEM.status=ACTIVE`인 경우만 허용
 - **조회**: 미션 요청 이력(`GET /missions/history`)에 포함
-- **수정**: 부모가 승인/거절(`PUT /rewards/requests/{id}/respond`) — 승인 시 MISSION_ITEM도 COMPLETED로 변경
+- **수정**: 부모가 승인/거절(`PUT /rewards/requests/{id}/respond`) 처리, 승인 시 `MISSION_ITEM.completed_at` 동시 갱신
 - **삭제**: 삭제하지 않음 (이력 보존)
 
-**핵심 설계 결정**:
+**도메인 설계 결정**:
 
-- 거절(`REJECTED`) 시 동일 미션에 대해 재요청 가능
+- 거절(`REJECTED`) 후 동일 미션에 대해 재요청 가능
 - 승인(`APPROVED`) 시 해당 `MISSION_ITEM.status=COMPLETED` + `completed_at` 동시 업데이트
-- 하나의 MISSION_ITEM에 대해 여러 MISSION_REQUEST 생성 가능 (거절 후 재요청)
-- 거절(REJECTED) 시 reject_reason에 사유를 기록. POLICY_APPEAL의 reject_reason 패턴과 동일
+- 하나의 `MISSION_ITEM`에 대해 여러 `MISSION_REQUEST` 생성 가능 (거절 후 재요청 이력 보존)
+- `active_request_mission_id`는 `PENDING` 상태에서만 `mission_item_id`와 동일하게 저장하고, 처리 완료 후 `NULL`로 비워 미션별 활성 요청 1건만 UNIQUE로 제한
+- 거절(`REJECTED`) 시 `reject_reason`에 사유를 기록
 
-| 컬럼              | 타입     | 제약조건                       | 설명                                                        |
-| ----------------- | -------- | ------------------------------ | ----------------------------------------------------------- |
-| `id`              | BIGINT   | PK, AUTO_INCREMENT             | 요청 고유 ID                                                |
-| `mission_item_id` | BIGINT   | NOT NULL, FK → mission_item.id | 미션 항목                                                   |
-| `requester_id`    | BIGINT   | NOT NULL, FK → customer.id     | 요청자 (자녀)                                               |
-| `status`          | ENUM     | NOT NULL, DEFAULT 'PENDING'    | 요청 상태                                                   |
-| `reject_reason`   | TEXT     | NULL                           | 거절 사유 (REJECTED 시 OWNER가 작성)                        |
-| `resolved_by_id`  | BIGINT   | NULL, FK → customer.id         | 승인/거절자 (부모)                                          |
-| `resolved_at`     | DATETIME | NULL                           | 처리 시각                                                   |
-| `created_at`      | DATETIME | DEFAULT CURRENT_TIMESTAMP      | 생성일시                                                    |
-| `updated_at`      | DATETIME | DEFAULT CURRENT_TIMESTAMP      | 수정일시                                                    |
-| `deleted_at`      | DATETIME | NULL                           | Soft Delete (NULL = 활성, 이력 보존 목적으로 운영상 미사용) |
+| 컬럼                        | 타입     | 제약조건                       | 설명                                                   |
+| --------------------------- | -------- | ------------------------------ | ------------------------------------------------------ |
+| `id`                        | BIGINT   | PK, AUTO_INCREMENT             | 요청 고유 ID                                           |
+| `mission_item_id`           | BIGINT   | NOT NULL, FK → mission_item.id | 미션 항목                                              |
+| `active_request_mission_id` | BIGINT   | NULL, UNIQUE                   | 현재 활성 보상 요청 미션 ID (`PENDING`일 때만 값 존재) |
+| `requester_id`              | BIGINT   | NOT NULL, FK → customer.id     | 요청자(자녀)                                           |
+| `status`                    | ENUM     | NOT NULL, DEFAULT 'PENDING'    | 요청 상태                                              |
+| `reject_reason`             | TEXT     | NULL                           | 거절 사유 (REJECTED 시 OWNER가 작성)                   |
+| `resolved_by_id`            | BIGINT   | NULL, FK → customer.id         | 승인/거절자(부모)                                      |
+| `resolved_at`               | DATETIME | NULL                           | 처리 시각                                              |
+| `created_at`                | DATETIME | DEFAULT CURRENT_TIMESTAMP      | 생성일시                                               |
+| `updated_at`                | DATETIME | DEFAULT CURRENT_TIMESTAMP      | 수정일시                                               |
+| `deleted_at`                | DATETIME | NULL                           | Soft Delete (NULL = 활성, 이력 보존 목적)              |
 
-**ENUM 값 (`status`)**:
+**ENUM 값(`status`)**:
 
 | status     | 설명    |
 | ---------- | ------- |
@@ -1455,6 +1527,7 @@ MISSION_ITEM → COMPLETED
 
 - `idx_mreq_mission` : (`mission_item_id`, `created_at` DESC) (미션별 요청 이력)
 - `idx_mreq_requester` : (`requester_id`, `created_at` DESC) (요청자별 이력)
+- `uk_mission_request_active_request_mission` : UNIQUE (`active_request_mission_id`) (미션별 활성 보상 요청 1건 제한, NULL은 UNIQUE 미적용)
 
 ### 3.17 FAMILY_RECAP_MONTHLY (월간 가족 리캡)
 
@@ -1522,79 +1595,76 @@ MISSION_ITEM → COMPLETED
 
 ---
 
-### 3.18 POLICY_APPEAL (정책 이의제기 / 긴급 쿼터 요청)
+### 3.18 POLICY_APPEAL (정책 이의신청 / 긴급 쿼터 요청)
 
-자녀가 부모에게 적용된 정책에 이의를 제기하거나, 긴급 쿼터를 요청하는 엔티티.
+자녀가 부모에게 적용된 정책에 대해 이의를 제기하거나 긴급 쿼터를 요청하는 엔티티입니다.
 
-**설계 의도**: 두 가지 유형을 지원. (1) **NORMAL**: 자녀가 본인에게 적용된 정책(POLICY_ASSIGNMENT)에 대해 부모에게 이의를 제기하고, 부모가 이를 검토 후 승인/거절하는 2단계 소통 구조. (2) **EMERGENCY**: 자녀가 월 1회, 100~300MB를 부모 승인 없이 사유만 남기고 데이터를 받을 수 있는 긴급 쿼터 요청 (자동 승인 후 부모에게 사후 알림).
+**설계 의도**: 두 가지 요청 유형을 지원합니다. (1) `NORMAL`: 자녀가 본인에게 적용된 정책(`POLICY_ASSIGNMENT`)에 대해 부모에게 이의를 제기하고, 부모가 승인/거절하는 구조. (2) `EMERGENCY`: 자녀가 월 1회 100~300MB 긴급 쿼터를 요청하고 시스템이 즉시 승인하는 구조.
 
 **데이터 생명주기**:
 
-- **생성 (NORMAL)**: 자녀가 이의제기(`POST /appeals`) — `status=PENDING`
-- **생성 (EMERGENCY)**: 자녀가 긴급 요청(`POST /appeals/emergency`) — `status=APPROVED` (자동)
-- **조회**: 이의제기 목록(`GET /appeals`), 상세(`GET /appeals/{id}`)
-- **수정**: 부모가 승인/거절 처리 — `status` 전이 + `resolved_by_id`, `resolved_at` 기록 (EMERGENCY는 즉시 APPROVED)
-- **삭제**: Soft Delete 없음 — 이력 보존
+- **생성 (NORMAL)**: 자녀가 이의신청(`POST /appeals`) 시 `status=PENDING`
+- **생성 (EMERGENCY)**: 자녀가 긴급 요청(`POST /appeals/emergency`) 시 `status=APPROVED`
+- **조회**: 이의신청 목록(`GET /appeals`) 및 상세(`GET /appeals/{id}`)
+- **수정**: 부모가 승인/거절 처리 시 `status`, `resolved_by_id`, `resolved_at` 갱신
+- **삭제**: Soft Delete 없음, 이력 보존
 
-**핵심 설계 결정**:
+**도메인 설계 결정**:
 
-- `type`으로 NORMAL(일반 이의제기)과 EMERGENCY(긴급 쿼터)를 구분
-- `policy_assignment_id`: NORMAL 시 NOT NULL (어떤 정책에 대한 이의인지), EMERGENCY 시 NULL (특정 정책 대상 아님)
-- `resolved_by_id`: NORMAL 시 처리자(부모), EMERGENCY 시 NULL (시스템 자동 승인)
-- `desired_rules`: EMERGENCY 시 `{"additionalBytes": 209715200}` 형태, NORMAL 시 변경 원하는 정책 rule 값을 저장
-- EMERGENCY는 월 1회 제한 (`uk_appeal_emergency_month` UNIQUE 제약으로 DB 레벨 동시성 안전 중복 방지, `emergency_grant_month`에 해당 월 1일 저장, NORMAL은 NULL이므로 UNIQUE 제약 무관)
-- EMERGENCY 허용 범위: 100~300MB (104,857,600 ~ 314,572,800 bytes)
-- 무제한 쿼터 사용자(monthly_limit_bytes=NULL)는 EMERGENCY 요청 불가
-- 승인(APPROVED) 시 `desired_rules` 값이 있으면 PolicyAssignment에 자동 반영 (A 방식), `desired_rules = NULL`이면 부모가 별도로 수정 (B 방식)
-- NORMAL 승인 시 `policy_active`가 존재하면 `policy_assignment.is_active`까지 함께 반영
-- `desired_rules` 스키마는 policy.type별 rules 스키마와 동일
-- NORMAL 타입의 PENDING 상태 이의제기만 요청자 본인이 취소 가능 (EMERGENCY 취소 불가)
+- `type`으로 `NORMAL`과 `EMERGENCY`를 구분
+- `policy_assignment_id`: `NORMAL`은 대상 정책 필수, `EMERGENCY`는 `NULL`
+- `policy_active`: `NORMAL` 생성 시점의 정책 활성 여부 스냅샷, `EMERGENCY`는 `NULL`
+- `resolved_by_id`: `NORMAL` 처리자는 부모, `EMERGENCY`는 `NULL` (시스템 자동 승인)
+- `desired_rules`: `EMERGENCY` 시 `{"additionalBytes": 209715200}` 형태
+- `uk_policy_appeal_emergency_month` UNIQUE (`requester_id`, `emergency_grant_month`)로 월 1회 긴급 요청 제한
+- `desired_rules = NULL`이면 부모가 직접 정책을 조정하고, 값이 있으면 승인 시 `POLICY_ASSIGNMENT`에 반영 가능
+- `NORMAL`의 `PENDING` 상태 이의신청만 요청자 본인이 취소 가능
 
-| 컬럼                    | 타입     | 제약조건                        | 설명                                                                       |
-| ----------------------- | -------- | ------------------------------- | -------------------------------------------------------------------------- |
-| `id`                    | BIGINT   | PK, AUTO_INCREMENT              | 이의제기 고유 ID                                                           |
-| `type`                  | ENUM     | NOT NULL, DEFAULT 'NORMAL'      | 요청 유형 (NORMAL: 이의제기, EMERGENCY: 긴급 쿼터)                         |
-| `policy_assignment_id`  | BIGINT   | NULL, FK → policy_assignment.id | 대상 정책 적용 (EMERGENCY 시 NULL)                                         |
-| `requester_id`          | BIGINT   | NOT NULL, FK → customer.id      | 요청자 (자녀)                                                              |
-| `request_reason`        | TEXT     | NOT NULL                        | 이의제기/긴급요청 사유                                                     |
-| `reject_reason`         | TEXT     | NULL                            | 거절 사유 (REJECTED 시 부모가 작성)                                        |
-| `desired_rules`         | JSON     | NULL                            | 원하는 정책 값 (EMERGENCY: `{"additionalBytes": N}`)                       |
-| `policy_active`         | BOOLEAN  | NULL                            | NORMAL 이의제기에서 승인 시 반영할 정책 활성/비활성 의도 값                |
-| `status`                | ENUM     | NOT NULL, DEFAULT 'PENDING'     | 처리 상태                                                                  |
-| `emergency_grant_month` | DATE     | NULL                            | EMERGENCY 시 해당 월 1일 (NORMAL은 NULL). UNIQUE 제약으로 월 1회 중복 방지 |
-| `resolved_by_id`        | BIGINT   | NULL, FK → customer.id          | 처리자 (부모, EMERGENCY는 NULL=시스템)                                     |
-| `resolved_at`           | DATETIME | NULL                            | 처리 시각                                                                  |
-| `cancelled_at`          | DATETIME | NULL                            | 취소 시각 (CANCELLED 시 기록)                                              |
-| `created_at`            | DATETIME | DEFAULT CURRENT_TIMESTAMP       | 생성일시                                                                   |
-| `updated_at`            | DATETIME | DEFAULT CURRENT_TIMESTAMP       | 수정일시                                                                   |
-| `deleted_at`            | DATETIME | NULL                            | Soft Delete (NULL = 활성, 이력 보존 목적으로 운영상 미사용)                |
+| 컬럼                    | 타입     | 제약조건                        | 설명                                                                |
+| ----------------------- | -------- | ------------------------------- | ------------------------------------------------------------------- |
+| `id`                    | BIGINT   | PK, AUTO_INCREMENT              | 이의신청 고유 ID                                                    |
+| `type`                  | ENUM     | NOT NULL, DEFAULT 'NORMAL'      | 요청 유형 (`NORMAL`, `EMERGENCY`)                                   |
+| `policy_assignment_id`  | BIGINT   | NULL, FK → policy_assignment.id | 대상 정책 적용 (`EMERGENCY`는 NULL)                                 |
+| `policy_active`         | BOOLEAN  | NULL                            | 정책 활성 여부 스냅샷 (`NORMAL` 생성 시점 기준, `EMERGENCY`는 NULL) |
+| `requester_id`          | BIGINT   | NOT NULL, FK → customer.id      | 요청자(자녀)                                                        |
+| `request_reason`        | TEXT     | NOT NULL                        | 이의신청/긴급요청 사유                                              |
+| `reject_reason`         | TEXT     | NULL                            | 거절 사유 (REJECTED 시 부모가 작성)                                 |
+| `desired_rules`         | JSON     | NULL                            | 원하는 정책 값 (`EMERGENCY`: `{"additionalBytes": N}`)              |
+| `status`                | ENUM     | NOT NULL, DEFAULT 'PENDING'     | 처리 상태                                                           |
+| `emergency_grant_month` | DATE     | NULL                            | `EMERGENCY` 해당 월 1일 (`NORMAL`은 NULL)                           |
+| `resolved_by_id`        | BIGINT   | NULL, FK → customer.id          | 처리자(부모), `EMERGENCY`는 NULL                                    |
+| `resolved_at`           | DATETIME | NULL                            | 처리 시각                                                           |
+| `cancelled_at`          | DATETIME | NULL                            | 취소 시각                                                           |
+| `created_at`            | DATETIME | DEFAULT CURRENT_TIMESTAMP       | 생성일시                                                            |
+| `updated_at`            | DATETIME | DEFAULT CURRENT_TIMESTAMP       | 수정일시                                                            |
+| `deleted_at`            | DATETIME | NULL                            | Soft Delete (NULL = 활성, 이력 보존 목적)                           |
 
-**ENUM 값 (`type`)**:
+**ENUM 값(`type`)**:
 
-| type        | 설명                                          |
-| ----------- | --------------------------------------------- |
-| `NORMAL`    | 정책 이의제기 (부모 승인 필요)                |
-| `EMERGENCY` | 긴급 쿼터 요청 (자동 승인, 월 1회, 100~300MB) |
+| type        | 설명           |
+| ----------- | -------------- |
+| `NORMAL`    | 정책 이의신청  |
+| `EMERGENCY` | 긴급 쿼터 요청 |
 
-**ENUM 값 (`status`)**:
+**ENUM 값(`status`)**:
 
-| status      | 설명                                       |
-| ----------- | ------------------------------------------ |
-| `PENDING`   | 대기 중                                    |
-| `APPROVED`  | 승인됨                                     |
-| `REJECTED`  | 거절됨                                     |
-| `CANCELLED` | 취소됨 (요청자 본인이 취소, NORMAL만 가능) |
+| status      | 설명    |
+| ----------- | ------- |
+| `PENDING`   | 대기 중 |
+| `APPROVED`  | 승인됨  |
+| `REJECTED`  | 거절됨  |
+| `CANCELLED` | 취소됨  |
 
 **인덱스**:
 
-- `idx_appeal_assignment` : `policy_assignment_id` (정책 적용별 이의제기 조회)
-- `idx_appeal_requester` : `requester_id` (요청자별 이의제기 조회)
+- `idx_appeal_assignment` : `policy_assignment_id` (정책 적용별 이의신청 조회)
+- `idx_appeal_requester` : `requester_id` (요청자별 이의신청 조회)
 - `idx_appeal_emergency_monthly` : (`requester_id`, `type`, `status`, `created_at`) (월별 긴급 요청 조회 최적화)
-- `uk_appeal_emergency_month` : UNIQUE (`requester_id`, `emergency_grant_month`) (월 1회 긴급 요청 동시성 안전 중복 방지, NULL은 UNIQUE 제약 미적용)
+- `uk_policy_appeal_emergency_month` : UNIQUE (`requester_id`, `emergency_grant_month`) (월 1회 긴급 요청 중복 방지, NULL은 UNIQUE 미적용)
 
 ---
 
-### 3.19 POLICY_APPEAL_COMMENT (이의제기 댓글)
+### 3.19 POLICY_APPEAL_COMMENT (이의신청 댓글)
 
 이의제기 건에 대해 부모-자녀가 주고받는 댓글 엔티티.
 
@@ -1756,6 +1826,60 @@ Admin 화면에서 **지급 내역** 조회에 사용된다.
 
 ---
 
+### 3.23 USAGE_EVENT_OUTBOX (알림 발행 Outbox)
+
+usage 처리 중 notification 발행 의도를 영속 저장하는 Outbox 테이블. `processor-usage`가 `usage-events`를 소비한 뒤 Redis/Lua/DB 정산까지 수행하고, 실제 `notification-events` 발행은 리캡/리포트 배치와 같은 배치 계열 처리 주체가 사용하는 배치 서버가 이 테이블을 조회해 이어서 처리한다.
+
+**설계 의도**: usage 정산과 notification 발행을 분리하면서도, 처리 중간 장애가 발생해도 "이 이벤트가 알림 발행 대상이었는지"를 잃지 않기 위한 복구 기준점 테이블.
+
+**데이터 생명주기**:
+
+- **생성**: `usage-events` 소비 직후 `event_id` 기준으로 `PREPARED` row 생성
+- **수정 1**: Redis/Lua/DB 정산 이후 notification 대상이면 `PUBLISH_PENDING`, 비대상이면 `SKIPPED`로 전이
+- **수정 2**: 배치 서버가 `PUBLISH_PENDING` 또는 재시도 가능한 `FAILED`를 조회하여 실제 `notification-events` 발행 수행
+- **수정 3**: 발행 성공 시 `SENT`, 실패 시 `FAILED + retry_count + next_retry_at + last_error` 갱신
+- **삭제**: 즉시 삭제하지 않음. 운영 정책에 따라 N일 보관 후 purge 대상
+
+**핵심 설계 결정**:
+
+- `event_id` UNIQUE로 동일 usage 이벤트에 대한 Outbox row 중복 생성 방지
+- `status`는 `PREPARED`, `PUBLISH_PENDING`, `SKIPPED`, `FAILED`, `SENT` ENUM으로 고정하고 기본값은 `PREPARED`
+- `payload_json`은 TEXT로 저장하여 notification 발행 payload를 그대로 보관
+- `status + next_retry_at` 복합 인덱스로 배치 서버 재시도 대상 조회 최적화
+- 현재는 범용 이벤트 outbox가 아니라 notification 전용 outbox로 사용
+
+| 컬럼            | 타입          | 제약조건                                                        | 설명                                  |
+| --------------- | ------------- | --------------------------------------------------------------- | ------------------------------------- |
+| `id`            | BIGINT        | PK, AUTO_INCREMENT                                              | Outbox row 고유 ID                    |
+| `event_id`      | VARCHAR(191)  | NOT NULL, UNIQUE                                                | usage 이벤트 식별자                   |
+| `family_id`     | BIGINT        | NOT NULL, FK → family.id                                        | 대상 가족 ID                          |
+| `customer_id`   | BIGINT        | NOT NULL, FK → customer.id                                      | 대상 사용자 ID                        |
+| `status`        | ENUM          | NOT NULL, DEFAULT 'PREPARED'                                    | Outbox 처리 상태                      |
+| `payload_json`  | TEXT          | NULL                                                            | notification 발행 payload JSON 문자열 |
+| `retry_count`   | INT           | NOT NULL, DEFAULT 0                                             | 발행 재시도 횟수                      |
+| `next_retry_at` | DATETIME      | NULL                                                            | 다음 재시도 시각                      |
+| `last_error`    | VARCHAR(1000) | NULL                                                            | 최근 실패 사유                        |
+| `created_at`    | DATETIME      | NOT NULL, DEFAULT CURRENT_TIMESTAMP                             | 생성일시                              |
+| `updated_at`    | DATETIME      | NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 수정일시                              |
+| `deleted_at`    | DATETIME      | NULL                                                            | Soft Delete (NULL = 활성)             |
+
+**상태값 (`status`)**:
+
+| status            | 설명                                                                 |
+| ----------------- | -------------------------------------------------------------------- |
+| `PREPARED`        | usage 이벤트는 수신했지만 notification 대상 여부는 아직 최종 확정 전 |
+| `PUBLISH_PENDING` | notification 발행 대상이 확정되었고 배치 서버가 발행해야 하는 상태   |
+| `SKIPPED`         | notification 비대상으로 확정되어 발행하지 않는 상태                  |
+| `FAILED`          | 배치 서버가 발행을 시도했지만 실패하여 재시도 대기 중인 상태         |
+| `SENT`            | `notification-events` 발행까지 완료된 상태                           |
+
+**인덱스**:
+
+- `uk_usage_event_outbox_event_id` : (`event_id`) UNIQUE (동일 eventId 중복 row 방지)
+- `idx_usage_outbox_status_retry` : (`status`, `next_retry_at`) (배치 서버 발행/재시도 대상 조회)
+
+---
+
 ## 4. 관계 정의
 
 ### 4.1 관계 매트릭스
@@ -1773,6 +1897,7 @@ Admin 화면에서 **지급 내역** 조회에 사용된다.
 | CUSTOMER          | POLICY_ASSIGNMENT     | 0:N        | `target_customer_id`   | 특정 구성원 대상 정책 (NULL=전체)             |
 | CUSTOMER          | NOTIFICATION_LOG      | 1:N        | `customer_id`          | 사용자에게 발송된 알림                        |
 | FAMILY            | NOTIFICATION_LOG      | 1:N        | `family_id`            | 가족 범위 알림                                |
+| CUSTOMER          | PUSH_SUBSCRIPTION     | 1:0..1     | `customer_id`          | 사용자의 PWA Push 구독 정보                   |
 | FAMILY            | INVITE                | 1:N        | `family_id`            | 가족의 초대 목록                              |
 | CUSTOMER          | AUDIT_LOG             | 0:N        | `actor_id`             | 사용자의 액션 이력                            |
 | FAMILY            | MISSION_ITEM          | 1:N        | `family_id`            | 가족의 미션 목록                              |
@@ -1842,21 +1967,23 @@ POLICY_APPEAL.resolved_by_id → CUSTOMER.id  (처리자 = 부모, NULL 허용)
 
 | 테이블           | PK            | 전략           |
 | ---------------- | ------------- | -------------- |
-| 전체 22개 테이블 | `id` (BIGINT) | AUTO_INCREMENT |
+| 전체 24개 테이블 | `id` (BIGINT) | AUTO_INCREMENT |
 
 ### 5.2 UNIQUE KEY
 
-| 테이블                 | UK 컬럼                                                     | 목적                                                          |
-| ---------------------- | ----------------------------------------------------------- | ------------------------------------------------------------- |
-| `customer`             | (`phone_number`, `deleted_at`)                              | 로그인 ID 유일성 (삭제 후 재사용 허용)                        |
-| `admin`                | (`email`, `deleted_at`)                                     | 로그인 ID 유일성 (삭제 후 재사용 허용)                        |
-| `family_member`        | (`family_id`, `customer_id`, `deleted_at`)                  | 중복 가입 방지 (삭제 후 재가입 허용)                          |
-| `family_quota`         | (`family_id`, `current_month`, `deleted_at`)                | 가족 월별 유일성                                              |
-| `customer_quota`       | (`customer_id`, `family_id`, `current_month`, `deleted_at`) | 월별 유일성                                                   |
-| `usage_record`         | `event_id`                                                  | Idempotency (중복 Insert 방지, deleted_at 미포함)             |
-| `family_recap_monthly` | (`family_id`, `report_month`)                               | 가족당 월 1건 보장                                            |
-| `family_recap_weekly`  | (`family_id`, `week_start_date`)                            | 가족당 주 1건 보장                                            |
-| `policy_appeal`        | (`requester_id`, `emergency_grant_month`)                   | 월 1회 긴급 요청 동시성 안전 중복 방지 (NULL은 UNIQUE 미적용) |
+| 테이블                 | UK 컬럼                                                                        | 목적                                                          |
+| ---------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| `customer`             | (`phone_number`, `deleted_at`)                                                 | 로그인 ID 유일성 (삭제 후 재사용 허용)                        |
+| `admin`                | (`email`, `deleted_at`)                                                        | 로그인 ID 유일성 (삭제 후 재사용 허용)                        |
+| `family_member`        | (`family_id`, `customer_id`, `deleted_at`)                                     | 중복 가입 방지 (삭제 후 재가입 허용)                          |
+| `family_quota`         | (`family_id`, `current_month`, `deleted_at`)                                   | 가족 월별 유일성                                              |
+| `customer_quota`       | (`customer_id`, `family_id`, `current_month`, `deleted_at`)                    | 월별 유일성                                                   |
+| `usage_record`         | `event_id`                                                                     | Idempotency (중복 Insert 방지, deleted_at 미포함)             |
+| `usage_event_outbox`   | `event_id`                                                                     | notification 발행 의도 멱등성 보장                            |
+| `family_recap_monthly` | (`family_id`, `report_month`)                                                  | 가족당 월 1건 보장                                            |
+| `family_recap_weekly`  | (`family_id`, `week_start_date`)                                               | 가족당 주 1건 보장                                            |
+| `policy_appeal`        | `uk_policy_appeal_emergency_month` = (`requester_id`, `emergency_grant_month`) | 월 1회 긴급 요청 동시성 안전 중복 방지 (NULL은 UNIQUE 미적용) |
+| `mission_request`      | `uk_mission_request_active_request_mission` = (`active_request_mission_id`)    | 미션별 현재 활성 보상 요청 1건 제한 (NULL은 UNIQUE 미적용)    |
 
 > **Soft Delete와 UNIQUE 제약**: MySQL에서 `deleted_at`이 NULL인 경우 UNIQUE 제약은 중복을 허용함. 따라서 활성 레코드(deleted_at=NULL)는 1건만 가능하고, 삭제된 레코드(deleted_at=timestamp)는 각각 다른 시각으로 구분됨.
 
@@ -1877,6 +2004,9 @@ POLICY_APPEAL.resolved_by_id → CUSTOMER.id  (처리자 = 부모, NULL 허용)
 | `policy_assignment`     | `applied_by_id`        | `customer.id`          | RESTRICT  |
 | `notification_log`      | `customer_id`          | `customer.id`          | CASCADE   |
 | `notification_log`      | `family_id`            | `family.id`            | CASCADE   |
+| `usage_event_outbox`    | `customer_id`          | `customer.id`          | RESTRICT  |
+| `usage_event_outbox`    | `family_id`            | `family.id`            | RESTRICT  |
+| `push_subscription`     | `customer_id`          | `customer.id`          | CASCADE   |
 | `audit_log`             | `actor_id`             | `customer.id`          | SET NULL  |
 | `invite`                | `family_id`            | `family.id`            | CASCADE   |
 | `mission_item`          | `family_id`            | `family.id`            | CASCADE   |
@@ -1925,50 +2055,54 @@ POLICY_APPEAL.resolved_by_id → CUSTOMER.id  (처리자 = 부모, NULL 허용)
 
 ### 6.1 인덱스 전체 목록
 
-| 테이블                  | 인덱스명                          | 컬럼                                                | 용도                                   |
-| ----------------------- | --------------------------------- | --------------------------------------------------- | -------------------------------------- |
-| `customer`              | `idx_customer_phone`              | `phone_number`                                      | 로그인 조회                            |
-| `customer`              | `idx_customer_email`              | `email`                                             | 이메일 조회                            |
-| `admin`                 | `idx_admin_email`                 | `email`                                             | 로그인 조회                            |
-| `family`                | `idx_family_created_by`           | `created_by_id`                                     | 생성자별 그룹 조회                     |
-| `family_quota`          | `idx_fquota_family_month`         | (`family_id`, `current_month`)                      | 가족 월별 총량 조회                    |
-| `family_member`         | `idx_member_family`               | `family_id`                                         | 가족별 구성원 목록                     |
-| `family_member`         | `idx_member_customer`             | `customer_id`                                       | 사용자의 가족 목록                     |
-| `customer_quota`        | `idx_cquota_customer_month`       | (`customer_id`, `current_month`)                    | 월별 한도 조회                         |
-| `customer_quota`        | `idx_cquota_family`               | `family_id`                                         | 가족별 구성원 상태                     |
-| `usage_record`          | `idx_usage_family_time`           | (`family_id`, `event_time`)                         | 가족별 사용량 집계                     |
-| `usage_record`          | `idx_usage_customer_time`         | (`customer_id`, `event_time`)                       | 개인 사용량 조회                       |
-| `usage_record`          | `idx_usage_event_id`              | `event_id`                                          | Idempotency 검증                       |
-| `policy_assignment`     | `idx_pa_family`                   | `family_id`                                         | 가족별 정책 조회                       |
-| `policy_assignment`     | `idx_pa_target`                   | `target_customer_id`                                | 구성원별 정책 조회                     |
-| `notification_log`      | `idx_notif_customer`              | (`customer_id`, `sent_at` DESC)                     | 알림 목록                              |
-| `notification_log`      | `idx_notif_customer_type`         | (`customer_id`, `type`, `sent_at` DESC)             | 타입별 알림 필터                       |
-| `notification_log`      | `idx_notif_family`                | (`family_id`, `sent_at` DESC)                       | 가족 알림 목록                         |
-| `audit_log`             | `idx_audit_actor`                 | (`actor_id`, `created_at` DESC)                     | 수행자별 이력                          |
-| `audit_log`             | `idx_audit_entity`                | (`entity_type`, `entity_id`, `created_at` DESC)     | 엔티티별 이력                          |
-| `audit_log`             | `idx_audit_action`                | (`action`, `created_at` DESC)                       | 액션별 이력                            |
-| `invite`                | `idx_invite_phone`                | (`phone_number`, `status`)                          | 전화번호별 초대 조회                   |
-| `invite`                | `idx_invite_family`               | (`family_id`, `status`)                             | 가족별 초대 목록                       |
-| `reward`                | `idx_reward_template`             | (`reward_template_id`)                              | 템플릿별 보상 조회                     |
-| `mission_item`          | `idx_mission_family`              | (`family_id`, `status`, `created_at` DESC)          | 가족별 미션 목록                       |
-| `mission_item`          | `idx_mission_creator`             | (`created_by_id`)                                   | 생성자별 미션                          |
-| `mission_item`          | `idx_mission_target`              | (`target_customer_id`, `status`, `created_at` DESC) | 대상 자녀별 미션 목록                  |
-| `mission_request`       | `idx_mreq_mission`                | (`mission_item_id`, `created_at` DESC)              | 미션별 요청 이력                       |
-| `mission_request`       | `idx_mreq_requester`              | (`requester_id`, `created_at` DESC)                 | 요청자별 이력                          |
-| `family_recap_monthly`  | `idx_recap_monthly_family_month`  | (`family_id`, `report_month` DESC)                  | 가족별 월간 리캡                       |
-| `family_recap_weekly`   | `idx_recap_weekly_family_week`    | (`family_id`, `week_start_date` DESC)               | 가족별 주간 리캡 조회                  |
-| `policy_appeal`         | `idx_appeal_assignment`           | `policy_assignment_id`                              | 정책 적용별 이의제기 조회              |
-| `policy_appeal`         | `idx_appeal_requester`            | `requester_id`                                      | 요청자별 이의제기 조회                 |
-| `policy_appeal`         | `idx_appeal_emergency_monthly`    | (`requester_id`, `type`, `status`, `created_at`)    | 월별 긴급 요청 조회 최적화             |
-| `policy_appeal`         | `uk_appeal_emergency_month`       | UNIQUE (`requester_id`, `emergency_grant_month`)    | 월 1회 긴급 요청 동시성 안전 중복 방지 |
-| `policy_appeal_comment` | `idx_appeal_comment_appeal`       | (`appeal_id`, `created_at`)                         | 이의제기별 댓글 목록                   |
-| `policy_appeal_comment` | `idx_appeal_comment_author`       | `author_id`                                         | 작성자별 댓글 조회                     |
-| `mission_log`           | `idx_mission_log_item`            | (`mission_item_id`, `created_at`)                   | 미션별 타임라인 조회                   |
-| `mission_log`           | `idx_mission_log_actor`           | `actor_id`                                          | 수행자별 로그 조회                     |
-| `reward_grant`          | `idx_reward_grant_customer`       | (`customer_id`)                                     | 사용자별 지급 이력 조회                |
-| `reward_grant`          | `idx_reward_grant_status`         | (`status`)                                          | 상태별 지급 이력 조회                  |
-| `reward_grant`          | `idx_reward_grant_expired`        | (`expired_at`)                                      | 만료 대상 조회                         |
-| `reward_grant`          | `idx_reward_grant_status_created` | (`status`, `created_at` DESC)                       | 미사용+최신순 복합 쿼리 최적화         |
+| 테이블                  | 인덱스명                                    | 컬럼                                                | 용도                                   |
+| ----------------------- | ------------------------------------------- | --------------------------------------------------- | -------------------------------------- |
+| `customer`              | `idx_customer_phone`                        | `phone_number`                                      | 로그인 조회                            |
+| `customer`              | `idx_customer_email`                        | `email`                                             | 이메일 조회                            |
+| `admin`                 | `idx_admin_email`                           | `email`                                             | 로그인 조회                            |
+| `family`                | `idx_family_created_by`                     | `created_by_id`                                     | 생성자별 그룹 조회                     |
+| `family_quota`          | `idx_fquota_family_month`                   | (`family_id`, `current_month`)                      | 가족 월별 총량 조회                    |
+| `family_member`         | `idx_member_family`                         | `family_id`                                         | 가족별 구성원 목록                     |
+| `family_member`         | `idx_member_customer`                       | `customer_id`                                       | 사용자의 가족 목록                     |
+| `customer_quota`        | `idx_cquota_customer_month`                 | (`customer_id`, `current_month`)                    | 월별 한도 조회                         |
+| `customer_quota`        | `idx_cquota_family`                         | `family_id`                                         | 가족별 구성원 상태                     |
+| `usage_record`          | `idx_usage_family_time`                     | (`family_id`, `event_time`)                         | 가족별 사용량 집계                     |
+| `usage_record`          | `idx_usage_customer_time`                   | (`customer_id`, `event_time`)                       | 개인 사용량 조회                       |
+| `usage_record`          | `idx_usage_event_id`                        | `event_id`                                          | Idempotency 검증                       |
+| `policy_assignment`     | `idx_pa_family`                             | `family_id`                                         | 가족별 정책 조회                       |
+| `policy_assignment`     | `idx_pa_target`                             | `target_customer_id`                                | 구성원별 정책 조회                     |
+| `notification_log`      | `idx_notif_customer`                        | (`customer_id`, `sent_at` DESC)                     | 알림 목록                              |
+| `notification_log`      | `idx_notif_customer_type`                   | (`customer_id`, `type`, `sent_at` DESC)             | 타입별 알림 필터                       |
+| `notification_log`      | `idx_notif_family`                          | (`family_id`, `sent_at` DESC)                       | 가족 알림 목록                         |
+| `usage_event_outbox`    | `uk_usage_event_outbox_event_id`            | UNIQUE (`event_id`)                                 | 동일 usage 이벤트 중복 적재 방지       |
+| `usage_event_outbox`    | `idx_usage_outbox_status_retry`             | (`status`, `next_retry_at`)                         | 배치 서버 발행/재시도 대상 조회        |
+| `push_subscription`     | `idx_push_sub_customer`                     | `customer_id`                                       | 사용자별 구독 조회                     |
+| `audit_log`             | `idx_audit_actor`                           | (`actor_id`, `created_at` DESC)                     | 수행자별 이력                          |
+| `audit_log`             | `idx_audit_entity`                          | (`entity_type`, `entity_id`, `created_at` DESC)     | 엔티티별 이력                          |
+| `audit_log`             | `idx_audit_action`                          | (`action`, `created_at` DESC)                       | 액션별 이력                            |
+| `invite`                | `idx_invite_phone`                          | (`phone_number`, `status`)                          | 전화번호별 초대 조회                   |
+| `invite`                | `idx_invite_family`                         | (`family_id`, `status`)                             | 가족별 초대 목록                       |
+| `reward`                | `idx_reward_template`                       | (`reward_template_id`)                              | 템플릿별 보상 조회                     |
+| `mission_item`          | `idx_mission_family`                        | (`family_id`, `status`, `created_at` DESC)          | 가족별 미션 목록                       |
+| `mission_item`          | `idx_mission_creator`                       | (`created_by_id`)                                   | 생성자별 미션                          |
+| `mission_item`          | `idx_mission_target`                        | (`target_customer_id`, `status`, `created_at` DESC) | 대상 자녀별 미션 목록                  |
+| `mission_request`       | `idx_mreq_mission`                          | (`mission_item_id`, `created_at` DESC)              | 미션별 요청 이력                       |
+| `mission_request`       | `idx_mreq_requester`                        | (`requester_id`, `created_at` DESC)                 | 요청자별 이력                          |
+| `mission_request`       | `uk_mission_request_active_request_mission` | UNIQUE (`active_request_mission_id`)                | 미션별 활성 보상 요청 1건 제한         |
+| `family_recap_monthly`  | `idx_recap_monthly_family_month`            | (`family_id`, `report_month` DESC)                  | 가족별 월간 리캡                       |
+| `family_recap_weekly`   | `idx_recap_weekly_family_week`              | (`family_id`, `week_start_date` DESC)               | 가족별 주간 리캡 조회                  |
+| `policy_appeal`         | `idx_appeal_assignment`                     | `policy_assignment_id`                              | 정책 적용별 이의제기 조회              |
+| `policy_appeal`         | `idx_appeal_requester`                      | `requester_id`                                      | 요청자별 이의제기 조회                 |
+| `policy_appeal`         | `idx_appeal_emergency_monthly`              | (`requester_id`, `type`, `status`, `created_at`)    | 월별 긴급 요청 조회 최적화             |
+| `policy_appeal`         | `uk_policy_appeal_emergency_month`          | UNIQUE (`requester_id`, `emergency_grant_month`)    | 월 1회 긴급 요청 동시성 안전 중복 방지 |
+| `policy_appeal_comment` | `idx_appeal_comment_appeal`                 | (`appeal_id`, `created_at`)                         | 이의제기별 댓글 목록                   |
+| `policy_appeal_comment` | `idx_appeal_comment_author`                 | `author_id`                                         | 작성자별 댓글 조회                     |
+| `mission_log`           | `idx_mission_log_item`                      | (`mission_item_id`, `created_at`)                   | 미션별 타임라인 조회                   |
+| `mission_log`           | `idx_mission_log_actor`                     | `actor_id`                                          | 수행자별 로그 조회                     |
+| `reward_grant`          | `idx_reward_grant_customer`                 | (`customer_id`)                                     | 사용자별 지급 이력 조회                |
+| `reward_grant`          | `idx_reward_grant_status`                   | (`status`)                                          | 상태별 지급 이력 조회                  |
+| `reward_grant`          | `idx_reward_grant_expired`                  | (`expired_at`)                                      | 만료 대상 조회                         |
+| `reward_grant`          | `idx_reward_grant_status_created`           | (`status`, `created_at` DESC)                       | 미사용+최신순 복합 쿼리 최적화         |
 
 ### 6.2 파티셔닝
 
@@ -2003,11 +2137,13 @@ flowchart LR
         T1[usage_record]
         T2[customer_quota]
         T3[family_quota]
+        T4[usage_event_outbox]
     end
 
-    R1 -.->|Write-Behind<br/>usage-persist 자기소비| T3
-    R2 -.->|Write-Behind<br/>usage-persist 자기소비| T2
-    R3 -.->|Write-Behind<br/>usage-persist 자기소비| T2
+    R1 -.->|processor-usage 직접 정산| T3
+    R2 -.->|processor-usage 직접 정산| T2
+    R3 -.->|processor-usage 직접 정산| T2
+    R2 -.->|notification 의도 적재| T4
 
     style R1 fill:#ff6b6b,color:#fff
     style R2 fill:#ff6b6b,color:#fff
@@ -2015,31 +2151,32 @@ flowchart LR
     style T1 fill:#4ecdc4,color:#fff
     style T2 fill:#4ecdc4,color:#fff
     style T3 fill:#4ecdc4,color:#fff
+    style T4 fill:#4ecdc4,color:#fff
 ```
+
+> `usage_event_outbox`는 `processor-usage`가 notification 발행 의도를 넘겨주는 인수인계 지점이며, 배치 서버가 `PUBLISH_PENDING`/`FAILED` 대상을 조회해 `notification-events` 발행을 이어서 수행한다.
 
 ### 7.2 Read Path (조회 경로)
 
-| API 엔드포인트                  | 데이터 소스                       | 관련 테이블                                          |
-| ------------------------------- | --------------------------------- | ---------------------------------------------------- |
-| `GET /families/dashboard/usage` | Redis (실시간) → MySQL (Fallback) | `family_quota`, `customer_quota`                     |
-| `GET /customers/usage`          | MySQL                             | `usage_record`, `customer_quota`                     |
-| `GET /customers/policies`       | MySQL                             | `policy`, `policy_assignment`                        |
-| `GET /notifications`            | MySQL                             | `notification_log`                                   |
-| `GET /notifications/alert`      | MySQL                             | `notification_log` (type=THRESHOLD_ALERT 필터)       |
-| `GET /notifications/block`      | MySQL                             | `notification_log` (type=BLOCKED 필터)               |
-| `GET /families/policies`        | MySQL                             | `policy`, `policy_assignment`                        |
-| `PATCH /families/policies`      | MySQL                             | `policy_assignment`                                  |
-| `GET /policies`                 | MySQL                             | `policy`                                             |
-| `GET /families/reports/usage`   | MySQL                             | `usage_record` (집계 쿼리)                           |
-| `GET /missions`                 | MySQL                             | `mission_item`, `reward`                             |
-| `GET /missions/logs`            | MySQL                             | `mission_item`, `mission_log`                        |
-| `GET /missions/history`         | MySQL                             | `mission_item`, `mission_request`, `reward`          |
-| `GET /rewards/templates`        | MySQL                             | `reward_template`                                    |
-| `GET /recaps/monthly`           | MySQL                             | `family_recap_monthly`                               |
-| `GET /admin/audit/logs`         | MySQL                             | `audit_log`                                          |
-| `GET /admin/rewards/templates`  | MySQL                             | `reward_template`                                    |
-| `GET /admin/dashboard`          | MySQL                             | 전체 테이블 (통계 집계)                              |
-| `GET /admin/rewards/grants`     | MySQL                             | `reward_grant`, `reward`, `mission_item`, `customer` |
+| API 엔드포인트                  | 데이터 소스                       | 관련 테이블                                                   |
+| ------------------------------- | --------------------------------- | ------------------------------------------------------------- |
+| `GET /families/dashboard/usage` | Redis (실시간) → MySQL (Fallback) | `family_quota`, `customer_quota`                              |
+| `GET /customers/usage`          | MySQL                             | `usage_record`, `customer_quota`                              |
+| `GET /customers/policies`       | MySQL                             | `policy`, `policy_assignment`                                 |
+| `GET /notifications?type=...`   | MySQL                             | `notification_log` (커서 무한스크롤, 30일 제한, type IN 필터) |
+| `GET /families/policies`        | MySQL                             | `policy`, `policy_assignment`                                 |
+| `PATCH /families/policies`      | MySQL                             | `policy_assignment`                                           |
+| `GET /policies`                 | MySQL                             | `policy`                                                      |
+| `GET /families/reports/usage`   | MySQL                             | `usage_record` (집계 쿼리)                                    |
+| `GET /missions`                 | MySQL                             | `mission_item`, `reward`                                      |
+| `GET /missions/logs`            | MySQL                             | `mission_item`, `mission_log`                                 |
+| `GET /missions/history`         | MySQL                             | `mission_item`, `mission_request`, `reward`                   |
+| `GET /rewards/templates`        | MySQL                             | `reward_template`                                             |
+| `GET /recaps/monthly`           | MySQL                             | `family_recap_monthly`                                        |
+| `GET /admin/audit/logs`         | MySQL                             | `audit_log`                                                   |
+| `GET /admin/rewards/templates`  | MySQL                             | `reward_template`                                             |
+| `GET /admin/dashboard`          | MySQL                             | 전체 테이블 (통계 집계)                                       |
+| `GET /admin/rewards/grants`     | MySQL                             | `reward_grant`, `reward`, `mission_item`, `customer`          |
 
 ---
 
