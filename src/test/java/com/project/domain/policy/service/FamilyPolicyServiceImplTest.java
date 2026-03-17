@@ -17,7 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.project.domain.policy.service.helper.PolicyConstraintValueNormalizer;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.policy.dto.response.FamilyPolicyResponse;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
@@ -33,7 +33,7 @@ class FamilyPolicyServiceImplTest {
     @Mock private PolicyAssignmentRepository policyAssignmentRepository;
     @Mock private PolicyQueryRepository policyQueryRepository;
     @Mock private FamilyMemberRepository familyMemberRepository;
-    @Mock private ObjectMapper objectMapper;
+    @Mock private PolicyConstraintValueNormalizer policyConstraintValueNormalizer;
     @Mock private PolicyRedisService policyRedisService;
 
     private FamilyPolicyServiceImpl familyPolicyService;
@@ -45,7 +45,7 @@ class FamilyPolicyServiceImplTest {
                         policyAssignmentRepository,
                         policyQueryRepository,
                         familyMemberRepository,
-                        objectMapper,
+                        policyConstraintValueNormalizer,
                         policyRedisService,
                         FIXED_CLOCK);
     }
