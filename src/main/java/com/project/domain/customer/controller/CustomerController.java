@@ -18,6 +18,7 @@ import com.project.common.auth.service.AuthContextService;
 import com.project.domain.customer.dto.request.CustomerRefreshRequest;
 import com.project.domain.customer.dto.request.CustomerSignInRequest;
 import com.project.domain.customer.dto.request.CustomerSignUpRequest;
+import com.project.domain.customer.dto.response.CustomerMeResponse;
 import com.project.domain.customer.dto.response.MyPageInfoResponse;
 import com.project.domain.customer.dto.response.SignInResponse;
 import com.project.domain.customer.dto.response.SignUpResponse;
@@ -66,6 +67,13 @@ public class CustomerController {
     public ApiResponse<Void> logout() {
         // 서버 측 처리 없음 — 클라이언트가 토큰을 삭제
         return ApiResponse.success(null);
+    }
+
+    @GetMapping("/me")
+    @Operation(summary = "내 정보 조회", description = "로그인한 사용자의 기본 프로필 정보를 반환합니다.")
+    public ApiResponse<CustomerMeResponse> getMe(
+            @Parameter(hidden = true) @CustomerId Long customerId) {
+        return ApiResponse.success(customerService.getMe(customerId));
     }
 
     @GetMapping("/mypage")

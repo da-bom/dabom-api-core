@@ -21,6 +21,7 @@ import com.project.common.exception.code.GlobalErrorCode;
 import com.project.common.exception.code.PolicyErrorCode;
 import com.project.domain.customer.dto.request.CustomerSignInRequest;
 import com.project.domain.customer.dto.request.CustomerSignUpRequest;
+import com.project.domain.customer.dto.response.CustomerMeResponse;
 import com.project.domain.customer.dto.response.SignUpResponse;
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.entity.CustomerQuota;
@@ -182,6 +183,26 @@ public class CustomerServiceImpl implements CustomerService {
                 monthlyLimitBytes,
                 monthlyUsedBytes,
                 timeBlock);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CustomerMeResponse getMe(Long customerId) {
+        Customer customer =
+                customerRepository
+                        .findById(customerId)
+                        .orElseThrow(
+                                () ->
+                                        new ApplicationException(
+                                                CustomerErrorCode.CUSTOMER_NOT_FOUND));
+
+        FamilyMember familyMember =
+                familyMemberRepository
+                        .findByCustomerId(customerId)
+                        .orElseThrow(
+                                () -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
+
+        return CustomerMeResponse.of(customer, familyMember);
     }
 
     private LocalDate resolveTargetMonth(int year, int month) {
