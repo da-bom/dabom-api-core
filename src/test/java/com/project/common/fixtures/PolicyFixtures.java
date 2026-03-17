@@ -2,7 +2,7 @@ package com.project.common.fixtures;
 
 import java.util.Map;
 
-import com.project.domain.customer.enums.RoleType;
+import com.project.common.auth.enums.RoleType;
 import com.project.domain.policy.entity.Policy;
 import com.project.domain.policy.enums.PolicyType;
 

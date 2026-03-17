@@ -1,4 +1,4 @@
-package com.project.domain.customer.enums;
+package com.project.common.auth.enums;
 
 public enum RoleType {
     ADMIN,

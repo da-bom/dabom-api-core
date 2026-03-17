@@ -1,6 +1,6 @@
 package com.project.common.fixtures;
 
-import com.project.domain.customer.enums.RoleType;
+import com.project.common.auth.enums.RoleType;
 import com.project.domain.family.entity.FamilyMember;
 
 public class FamilyMemberFixtures {

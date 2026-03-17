@@ -1,6 +1,6 @@
 package com.project.domain.family.model;
 
-import com.project.domain.customer.enums.RoleType;
+import com.project.common.auth.enums.RoleType;
 
 public record FamilyMemberDetail(
         Long customerId,
