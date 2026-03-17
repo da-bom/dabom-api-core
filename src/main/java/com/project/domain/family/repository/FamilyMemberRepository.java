@@ -14,6 +14,9 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
 
     List<FamilyMember> findAllByFamilyIdAndDeletedAtIsNull(Long familyId);
 
+    List<FamilyMember> findAllByFamilyIdAndCustomerIdInAndDeletedAtIsNull(
+            Long familyId, List<Long> customerIds);
+
     Optional<FamilyMember> findByCustomerId(Long customerId);
 
     @Query("select f.role from FamilyMember f where f.customerId = :customerId")

@@ -135,14 +135,22 @@ public class FamilyServiceImpl implements FamilyService {
 
         LocalDate targetMonth = currentMonth();
 
+        List<Long> customerIds =
+                members.stream()
+                        .map(AdminFamilyUpdateRequest.MemberUpdate::customerId)
+                        .toList();
+
         Map<Long, FamilyMember> memberMap =
-                familyMemberRepository.findAllByFamilyIdAndDeletedAtIsNull(familyId).stream()
+                familyMemberRepository
+                        .findAllByFamilyIdAndCustomerIdInAndDeletedAtIsNull(familyId, customerIds)
+                        .stream()
                         .collect(
                                 Collectors.toMap(FamilyMember::getCustomerId, Function.identity()));
 
         Map<Long, CustomerQuota> quotaMap =
                 customerQuotaRepository
-                        .findAllByFamilyIdAndCurrentMonthAndDeletedAtIsNull(familyId, targetMonth)
+                        .findAllByFamilyIdAndCustomerIdInAndCurrentMonthAndDeletedAtIsNull(
+                                familyId, customerIds, targetMonth)
                         .stream()
                         .collect(
                                 Collectors.toMap(
@@ -150,7 +158,8 @@ public class FamilyServiceImpl implements FamilyService {
 
         Map<Long, PolicyAssignment> assignmentMap =
                 policyAssignmentRepository
-                        .findAllByFamilyIdAndType(familyId, PolicyType.MONTHLY_LIMIT)
+                        .findAllByFamilyIdAndCustomerIdsAndType(
+                                familyId, customerIds, PolicyType.MONTHLY_LIMIT)
                         .stream()
                         .collect(
                                 Collectors.toMap(

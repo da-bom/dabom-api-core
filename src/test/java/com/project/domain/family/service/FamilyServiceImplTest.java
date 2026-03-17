@@ -270,16 +270,18 @@ class FamilyServiceImplTest {
                         .isActive(true)
                         .build();
 
+        List<Long> customerIds = List.of(customerId);
+
         given(familyRepository.findById(familyId)).willReturn(Optional.of(family));
-        given(familyMemberRepository.findAllByFamilyIdAndDeletedAtIsNull(familyId))
+        given(familyMemberRepository.findAllByFamilyIdAndCustomerIdInAndDeletedAtIsNull(
+                        familyId, customerIds))
                 .willReturn(List.of(member));
-        given(
-                        customerQuotaRepository.findAllByFamilyIdAndCurrentMonthAndDeletedAtIsNull(
-                                familyId, TARGET_MONTH))
+        given(customerQuotaRepository
+                        .findAllByFamilyIdAndCustomerIdInAndCurrentMonthAndDeletedAtIsNull(
+                                familyId, customerIds, TARGET_MONTH))
                 .willReturn(List.of(quota));
-        given(
-                        policyAssignmentRepository.findAllByFamilyIdAndType(
-                                familyId, PolicyType.MONTHLY_LIMIT))
+        given(policyAssignmentRepository.findAllByFamilyIdAndCustomerIdsAndType(
+                        familyId, customerIds, PolicyType.MONTHLY_LIMIT))
                 .willReturn(List.of(assignment));
 
         List<AdminFamilyUpdateRequest.MemberUpdate> members =
@@ -318,17 +320,18 @@ class FamilyServiceImplTest {
         Long familyId = 100L;
         Long customerId = 9_999L;
         Family family = Family.builder().name("다봄 가족").createdById(1L).build();
+        List<Long> customerIds = List.of(customerId);
 
         given(familyRepository.findById(familyId)).willReturn(Optional.of(family));
-        given(familyMemberRepository.findAllByFamilyIdAndDeletedAtIsNull(familyId))
+        given(familyMemberRepository.findAllByFamilyIdAndCustomerIdInAndDeletedAtIsNull(
+                        familyId, customerIds))
                 .willReturn(List.of());
-        given(
-                        customerQuotaRepository.findAllByFamilyIdAndCurrentMonthAndDeletedAtIsNull(
-                                familyId, TARGET_MONTH))
+        given(customerQuotaRepository
+                        .findAllByFamilyIdAndCustomerIdInAndCurrentMonthAndDeletedAtIsNull(
+                                familyId, customerIds, TARGET_MONTH))
                 .willReturn(List.of());
-        given(
-                        policyAssignmentRepository.findAllByFamilyIdAndType(
-                                familyId, PolicyType.MONTHLY_LIMIT))
+        given(policyAssignmentRepository.findAllByFamilyIdAndCustomerIdsAndType(
+                        familyId, customerIds, PolicyType.MONTHLY_LIMIT))
                 .willReturn(List.of());
 
         List<AdminFamilyUpdateRequest.MemberUpdate> members =
