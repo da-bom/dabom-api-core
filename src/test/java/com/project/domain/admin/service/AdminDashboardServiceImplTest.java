@@ -195,8 +195,8 @@ class AdminDashboardServiceImplTest {
     }
 
     @Test
-    @DisplayName("getDashboard - 최근 1분 이벤트가 60 미만이면 currentTps는 0이다")
-    void getDashboard_lowEventCount_tpsIsZero() {
+    @DisplayName("getDashboard - TPS는 최근 1분 이벤트 수를 반올림하여 계산한다")
+    void getDashboard_tpsRoundsCorrectly() {
         // given
         given(familyRepository.countByDeletedAtIsNull()).willReturn(10L);
         given(familyMemberRepository.countDistinctActiveFamilies()).willReturn(10L);
@@ -224,7 +224,7 @@ class AdminDashboardServiceImplTest {
 
         // then
         assertThat(result.todayEvents()).isEqualTo(100L);
-        assertThat(result.currentTps()).isEqualTo(0L);
+        assertThat(result.currentTps()).isEqualTo(1L);
     }
 
     private void stubCountQueries() {

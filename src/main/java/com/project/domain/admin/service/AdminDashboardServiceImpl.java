@@ -4,7 +4,6 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.util.List;
 
 import org.springframework.boot.actuate.health.HealthComponent;
@@ -27,6 +26,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AdminDashboardServiceImpl implements AdminDashboardService {
+
+    private static final String HEALTH_REDIS = "redis";
+    private static final String HEALTH_KAFKA = "kafka";
+    private static final String HEALTH_DB = "db";
+    private static final int TPS_WINDOW_SECONDS = 60;
 
     private final FamilyRepository familyRepository;
     private final FamilyMemberRepository familyMemberRepository;
@@ -54,11 +58,11 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
                 usageRecordRepository.countByEventTimeGreaterThanEqualAndDeletedAtIsNull(
                         todayStart);
 
-        LocalDateTime oneMinuteAgo = now.minusSeconds(60);
+        LocalDateTime oneMinuteAgo = now.minusSeconds(TPS_WINDOW_SECONDS);
         long eventsLastMinute =
                 usageRecordRepository.countByEventTimeGreaterThanEqualAndDeletedAtIsNull(
                         oneMinuteAgo);
-        long currentTps = eventsLastMinute / 60;
+        long currentTps = Math.round(eventsLastMinute / (double) TPS_WINDOW_SECONDS);
 
         AdminDashboard.SystemHealth systemHealth = buildSystemHealth();
 
@@ -79,9 +83,9 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
         org.springframework.boot.actuate.health.SystemHealth health =
                 (org.springframework.boot.actuate.health.SystemHealth) healthEndpoint.health();
         return new AdminDashboard.SystemHealth(
-                getComponentStatus(health, "redis"),
-                getComponentStatus(health, "kafka"),
-                getComponentStatus(health, "db"));
+                getComponentStatus(health, HEALTH_REDIS),
+                getComponentStatus(health, HEALTH_KAFKA),
+                getComponentStatus(health, HEALTH_DB));
     }
 
     private String getComponentStatus(
@@ -109,7 +113,7 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
                                         q.getBlockReason(),
                                         q.getUpdatedAt() != null
                                                 ? q.getUpdatedAt()
-                                                        .atZone(ZoneId.systemDefault())
+                                                        .atZone(clock.getZone())
                                                         .toInstant()
                                                 : null))
                 .toList();
