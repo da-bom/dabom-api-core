@@ -15,7 +15,9 @@ import com.project.common.auth.aop.AdminId;
 import com.project.common.auth.aop.AdminOnly;
 import com.project.domain.admin.dto.request.AdminRefreshRequest;
 import com.project.domain.admin.dto.request.AdminSignInRequest;
+import com.project.domain.admin.dto.response.AdminDashboardResponse;
 import com.project.domain.admin.dto.response.AdminMeResponse;
+import com.project.domain.admin.service.AdminDashboardService;
 import com.project.domain.admin.service.AdminService;
 import com.project.domain.customer.dto.response.SignInResponse;
 import com.project.domain.customer.dto.response.SignUpResponse;
@@ -33,6 +35,7 @@ import lombok.RequiredArgsConstructor;
 public class AdminController {
 
     private final AdminService adminService;
+    private final AdminDashboardService adminDashboardService;
 
     @PostMapping("/login")
     @Operation(summary = "관리자 로그인", description = "관리자 이메일/비밀번호로 로그인합니다.")
@@ -71,5 +74,13 @@ public class AdminController {
     public ApiResponse<Void> logout() {
         // 서버 측 처리 없음 — 클라이언트가 토큰을 삭제
         return ApiResponse.success(null);
+    }
+
+    @GetMapping("/dashboard")
+    @AdminOnly
+    @Operation(summary = "관리자 대시보드", description = "시스템 전체 통계를 조회합니다.")
+    public ApiResponse<AdminDashboardResponse> getDashboard() {
+        return ApiResponse.success(
+                AdminDashboardResponse.from(adminDashboardService.getDashboard()));
     }
 }

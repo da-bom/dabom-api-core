@@ -8,4 +8,6 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
     Customer findByPhoneNumber(String phoneNumber);
 
     boolean existsByPhoneNumber(String phoneNumber);
+
+    long countByDeletedAtIsNull();
 }
