@@ -12,6 +12,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.FamilyErrorCode;
 import com.project.common.exception.code.PolicyErrorCode;
@@ -41,13 +43,12 @@ import lombok.RequiredArgsConstructor;
 @Transactional(readOnly = true)
 public class FamilyServiceImpl implements FamilyService {
 
-    private static final String MONTHLY_LIMIT_RULE_FORMAT = "{\"limitBytes\": %d}";
-
     private final FamilyQueryRepository familyQueryRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final FamilyRepository familyRepository;
     private final CustomerQuotaRepository customerQuotaRepository;
     private final PolicyAssignmentRepository policyAssignmentRepository;
+    private final ObjectMapper objectMapper;
     private final Clock clock;
 
     @Override
@@ -136,9 +137,7 @@ public class FamilyServiceImpl implements FamilyService {
         LocalDate targetMonth = currentMonth();
 
         List<Long> customerIds =
-                members.stream()
-                        .map(AdminFamilyUpdateRequest.MemberUpdate::customerId)
-                        .toList();
+                members.stream().map(AdminFamilyUpdateRequest.MemberUpdate::customerId).toList();
 
         Map<Long, FamilyMember> memberMap =
                 familyMemberRepository
@@ -190,12 +189,22 @@ public class FamilyServiceImpl implements FamilyService {
                                     () ->
                                             new ApplicationException(
                                                     PolicyErrorCode.POLICY_ASSIGNMENT_NOT_FOUND));
-            String newRules = String.format(MONTHLY_LIMIT_RULE_FORMAT, update.monthlyLimitBytes());
+            String newRules = serializeMonthlyLimitRule(update.monthlyLimitBytes());
             assignment.update(newRules, null, null);
         }
 
         return members.size();
     }
+
+    private String serializeMonthlyLimitRule(Long limitBytes) {
+        try {
+            return objectMapper.writeValueAsString(new MonthlyLimitRule(limitBytes));
+        } catch (JsonProcessingException e) {
+            throw new ApplicationException(PolicyErrorCode.POLICY_RULES_SERIALIZATION_FAILED);
+        }
+    }
+
+    private record MonthlyLimitRule(Long limitBytes) {}
 
     private LocalDate currentMonth() {
         return LocalDate.now(clock).withDayOfMonth(1);

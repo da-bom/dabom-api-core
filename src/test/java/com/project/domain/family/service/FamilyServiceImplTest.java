@@ -23,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.common.auth.enums.RoleType;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.FamilyErrorCode;
@@ -57,6 +58,8 @@ class FamilyServiceImplTest {
     @Mock private CustomerQuotaRepository customerQuotaRepository;
     @Mock private PolicyAssignmentRepository policyAssignmentRepository;
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     private FamilyServiceImpl familyService;
 
     @BeforeEach
@@ -68,6 +71,7 @@ class FamilyServiceImplTest {
                         familyRepository,
                         customerQuotaRepository,
                         policyAssignmentRepository,
+                        objectMapper,
                         FIXED_CLOCK);
     }
 
@@ -273,15 +277,18 @@ class FamilyServiceImplTest {
         List<Long> customerIds = List.of(customerId);
 
         given(familyRepository.findById(familyId)).willReturn(Optional.of(family));
-        given(familyMemberRepository.findAllByFamilyIdAndCustomerIdInAndDeletedAtIsNull(
-                        familyId, customerIds))
+        given(
+                        familyMemberRepository.findAllByFamilyIdAndCustomerIdInAndDeletedAtIsNull(
+                                familyId, customerIds))
                 .willReturn(List.of(member));
-        given(customerQuotaRepository
-                        .findAllByFamilyIdAndCustomerIdInAndCurrentMonthAndDeletedAtIsNull(
-                                familyId, customerIds, TARGET_MONTH))
+        given(
+                        customerQuotaRepository
+                                .findAllByFamilyIdAndCustomerIdInAndCurrentMonthAndDeletedAtIsNull(
+                                        familyId, customerIds, TARGET_MONTH))
                 .willReturn(List.of(quota));
-        given(policyAssignmentRepository.findAllByFamilyIdAndCustomerIdsAndType(
-                        familyId, customerIds, PolicyType.MONTHLY_LIMIT))
+        given(
+                        policyAssignmentRepository.findAllByFamilyIdAndCustomerIdsAndType(
+                                familyId, customerIds, PolicyType.MONTHLY_LIMIT))
                 .willReturn(List.of(assignment));
 
         List<AdminFamilyUpdateRequest.MemberUpdate> members =
@@ -294,7 +301,7 @@ class FamilyServiceImplTest {
         assertThat(result).isEqualTo(1);
         assertThat(member.getRole()).isEqualTo(RoleType.OWNER);
         assertThat(quota.getMonthlyLimitBytes()).isEqualTo(50_000L);
-        assertThat(assignment.getRules()).isEqualTo("{\"limitBytes\": 50000}");
+        assertThat(assignment.getRules()).isEqualTo("{\"limitBytes\":50000}");
     }
 
     @Test
@@ -323,15 +330,18 @@ class FamilyServiceImplTest {
         List<Long> customerIds = List.of(customerId);
 
         given(familyRepository.findById(familyId)).willReturn(Optional.of(family));
-        given(familyMemberRepository.findAllByFamilyIdAndCustomerIdInAndDeletedAtIsNull(
-                        familyId, customerIds))
+        given(
+                        familyMemberRepository.findAllByFamilyIdAndCustomerIdInAndDeletedAtIsNull(
+                                familyId, customerIds))
                 .willReturn(List.of());
-        given(customerQuotaRepository
-                        .findAllByFamilyIdAndCustomerIdInAndCurrentMonthAndDeletedAtIsNull(
-                                familyId, customerIds, TARGET_MONTH))
+        given(
+                        customerQuotaRepository
+                                .findAllByFamilyIdAndCustomerIdInAndCurrentMonthAndDeletedAtIsNull(
+                                        familyId, customerIds, TARGET_MONTH))
                 .willReturn(List.of());
-        given(policyAssignmentRepository.findAllByFamilyIdAndCustomerIdsAndType(
-                        familyId, customerIds, PolicyType.MONTHLY_LIMIT))
+        given(
+                        policyAssignmentRepository.findAllByFamilyIdAndCustomerIdsAndType(
+                                familyId, customerIds, PolicyType.MONTHLY_LIMIT))
                 .willReturn(List.of());
 
         List<AdminFamilyUpdateRequest.MemberUpdate> members =
