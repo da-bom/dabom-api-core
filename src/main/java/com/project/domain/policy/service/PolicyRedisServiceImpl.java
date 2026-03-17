@@ -1,5 +1,6 @@
 package com.project.domain.policy.service;
 
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -163,15 +164,28 @@ public class PolicyRedisServiceImpl implements PolicyRedisService {
             return;
         }
 
-        // 삭제할 앱은 HDEL, 추가할 앱은 HSET으로 반영
-        for (String appId : appsToDelete) {
-            String appField = appFieldPrefix + appId;
-            deleteConstraint(familyId, customerId, appField);
-        }
+        // 삭제할 앱은 HDEL, 추가할 앱은 HSET — 벌크 연산으로 Redis 왕복 최소화
+        try {
+            if (!appsToDelete.isEmpty()) {
+                Object[] deleteFields =
+                        appsToDelete.stream().map(appId -> appFieldPrefix + appId).toArray();
+                familyStringRedisTemplate.opsForHash().delete(constraintsKey, deleteFields);
+            }
 
-        for (String appId : appsToAdd) {
-            String appField = appFieldPrefix + appId;
-            setConstraint(familyId, customerId, appField, "1");
+            if (!appsToAdd.isEmpty()) {
+                Map<String, String> addEntries = new LinkedHashMap<>();
+                for (String appId : appsToAdd) {
+                    addEntries.put(appFieldPrefix + appId, "1");
+                }
+                familyStringRedisTemplate.opsForHash().putAll(constraintsKey, addEntries);
+            }
+        } catch (Exception e) {
+            log.error(
+                    "Failed to sync blocked apps to Redis. familyId={}, customerId={}",
+                    familyId,
+                    customerId,
+                    e);
+            throw new ApplicationException(PolicyErrorCode.POLICY_REDIS_SYNC_FAILED);
         }
     }
 
