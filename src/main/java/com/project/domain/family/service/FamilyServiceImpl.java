@@ -138,8 +138,7 @@ public class FamilyServiceImpl implements FamilyService {
         Map<Long, FamilyMember> memberMap =
                 familyMemberRepository.findAllByFamilyIdAndDeletedAtIsNull(familyId).stream()
                         .collect(
-                                Collectors.toMap(
-                                        FamilyMember::getCustomerId, Function.identity()));
+                                Collectors.toMap(FamilyMember::getCustomerId, Function.identity()));
 
         Map<Long, CustomerQuota> quotaMap =
                 customerQuotaRepository

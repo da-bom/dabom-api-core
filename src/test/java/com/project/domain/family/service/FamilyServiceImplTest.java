@@ -3,10 +3,7 @@ package com.project.domain.family.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.within;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import java.time.Clock;
@@ -30,21 +27,21 @@ import com.project.common.auth.enums.RoleType;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.FamilyErrorCode;
 import com.project.domain.customer.entity.CustomerQuota;
+import com.project.domain.customer.repository.CustomerQuotaRepository;
 import com.project.domain.family.dto.request.AdminFamilyUpdateRequest;
 import com.project.domain.family.dto.request.FamilySearchRequest;
 import com.project.domain.family.entity.Family;
 import com.project.domain.family.entity.FamilyMember;
-import com.project.domain.policy.entity.PolicyAssignment;
-import com.project.domain.policy.enums.PolicyType;
 import com.project.domain.family.model.FamilyDetail;
 import com.project.domain.family.model.FamilyMemberDetail;
 import com.project.domain.family.model.FamilyMemberInfo;
 import com.project.domain.family.model.FamilyMemberSummary;
 import com.project.domain.family.model.FamilySearchResult;
-import com.project.domain.customer.repository.CustomerQuotaRepository;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.family.repository.FamilyQueryRepository;
 import com.project.domain.family.repository.FamilyRepository;
+import com.project.domain.policy.entity.PolicyAssignment;
+import com.project.domain.policy.enums.PolicyType;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -276,15 +273,19 @@ class FamilyServiceImplTest {
         given(familyRepository.findById(familyId)).willReturn(Optional.of(family));
         given(familyMemberRepository.findAllByFamilyIdAndDeletedAtIsNull(familyId))
                 .willReturn(List.of(member));
-        given(customerQuotaRepository.findAllByFamilyIdAndCurrentMonthAndDeletedAtIsNull(
-                        familyId, TARGET_MONTH))
+        given(
+                        customerQuotaRepository.findAllByFamilyIdAndCurrentMonthAndDeletedAtIsNull(
+                                familyId, TARGET_MONTH))
                 .willReturn(List.of(quota));
-        given(policyAssignmentRepository.findAllByFamilyIdAndType(
-                        familyId, PolicyType.MONTHLY_LIMIT))
+        given(
+                        policyAssignmentRepository.findAllByFamilyIdAndType(
+                                familyId, PolicyType.MONTHLY_LIMIT))
                 .willReturn(List.of(assignment));
 
         List<AdminFamilyUpdateRequest.MemberUpdate> members =
-                List.of(new AdminFamilyUpdateRequest.MemberUpdate(customerId, RoleType.OWNER, 50_000L));
+                List.of(
+                        new AdminFamilyUpdateRequest.MemberUpdate(
+                                customerId, RoleType.OWNER, 50_000L));
 
         int result = familyService.updateFamilyByAdmin(familyId, members);
 
@@ -321,15 +322,19 @@ class FamilyServiceImplTest {
         given(familyRepository.findById(familyId)).willReturn(Optional.of(family));
         given(familyMemberRepository.findAllByFamilyIdAndDeletedAtIsNull(familyId))
                 .willReturn(List.of());
-        given(customerQuotaRepository.findAllByFamilyIdAndCurrentMonthAndDeletedAtIsNull(
-                        familyId, TARGET_MONTH))
+        given(
+                        customerQuotaRepository.findAllByFamilyIdAndCurrentMonthAndDeletedAtIsNull(
+                                familyId, TARGET_MONTH))
                 .willReturn(List.of());
-        given(policyAssignmentRepository.findAllByFamilyIdAndType(
-                        familyId, PolicyType.MONTHLY_LIMIT))
+        given(
+                        policyAssignmentRepository.findAllByFamilyIdAndType(
+                                familyId, PolicyType.MONTHLY_LIMIT))
                 .willReturn(List.of());
 
         List<AdminFamilyUpdateRequest.MemberUpdate> members =
-                List.of(new AdminFamilyUpdateRequest.MemberUpdate(customerId, RoleType.OWNER, 50_000L));
+                List.of(
+                        new AdminFamilyUpdateRequest.MemberUpdate(
+                                customerId, RoleType.OWNER, 50_000L));
 
         assertThatThrownBy(() -> familyService.updateFamilyByAdmin(familyId, members))
                 .isInstanceOf(ApplicationException.class)
