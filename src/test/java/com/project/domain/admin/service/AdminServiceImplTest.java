@@ -300,6 +300,6 @@ class AdminServiceImplTest {
                 .satisfies(
                         e ->
                                 assertThat(((ApplicationException) e).getCode())
-                                        .isEqualTo(AdminErrorCode.ADMIN_SIGN_IN_FAILED));
+                                        .isEqualTo(AdminErrorCode.ADMIN_NOT_FOUND));
     }
 }

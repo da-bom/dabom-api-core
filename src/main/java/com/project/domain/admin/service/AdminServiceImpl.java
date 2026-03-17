@@ -85,6 +85,6 @@ public class AdminServiceImpl implements AdminService {
     public Admin getMe(Long adminId) {
         return adminRepository
                 .findById(adminId)
-                .orElseThrow(() -> new ApplicationException(AdminErrorCode.ADMIN_SIGN_IN_FAILED));
+                .orElseThrow(() -> new ApplicationException(AdminErrorCode.ADMIN_NOT_FOUND));
     }
 }
