@@ -14,6 +14,7 @@ public class RulesUtil {
             case MANUAL_BLOCK -> "BLOCK:ACCESS";
             case MONTHLY_LIMIT -> "LIMIT:DATA:MONTHLY";
             case TIME_BLOCK -> "BLOCK:TIME";
+            case APP_BLOCK ->  "BLOCK:APP";
             default -> throw new ApplicationException(PolicyErrorCode.UNSUPPORTED_POLICY_TYPE);
         };
     }
