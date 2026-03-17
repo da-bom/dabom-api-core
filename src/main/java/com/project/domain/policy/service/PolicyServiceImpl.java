@@ -8,7 +8,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.PolicyErrorCode;
@@ -16,6 +15,7 @@ import com.project.domain.policy.dto.request.PolicyRequest;
 import com.project.domain.policy.entity.Policy;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.domain.policy.repository.PolicyRepository;
+import com.project.domain.policy.service.helper.PolicyConstraintValueNormalizer;
 
 import lombok.RequiredArgsConstructor;
 
@@ -110,20 +110,14 @@ public class PolicyServiceImpl implements PolicyService {
 
     // 덮어쓰기가 true일 경우, 가족구성원에 부여된 정책들을 전부 조회하고 즉시 수정
     private void applyToExistingAssignments(Policy policy) {
-        String newRules = convertRulesToJson(policy.getDefaultRules());
+        // 정책에 기본값이 없는 경우 빈 맵으로 처리해서 기존 할당된 정책들의 룰이 삭제되도록 함
+        Map<String, Object> safeRules =
+                policy.getDefaultRules() == null
+                        ? Collections.emptyMap()
+                        : policy.getDefaultRules();
+        String newRules = PolicyConstraintValueNormalizer.rulesToJson(objectMapper, safeRules);
 
         policyAssignmentRepository.bulkUpdateAssignments(
                 policy.getId(), newRules, policy.isActive());
-    }
-
-    // 정책 안 세부 규칙을 JSON으로 변환하는 메소드
-    private String convertRulesToJson(Map<String, Object> defaultRules) {
-        Map<String, Object> safeRules =
-                defaultRules == null ? Collections.emptyMap() : defaultRules;
-        try {
-            return objectMapper.writeValueAsString(safeRules);
-        } catch (JsonProcessingException e) {
-            throw new ApplicationException(PolicyErrorCode.POLICY_RULES_SERIALIZATION_FAILED);
-        }
     }
 }
