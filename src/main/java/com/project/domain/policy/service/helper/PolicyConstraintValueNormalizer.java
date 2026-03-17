@@ -15,11 +15,14 @@ import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.PolicyErrorCode;
 import com.project.domain.policy.enums.PolicyType;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class PolicyConstraintValueNormalizer {
+    private final ObjectMapper objectMapper;
     public static final String LIMIT_BYTES = "limitBytes";
     public static final String START = "start";
     public static final String END = "end";
@@ -37,7 +40,7 @@ public class PolicyConstraintValueNormalizer {
         };
     }
 
-    public static String rulesToJson(ObjectMapper objectMapper, Map<String, Object> rules) {
+    public String rulesToJson(Map<String, Object> rules) {
         try {
             return objectMapper.writeValueAsString(rules);
         } catch (JsonProcessingException e) {
