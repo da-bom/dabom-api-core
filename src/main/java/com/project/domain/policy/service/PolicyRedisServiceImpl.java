@@ -79,14 +79,13 @@ public class PolicyRedisServiceImpl implements PolicyRedisService {
         List<FamilyMemberRepository.FamilyMemberTargetProjection> members =
                 familyMemberRepository.findAllActiveTargets();
 
-        members.parallelStream()
-                .forEach(
-                        member ->
-                                processCustomerPolicyUpdate(
-                                        member.getFamilyId(),
-                                        member.getCustomerId(),
-                                        type,
-                                        normalizedPolicyValue));
+        for (FamilyMemberRepository.FamilyMemberTargetProjection member : members) {
+            processCustomerPolicyUpdate(
+                    member.getFamilyId(),
+                    member.getCustomerId(),
+                    type,
+                    normalizedPolicyValue);
+        }
 
         log.info(
                 "Processed global constraint. memberCount={}, field={}",
