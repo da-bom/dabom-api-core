@@ -13,7 +13,6 @@ import com.project.common.exception.code.FamilyErrorCode;
 import com.project.domain.customer.repository.CustomerQuotaRepository;
 import com.project.domain.family.dto.request.AdminFamilyUpdateRequest;
 import com.project.domain.family.dto.request.FamilySearchRequest;
-import com.project.domain.family.dto.response.AdminFamilyUpdateResponse;
 import com.project.domain.family.entity.Family;
 import com.project.domain.family.entity.FamilyMember;
 import com.project.domain.family.model.FamilyDetail;
@@ -122,7 +121,7 @@ public class FamilyServiceImpl implements FamilyService {
 
     @Override
     @Transactional
-    public AdminFamilyUpdateResponse updateFamilyByAdmin(
+    public int updateFamilyByAdmin(
             Long familyId, List<AdminFamilyUpdateRequest.MemberUpdate> members) {
         getFamilyById(familyId);
 
@@ -155,7 +154,7 @@ public class FamilyServiceImpl implements FamilyService {
                             });
         }
 
-        return new AdminFamilyUpdateResponse(familyId, members.size());
+        return members.size();
     }
 
     private LocalDate currentMonth() {

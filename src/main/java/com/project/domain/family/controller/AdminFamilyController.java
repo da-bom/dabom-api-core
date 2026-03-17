@@ -61,8 +61,7 @@ public class AdminFamilyController {
     public ApiResponse<AdminFamilyUpdateResponse> updateFamily(
             @Parameter(description = "가족 ID", required = true) @PathVariable Long familyId,
             @Valid @RequestBody AdminFamilyUpdateRequest request) {
-        AdminFamilyUpdateResponse response =
-                familyService.updateFamilyByAdmin(familyId, request.members());
-        return ApiResponse.success(response);
+        int updatedCount = familyService.updateFamilyByAdmin(familyId, request.members());
+        return ApiResponse.success(new AdminFamilyUpdateResponse(familyId, updatedCount));
     }
 }
