@@ -13,6 +13,7 @@ import com.project.common.auth.JwtTokenUtil;
 import com.project.common.auth.PasswordHash;
 import com.project.common.auth.SignInResult;
 import com.project.common.auth.TokenRefreshResult;
+import com.project.common.auth.enums.RoleType;
 import com.project.common.auth.model.AuthContext;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.CustomerErrorCode;
@@ -24,7 +25,7 @@ import com.project.domain.customer.dto.request.CustomerSignUpRequest;
 import com.project.domain.customer.dto.response.SignUpResponse;
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.entity.CustomerQuota;
-import com.project.domain.customer.enums.RoleType;
+import com.project.domain.customer.model.CustomerMe;
 import com.project.domain.customer.model.MyPageInfo;
 import com.project.domain.customer.repository.CustomerQuotaRepository;
 import com.project.domain.customer.repository.CustomerRepository;
@@ -182,6 +183,31 @@ public class CustomerServiceImpl implements CustomerService {
                 monthlyLimitBytes,
                 monthlyUsedBytes,
                 timeBlock);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CustomerMe getMe(Long customerId) {
+        Customer customer =
+                customerRepository
+                        .findById(customerId)
+                        .orElseThrow(
+                                () ->
+                                        new ApplicationException(
+                                                CustomerErrorCode.CUSTOMER_NOT_FOUND));
+
+        FamilyMember familyMember =
+                familyMemberRepository
+                        .findByCustomerId(customerId)
+                        .orElseThrow(
+                                () -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
+
+        return new CustomerMe(
+                customer.getId(),
+                customer.getName(),
+                customer.getPhoneNumber(),
+                familyMember.getFamilyId(),
+                familyMember.getRole());
     }
 
     private LocalDate resolveTargetMonth(int year, int month) {
