@@ -20,6 +20,9 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
     @Query("select fm.familyId from FamilyMember fm where fm.customerId = :customerId")
     Optional<Long> findFamilyIdByCustomerId(Long customerId);
 
+    Optional<FamilyMember> findByFamilyIdAndCustomerIdAndDeletedAtIsNull(
+            Long familyId, Long customerId);
+
     boolean existsByCustomerId(Long customerId);
 
     @Query(

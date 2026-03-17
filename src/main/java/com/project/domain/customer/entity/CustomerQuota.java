@@ -75,4 +75,8 @@ public class CustomerQuota extends BaseEntity {
     public void addMonthlyLimitBytes(long additionalBytes) {
         this.monthlyLimitBytes += additionalBytes;
     }
+
+    public void changeMonthlyLimitBytes(Long monthlyLimitBytes) {
+        this.monthlyLimitBytes = monthlyLimitBytes;
+    }
 }
