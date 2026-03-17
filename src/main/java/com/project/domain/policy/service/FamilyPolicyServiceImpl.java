@@ -8,7 +8,6 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.FamilyErrorCode;
@@ -20,6 +19,7 @@ import com.project.domain.policy.entity.PolicyAssignment;
 import com.project.domain.policy.enums.PolicyType;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
 import com.project.domain.policy.repository.PolicyQueryRepository;
+import com.project.domain.policy.service.helper.PolicyConstraintValueNormalizer;
 
 import lombok.RequiredArgsConstructor;
 
@@ -70,21 +70,14 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
                                         new ApplicationException(
                                                 PolicyErrorCode.POLICY_ASSIGNMENT_NOT_FOUND));
 
-        String rulesJson = convertRulesToJson(rules);
+        // rules 객체를 JSON 문자열로 변환 (null 허용)
+        String rulesJson =
+                rules == null
+                        ? null
+                        : PolicyConstraintValueNormalizer.rulesToJson(objectMapper, rules);
         assignment.update(rulesJson, isActive, actorId);
 
         policyRedisService.syncToRedis(familyId, targetCustomerId, type, rules, isActive);
-    }
-
-    private String convertRulesToJson(Map<String, Object> rules) {
-        if (rules == null) {
-            return null;
-        }
-        try {
-            return objectMapper.writeValueAsString(rules);
-        } catch (JsonProcessingException e) {
-            throw new ApplicationException(PolicyErrorCode.POLICY_RULES_SERIALIZATION_FAILED);
-        }
     }
 
     private LocalDate currentMonth() {

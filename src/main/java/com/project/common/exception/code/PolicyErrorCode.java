@@ -17,7 +17,8 @@ public enum PolicyErrorCode implements BaseErrorCode {
     POLICY_OWNER_ONLY(HttpStatus.FORBIDDEN, "POLICY_007", "가족장(OWNER)만 정책을 수정할 수 있습니다."),
     POLICY_RULES_CORRUPTED(HttpStatus.INTERNAL_SERVER_ERROR, "POLICY_008", "정책 규칙 데이터가 손상되었습니다."),
     POLICY_REDIS_SYNC_FAILED(
-            HttpStatus.INTERNAL_SERVER_ERROR, "POLICY_009", "정책 변경사항을 Redis에 반영하지 못했습니다.");
+            HttpStatus.INTERNAL_SERVER_ERROR, "POLICY_009", "정책 변경사항을 Redis에 반영하지 못했습니다."),
+    INVALID_POLICY_CONSTRAINT_VALUE(HttpStatus.BAD_REQUEST, "POLICY_010", "정책 제약 조건 값이 유효하지 않습니다.");
 
     private final HttpStatus httpStatus;
     private final String customCode;
