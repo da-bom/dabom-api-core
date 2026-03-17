@@ -128,8 +128,13 @@ public class PolicyConstraintValueNormalizer {
     }
 
     private boolean isValidHhmm(String hhmm) {
-        int hh = Integer.parseInt(hhmm.substring(0, 2));
-        int mm = Integer.parseInt(hhmm.substring(2, 4));
-        return hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59;
+        try {
+            int hh = Integer.parseInt(hhmm.substring(0, 2));
+            int mm = Integer.parseInt(hhmm.substring(2, 4));
+            return hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59;
+        } catch (NumberFormatException e) {
+            log.warn("Failed to parse HHMM value: {}", hhmm);
+            return false;
+        }
     }
 }
