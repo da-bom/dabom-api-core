@@ -188,9 +188,26 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional(readOnly = true)
     public CustomerMe getMe(Long customerId) {
-        return customerRepository
-                .findCustomerMeById(customerId)
-                .orElseThrow(() -> new ApplicationException(CustomerErrorCode.CUSTOMER_NOT_FOUND));
+        Customer customer =
+                customerRepository
+                        .findById(customerId)
+                        .orElseThrow(
+                                () ->
+                                        new ApplicationException(
+                                                CustomerErrorCode.CUSTOMER_NOT_FOUND));
+
+        FamilyMember familyMember =
+                familyMemberRepository
+                        .findByCustomerId(customerId)
+                        .orElseThrow(
+                                () -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
+
+        return new CustomerMe(
+                customer.getId(),
+                customer.getName(),
+                customer.getPhoneNumber(),
+                familyMember.getFamilyId(),
+                familyMember.getRole());
     }
 
     private LocalDate resolveTargetMonth(int year, int month) {
