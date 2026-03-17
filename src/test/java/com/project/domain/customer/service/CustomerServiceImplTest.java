@@ -28,7 +28,6 @@ import com.project.common.auth.TokenRefreshResult;
 import com.project.common.auth.model.AuthContext;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.CustomerErrorCode;
-import com.project.common.exception.code.FamilyErrorCode;
 import com.project.common.exception.code.GlobalErrorCode;
 import com.project.common.exception.code.PolicyErrorCode;
 import com.project.domain.customer.dto.request.CustomerSignInRequest;
@@ -515,22 +514,14 @@ class CustomerServiceImplTest {
     @DisplayName("getMe - 정상 요청이면 사용자 프로필 정보를 반환한다")
     void getMe_validCustomerId_returnsCustomerMe() {
         // given
-        Customer customer = new Customer("01012345678", "hashed-pw", "철수");
-        FamilyMember familyMember =
-                FamilyMember.builder()
-                        .id(1L)
-                        .familyId(100L)
-                        .customerId(10L)
-                        .role(RoleType.MEMBER)
-                        .build();
-
-        given(customerRepository.findById(10L)).willReturn(Optional.of(customer));
-        given(familyMemberRepository.findByCustomerId(10L)).willReturn(Optional.of(familyMember));
+        CustomerMe customerMe = new CustomerMe(10L, "철수", "01012345678", 100L, RoleType.MEMBER);
+        given(customerRepository.findCustomerMeById(10L)).willReturn(Optional.of(customerMe));
 
         // when
         CustomerMe result = customerService.getMe(10L);
 
         // then
+        assertThat(result.customerId()).isEqualTo(10L);
         assertThat(result.name()).isEqualTo("철수");
         assertThat(result.phoneNumber()).isEqualTo("01012345678");
         assertThat(result.familyId()).isEqualTo(100L);
@@ -541,7 +532,7 @@ class CustomerServiceImplTest {
     @DisplayName("getMe - 존재하지 않는 사용자이면 예외를 던진다")
     void getMe_customerNotFound_throwsException() {
         // given
-        given(customerRepository.findById(999L)).willReturn(Optional.empty());
+        given(customerRepository.findCustomerMeById(999L)).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> customerService.getMe(999L))
@@ -550,22 +541,5 @@ class CustomerServiceImplTest {
                         e ->
                                 assertThat(((ApplicationException) e).getCode())
                                         .isEqualTo(CustomerErrorCode.CUSTOMER_NOT_FOUND));
-    }
-
-    @Test
-    @DisplayName("getMe - 가족 구성원이 아니면 예외를 던진다")
-    void getMe_familyMemberNotFound_throwsException() {
-        // given
-        Customer customer = new Customer("01012345678", "hashed-pw", "철수");
-        given(customerRepository.findById(10L)).willReturn(Optional.of(customer));
-        given(familyMemberRepository.findByCustomerId(10L)).willReturn(Optional.empty());
-
-        // when & then
-        assertThatThrownBy(() -> customerService.getMe(10L))
-                .isInstanceOf(ApplicationException.class)
-                .satisfies(
-                        e ->
-                                assertThat(((ApplicationException) e).getCode())
-                                        .isEqualTo(FamilyErrorCode.FAMILY_NOT_FOUND));
     }
 }
