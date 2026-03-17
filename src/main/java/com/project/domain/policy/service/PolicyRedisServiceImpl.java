@@ -7,7 +7,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.stereotype.Service;
 
 import com.project.common.exception.ApplicationException;
@@ -160,20 +162,40 @@ public class PolicyRedisServiceImpl implements PolicyRedisService {
             return;
         }
 
-        // 삭제할 앱은 HDEL, 추가할 앱은 HSET — 벌크 연산으로 Redis 왕복 최소화
+        // 삭제와 추가를 하나의 Redis 트랜잭션으로 묶어 부분 반영을 방지한다.
         try {
-            if (!appsToDelete.isEmpty()) {
-                Object[] deleteFields =
-                        appsToDelete.stream().map(appId -> appFieldPrefix + appId).toArray();
-                familyStringRedisTemplate.opsForHash().delete(constraintsKey, deleteFields);
-            }
+            List<Object> transactionResults =
+                    familyStringRedisTemplate.execute(
+                            new SessionCallback<>() {
+                                @Override
+                                @SuppressWarnings("unchecked")
+                                public List<Object> execute(RedisOperations operations) {
+                                    operations.multi();
 
-            if (!appsToAdd.isEmpty()) {
-                Map<String, String> addEntries = new LinkedHashMap<>();
-                for (String appId : appsToAdd) {
-                    addEntries.put(appFieldPrefix + appId, "1");
-                }
-                familyStringRedisTemplate.opsForHash().putAll(constraintsKey, addEntries);
+                                    if (!appsToDelete.isEmpty()) {
+                                        Object[] deleteFields =
+                                                appsToDelete.stream()
+                                                        .map(appId -> appFieldPrefix + appId)
+                                                        .toArray();
+                                        operations
+                                                .opsForHash()
+                                                .delete(constraintsKey, deleteFields);
+                                    }
+
+                                    if (!appsToAdd.isEmpty()) {
+                                        Map<String, String> addEntries = new LinkedHashMap<>();
+                                        for (String appId : appsToAdd) {
+                                            addEntries.put(appFieldPrefix + appId, "1");
+                                        }
+                                        operations.opsForHash().putAll(constraintsKey, addEntries);
+                                    }
+
+                                    return operations.exec();
+                                }
+                            });
+
+            if (transactionResults == null) {
+                throw new ApplicationException(PolicyErrorCode.POLICY_REDIS_SYNC_FAILED);
             }
         } catch (Exception e) {
             log.error(
