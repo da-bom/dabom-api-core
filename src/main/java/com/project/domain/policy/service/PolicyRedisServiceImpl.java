@@ -4,7 +4,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.springframework.data.redis.core.RedisTemplate;
@@ -17,7 +16,6 @@ import com.project.common.util.RedisKeyGenerator;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.policy.enums.PolicyType;
 import com.project.domain.policy.service.helper.PolicyConstraintValueNormalizer;
-import com.project.domain.policy.service.helper.RulesUtil;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,17 +24,11 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class PolicyRedisServiceImpl implements PolicyRedisService {
-    private static final String VALUE_LOG_SUFFIX = ", value={}";
-    private static final String SKIP_REASON_MISSING_CONSTRAINTS_KEY = "MISSING_CONSTRAINTS_KEY";
-    public static final String BLOCK_APP = "BLOCK:APP";
-    public static final String BLOCK_APP_PREFIX = "BLOCK:APP:";
-
     private final RedisTemplate<String, String> familyStringRedisTemplate;
     private final RedisKeyGenerator redisKeyGenerator;
     private final FamilyMemberRepository familyMemberRepository;
     private final PolicyConstraintValueNormalizer policyConstraintValueNormalizer;
     private final LogSanitizer logSanitizer;
-    private final RulesUtil rulesUtil;
 
     @Override
     public void syncToRedis(
@@ -46,96 +38,69 @@ public class PolicyRedisServiceImpl implements PolicyRedisService {
             Map<String, Object> rules,
             boolean isActive) {
 
-        String policyKey = rulesUtil.toPolicyKey(type);
+        String policyKey = type.getRedisKey();
 
         // 정책 타입별로 Redis 저장 형식에 맞는 값으로 정규화
         NormalizedPolicyValue normalizedPolicyValue =
-                resolveNormalizedPolicyValue(type, policyKey, rules, isActive);
+                resolveNormalizedPolicyValue(type, rules, isActive);
 
         // familyId/targetCustomerId가 모두 없으면 전체 활성 구성원에 대해 정책을 반영
         if (familyId == null && targetCustomerId == null) {
-            processGlobalPolicyUpdate(policyKey, normalizedPolicyValue);
+            processGlobalPolicyUpdate(type, normalizedPolicyValue);
             return;
         }
 
         // targetCustomerId가 있으면 해당 customer만 반영
         if (targetCustomerId != null) {
-            processCustomerPolicyUpdate(
-                    familyId, targetCustomerId, policyKey, normalizedPolicyValue);
+            processCustomerPolicyUpdate(familyId, targetCustomerId, type, normalizedPolicyValue);
             return;
         }
 
         // targetCustomerId가 없으면 family 전체(active customer)에게 반영
         List<FamilyMemberRepository.FamilyMemberTargetProjection> customers =
                 familyMemberRepository.findAllActiveTargetsByFamilyId(familyId);
-        int appliedCount = 0;
-        int skippedCount = 0;
 
         for (FamilyMemberRepository.FamilyMemberTargetProjection customer : customers) {
-            boolean applied =
-                    processCustomerPolicyUpdate(
-                            customer.getFamilyId(),
-                            customer.getCustomerId(),
-                            policyKey,
-                            normalizedPolicyValue);
-            if (applied) {
-                appliedCount++;
-            } else {
-                skippedCount++;
-            }
+            processCustomerPolicyUpdate(
+                    customer.getFamilyId(), customer.getCustomerId(), type, normalizedPolicyValue);
         }
 
         log.info(
-                "Processed family-wide constraint. familyId={}, appliedCount={},"
-                        + " skippedCount={}, field={}"
-                        + VALUE_LOG_SUFFIX,
+                "Processed family-wide constraint. familyId={}, memberCount={}," + " field={}",
                 familyId,
-                appliedCount,
-                skippedCount,
-                logSanitizer.sanitize(policyKey),
-                logSanitizer.sanitize(normalizedPolicyValue.normalizedNewValue()));
+                customers.size(),
+                logSanitizer.sanitize(policyKey));
     }
 
+    // 전체 업데이트는 활성 구성원 조회 후, 각 구성원별 업데이트 로직을 재사용해서 처리
     private void processGlobalPolicyUpdate(
-            String policyKey, NormalizedPolicyValue normalizedPolicyValue) {
+            PolicyType type, NormalizedPolicyValue normalizedPolicyValue) {
         List<FamilyMemberRepository.FamilyMemberTargetProjection> members =
                 familyMemberRepository.findAllActiveTargets();
-        AtomicInteger appliedCount = new AtomicInteger(0);
-        AtomicInteger skippedCount = new AtomicInteger(0);
 
         members.parallelStream()
                 .forEach(
-                        member -> {
-                            boolean applied =
-                                    processCustomerPolicyUpdate(
-                                            member.getFamilyId(),
-                                            member.getCustomerId(),
-                                            policyKey,
-                                            normalizedPolicyValue);
-                            if (applied) {
-                                appliedCount.incrementAndGet();
-                            } else {
-                                skippedCount.incrementAndGet();
-                            }
-                        });
+                        member ->
+                                processCustomerPolicyUpdate(
+                                        member.getFamilyId(),
+                                        member.getCustomerId(),
+                                        type,
+                                        normalizedPolicyValue));
 
         log.info(
-                "Processed global constraint. appliedCount={}, skippedCount={},"
-                        + " field={}"
-                        + VALUE_LOG_SUFFIX,
-                appliedCount,
-                skippedCount,
-                logSanitizer.sanitize(policyKey),
-                logSanitizer.sanitize(normalizedPolicyValue.normalizedNewValue()));
+                "Processed global constraint. memberCount={}, field={}",
+                members.size(),
+                logSanitizer.sanitize(type.getRedisKey()));
     }
 
     private NormalizedPolicyValue resolveNormalizedPolicyValue(
-            PolicyType type, String policyKey, Map<String, Object> rules, boolean isActive) {
+            PolicyType type, Map<String, Object> rules, boolean isActive) {
         // 비활성화 정책이면 삭제(HDEL)로 처리되도록 null 값을 전달
         if (!isActive) {
             return new NormalizedPolicyValue(null, Set.of());
         }
 
+        // APP_BLOCK 정책은 개별 앱 ID를 필드로 관리하기 때문에, 전체 차단 앱 목록과 Redis 간 동기화가 필요함
         if (type == PolicyType.APP_BLOCK) {
             Set<String> normalizedBlockedApps =
                     policyConstraintValueNormalizer.normalizeAppBlockValueAsSet(rules);
@@ -143,48 +108,32 @@ public class PolicyRedisServiceImpl implements PolicyRedisService {
                     String.join(",", normalizedBlockedApps), normalizedBlockedApps);
         }
 
+        // 그 외 정책은 단일 값으로 관리하므로, 정규화된 문자열 값을 전달
         return new NormalizedPolicyValue(
                 policyConstraintValueNormalizer.normalizeValue(type, rules), Set.of());
     }
 
-    private boolean processCustomerPolicyUpdate(
+    private void processCustomerPolicyUpdate(
             Long familyId,
             Long customerId,
-            String policyKey,
+            PolicyType type,
             NormalizedPolicyValue normalizedPolicyValue) {
         // 업데이트는 기존 캐시 갱신만 담당하고, 캐시 미스는 스킵
         if (!hasConstraintsKey(familyId, customerId)) {
-            logResult(
-                    familyId,
-                    customerId,
-                    policyKey,
-                    normalizedPolicyValue.normalizedNewValue(),
-                    SKIP_REASON_MISSING_CONSTRAINTS_KEY);
-            return false;
+            return;
         }
 
-        if (BLOCK_APP.equals(policyKey)) {
-            boolean changed =
-                    syncBlockedAppsToCustomer(
-                            familyId, customerId, normalizedPolicyValue.normalizedBlockedApps());
-            logResult(
-                    familyId,
-                    customerId,
-                    policyKey,
-                    normalizedPolicyValue.normalizedNewValue(),
-                    changed ? "APPLIED" : "NO_CHANGES");
-            return changed;
+        if (type == PolicyType.APP_BLOCK) {
+            syncBlockedAppsToCustomer(
+                    familyId, customerId, type, normalizedPolicyValue.normalizedBlockedApps());
+            return;
         }
 
         applyConstraintToCustomer(
-                familyId, customerId, policyKey, normalizedPolicyValue.normalizedNewValue());
-        logResult(
                 familyId,
                 customerId,
-                policyKey,
-                normalizedPolicyValue.normalizedNewValue(),
-                "APPLIED");
-        return true;
+                type.getRedisKey(),
+                normalizedPolicyValue.normalizedNewValue());
     }
 
     private boolean hasConstraintsKey(Long familyId, Long customerId) {
@@ -194,12 +143,16 @@ public class PolicyRedisServiceImpl implements PolicyRedisService {
         return Boolean.TRUE.equals(exists);
     }
 
-    private boolean syncBlockedAppsToCustomer(
-            Long familyId, Long customerId, Set<String> desiredBlockedApps) {
+    // APP_BLOCK 정책은 개별 앱 ID를 필드로 관리하기 때문에, 전체 차단 앱 목록과 Redis 간 동기화가 필요함
+    private void syncBlockedAppsToCustomer(
+            Long familyId, Long customerId, PolicyType type, Set<String> desiredBlockedApps) {
+        // Redis에서 현재 차단 앱 목록 로드
         String constraintsKey =
                 redisKeyGenerator.generateFamilyCustomerConstraintsKey(familyId, customerId);
-        Set<String> currentBlockedApps = loadBlockedApps(constraintsKey);
+        String appFieldPrefix = type.getRedisKey() + ":";
+        Set<String> currentBlockedApps = loadBlockedApps(constraintsKey, appFieldPrefix);
 
+        // 현재 차단 앱과 원하는 차단 앱을 비교해서, 삭제할 앱과 추가할 앱을 계산
         Set<String> appsToDelete = new LinkedHashSet<>(currentBlockedApps);
         appsToDelete.removeAll(desiredBlockedApps);
 
@@ -207,23 +160,23 @@ public class PolicyRedisServiceImpl implements PolicyRedisService {
         appsToAdd.removeAll(currentBlockedApps);
 
         if (appsToDelete.isEmpty() && appsToAdd.isEmpty()) {
-            return false;
+            return;
         }
 
+        // 삭제할 앱은 HDEL, 추가할 앱은 HSET으로 반영
         for (String appId : appsToDelete) {
-            String appField = BLOCK_APP_PREFIX + appId;
+            String appField = appFieldPrefix + appId;
             deleteConstraint(familyId, customerId, appField);
         }
 
         for (String appId : appsToAdd) {
-            String appField = BLOCK_APP_PREFIX + appId;
+            String appField = appFieldPrefix + appId;
             setConstraint(familyId, customerId, appField, "1");
         }
-
-        return true;
     }
 
-    private Set<String> loadBlockedApps(String constraintsKey) {
+    // Redis에서 현재 차단 앱 목록을 로드하는 헬퍼 메서드
+    private Set<String> loadBlockedApps(String constraintsKey, String appFieldPrefix) {
         Set<Object> fields = familyStringRedisTemplate.opsForHash().keys(constraintsKey);
         if (fields.isEmpty()) {
             return Set.of();
@@ -231,8 +184,8 @@ public class PolicyRedisServiceImpl implements PolicyRedisService {
 
         return fields.stream()
                 .map(String::valueOf)
-                .filter(field -> field.startsWith(BLOCK_APP_PREFIX))
-                .map(field -> field.substring(BLOCK_APP_PREFIX.length()))
+                .filter(field -> field.startsWith(appFieldPrefix))
+                .map(field -> field.substring(appFieldPrefix.length()))
                 .filter(appId -> !appId.isBlank())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
@@ -244,8 +197,7 @@ public class PolicyRedisServiceImpl implements PolicyRedisService {
         } catch (Exception e) {
             log.error(
                     "Failed to set policy constraint to Redis. familyId={},"
-                            + " customerId={}, field={}"
-                            + VALUE_LOG_SUFFIX,
+                            + " customerId={}, field={}, value={}",
                     familyId,
                     customerId,
                     logSanitizer.sanitize(policyKey),
@@ -278,28 +230,6 @@ public class PolicyRedisServiceImpl implements PolicyRedisService {
         } else {
             setConstraint(familyId, customerId, policyKey, newValue);
         }
-    }
-
-    private void logResult(
-            Long familyId, Long customerId, String policyKey, String newValue, String result) {
-        if ("APPLIED".equals(result)) {
-            log.info(
-                    "Updated customer constraint. familyId={}, customerId={}, field={}"
-                            + VALUE_LOG_SUFFIX,
-                    familyId,
-                    customerId,
-                    logSanitizer.sanitize(policyKey),
-                    logSanitizer.sanitize(newValue));
-            return;
-        }
-
-        log.info(
-                "Skipped customer constraint update. familyId={}, customerId={},"
-                        + " field={}, reason={}",
-                familyId,
-                customerId,
-                logSanitizer.sanitize(policyKey),
-                logSanitizer.sanitize(result));
     }
 
     private record NormalizedPolicyValue(
