@@ -93,8 +93,7 @@ public class PolicyConstraintValueNormalizer {
                         .filter(appId -> !appId.isBlank())
                         .collect(Collectors.toCollection(LinkedHashSet::new));
         if (apps.isEmpty()) {
-            log.warn("blockedApps is empty after filtering");
-            throw new ApplicationException(PolicyErrorCode.INVALID_POLICY_CONSTRAINT_VALUE);
+            log.debug("blockedApps is empty after filtering. All apps will be unblocked.");
         }
         return apps;
     }
