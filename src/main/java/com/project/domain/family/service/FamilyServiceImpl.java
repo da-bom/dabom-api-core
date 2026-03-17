@@ -10,8 +10,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.FamilyErrorCode;
+import com.project.domain.customer.repository.CustomerQuotaRepository;
+import com.project.domain.family.dto.request.AdminFamilyUpdateRequest;
 import com.project.domain.family.dto.request.FamilySearchRequest;
+import com.project.domain.family.dto.response.AdminFamilyUpdateResponse;
 import com.project.domain.family.entity.Family;
+import com.project.domain.family.entity.FamilyMember;
 import com.project.domain.family.model.FamilyDetail;
 import com.project.domain.family.model.FamilyMemberDetail;
 import com.project.domain.family.model.FamilyMemberInfo;
@@ -21,6 +25,9 @@ import com.project.domain.family.repository.FamilyQueryRepository;
 import com.project.domain.family.repository.FamilyRepository;
 import com.project.domain.family.repository.projection.FamilyUsageCustomerRow;
 import com.project.domain.family.util.FamilyUsageCalculator;
+import com.project.domain.policy.entity.PolicyAssignment;
+import com.project.domain.policy.enums.PolicyType;
+import com.project.domain.policy.repository.PolicyAssignmentRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -32,6 +39,8 @@ public class FamilyServiceImpl implements FamilyService {
     private final FamilyQueryRepository familyQueryRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final FamilyRepository familyRepository;
+    private final CustomerQuotaRepository customerQuotaRepository;
+    private final PolicyAssignmentRepository policyAssignmentRepository;
     private final Clock clock;
 
     @Override
@@ -109,6 +118,44 @@ public class FamilyServiceImpl implements FamilyService {
         Family family = getFamilyById(familyId);
         family.changeName(name);
         return family;
+    }
+
+    @Override
+    @Transactional
+    public AdminFamilyUpdateResponse updateFamilyByAdmin(
+            Long familyId, List<AdminFamilyUpdateRequest.MemberUpdate> members) {
+        getFamilyById(familyId);
+
+        LocalDate targetMonth = currentMonth();
+
+        for (AdminFamilyUpdateRequest.MemberUpdate update : members) {
+            Long customerId = update.customerId();
+
+            FamilyMember member =
+                    familyMemberRepository
+                            .findByFamilyIdAndCustomerIdAndDeletedAtIsNull(familyId, customerId)
+                            .orElseThrow(
+                                    () ->
+                                            new ApplicationException(
+                                                    FamilyErrorCode.FAMILY_MEMBER_NOT_FOUND));
+            member.changeRole(update.role());
+
+            customerQuotaRepository
+                    .findByFamilyIdAndCustomerIdAndCurrentMonthAndDeletedAtIsNull(
+                            familyId, customerId, targetMonth)
+                    .ifPresent(quota -> quota.changeMonthlyLimitBytes(update.monthlyLimitBytes()));
+
+            policyAssignmentRepository
+                    .findByTargetAndType(familyId, customerId, PolicyType.MONTHLY_LIMIT)
+                    .ifPresent(
+                            assignment -> {
+                                String newRules =
+                                        "{\"limitBytes\": " + update.monthlyLimitBytes() + "}";
+                                assignment.update(newRules, null, null);
+                            });
+        }
+
+        return new AdminFamilyUpdateResponse(familyId, members.size());
     }
 
     private LocalDate currentMonth() {

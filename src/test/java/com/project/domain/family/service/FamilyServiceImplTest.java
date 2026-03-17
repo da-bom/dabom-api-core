@@ -33,9 +33,11 @@ import com.project.domain.family.model.FamilyMemberDetail;
 import com.project.domain.family.model.FamilyMemberInfo;
 import com.project.domain.family.model.FamilyMemberSummary;
 import com.project.domain.family.model.FamilySearchResult;
+import com.project.domain.customer.repository.CustomerQuotaRepository;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.family.repository.FamilyQueryRepository;
 import com.project.domain.family.repository.FamilyRepository;
+import com.project.domain.policy.repository.PolicyAssignmentRepository;
 
 @ExtendWith(MockitoExtension.class)
 class FamilyServiceImplTest {
@@ -47,6 +49,8 @@ class FamilyServiceImplTest {
     @Mock private FamilyQueryRepository familyQueryRepository;
     @Mock private FamilyMemberRepository familyMemberRepository;
     @Mock private FamilyRepository familyRepository;
+    @Mock private CustomerQuotaRepository customerQuotaRepository;
+    @Mock private PolicyAssignmentRepository policyAssignmentRepository;
 
     private FamilyServiceImpl familyService;
 
@@ -57,6 +61,8 @@ class FamilyServiceImplTest {
                         familyQueryRepository,
                         familyMemberRepository,
                         familyRepository,
+                        customerQuotaRepository,
+                        policyAssignmentRepository,
                         FIXED_CLOCK);
     }
 
