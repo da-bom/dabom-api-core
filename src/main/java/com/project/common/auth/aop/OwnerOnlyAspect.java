@@ -11,9 +11,9 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.project.common.auth.AuthorizationExtractor;
 import com.project.common.auth.JwtTokenUtil;
+import com.project.common.auth.enums.RoleType;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.CustomerErrorCode;
-import com.project.domain.customer.enums.RoleType;
 
 import io.jsonwebtoken.Claims;
 

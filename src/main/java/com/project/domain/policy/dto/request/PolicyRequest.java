@@ -4,7 +4,7 @@ import java.util.Map;
 
 import jakarta.validation.constraints.NotNull;
 
-import com.project.domain.customer.enums.RoleType;
+import com.project.common.auth.enums.RoleType;
 import com.project.domain.policy.enums.PolicyType;
 
 import io.swagger.v3.oas.annotations.media.Schema;

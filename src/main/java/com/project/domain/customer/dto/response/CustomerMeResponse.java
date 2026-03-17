@@ -1,6 +1,6 @@
 package com.project.domain.customer.dto.response;
 
-import com.project.domain.customer.enums.RoleType;
+import com.project.common.auth.enums.RoleType;
 import com.project.domain.customer.model.CustomerMe;
 
 public record CustomerMeResponse(
