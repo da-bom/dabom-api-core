@@ -2,6 +2,7 @@ package com.project.domain.admin.controller;
 
 import jakarta.validation.Valid;
 
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -10,13 +11,17 @@ import org.springframework.web.bind.annotation.RestController;
 import com.project.common.api.response.ApiResponse;
 import com.project.common.api.response.TokenRefreshResponse;
 import com.project.common.auth.TokenRefreshResult;
+import com.project.common.auth.aop.AdminId;
+import com.project.common.auth.aop.AdminOnly;
 import com.project.domain.admin.dto.request.AdminRefreshRequest;
 import com.project.domain.admin.dto.request.AdminSignInRequest;
+import com.project.domain.admin.dto.response.AdminMeResponse;
 import com.project.domain.admin.service.AdminService;
 import com.project.domain.customer.dto.response.SignInResponse;
 import com.project.domain.customer.dto.response.SignUpResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import lombok.RequiredArgsConstructor;
@@ -52,6 +57,13 @@ public class AdminController {
             @Valid @RequestBody AdminRefreshRequest request) {
         TokenRefreshResult result = adminService.refreshToken(request.refreshToken());
         return ApiResponse.success(TokenRefreshResponse.from(result));
+    }
+
+    @GetMapping("/me")
+    @AdminOnly
+    @Operation(summary = "관리자 내 정보 조회", description = "로그인한 관리자의 기본 프로필 정보를 반환합니다.")
+    public ApiResponse<AdminMeResponse> getMe(@Parameter(hidden = true) @AdminId Long adminId) {
+        return ApiResponse.success(adminService.getMe(adminId));
     }
 
     @PostMapping("/logout")
