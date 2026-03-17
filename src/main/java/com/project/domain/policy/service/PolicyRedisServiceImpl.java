@@ -81,10 +81,7 @@ public class PolicyRedisServiceImpl implements PolicyRedisService {
 
         for (FamilyMemberRepository.FamilyMemberTargetProjection member : members) {
             processCustomerPolicyUpdate(
-                    member.getFamilyId(),
-                    member.getCustomerId(),
-                    type,
-                    normalizedPolicyValue);
+                    member.getFamilyId(), member.getCustomerId(), type, normalizedPolicyValue);
         }
 
         log.info(

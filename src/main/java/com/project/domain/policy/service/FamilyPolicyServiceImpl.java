@@ -71,9 +71,7 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
 
         // rules 객체를 JSON 문자열로 변환 (null 허용)
         String rulesJson =
-                rules == null
-                        ? null
-                        : policyConstraintValueNormalizer.rulesToJson(rules);
+                rules == null ? null : policyConstraintValueNormalizer.rulesToJson(rules);
         assignment.update(rulesJson, isActive, actorId);
 
         policyRedisService.syncToRedis(familyId, targetCustomerId, type, rules, isActive);
