@@ -114,7 +114,6 @@ class AdminDashboardServiceImplTest {
         stubCountQueries();
         mockHealthEndpoint("UP", "UP", "UP");
 
-        LocalDateTime blockedTime = LocalDateTime.of(2026, 3, 15, 10, 30, 0);
         CustomerQuota blocked =
                 CustomerQuota.builder()
                         .customerId(12346L)
