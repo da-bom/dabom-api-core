@@ -11,6 +11,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import com.project.common.auth.JwtTokenUtil;
 import com.project.common.auth.LoginInterceptor;
+import com.project.common.auth.aop.AdminArgumentResolver;
 import com.project.common.auth.aop.CustomerArgumentResolver;
 
 import lombok.RequiredArgsConstructor;
@@ -54,5 +55,6 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
         resolvers.add(new CustomerArgumentResolver(jwtTokenUtil));
+        resolvers.add(new AdminArgumentResolver(jwtTokenUtil));
     }
 }

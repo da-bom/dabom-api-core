@@ -23,11 +23,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.project.common.auth.enums.RoleType;
 import com.project.common.auth.model.AuthContext;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.MissionErrorCode;
 import com.project.domain.customer.entity.Customer;
-import com.project.domain.customer.enums.RoleType;
 import com.project.domain.customer.repository.CustomerRepository;
 import com.project.domain.mission.entity.MissionItem;
 import com.project.domain.mission.entity.MissionLog;

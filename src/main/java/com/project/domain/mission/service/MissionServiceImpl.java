@@ -13,11 +13,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.project.common.auth.enums.RoleType;
 import com.project.common.auth.model.AuthContext;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.MissionErrorCode;
 import com.project.domain.customer.entity.Customer;
-import com.project.domain.customer.enums.RoleType;
 import com.project.domain.customer.repository.CustomerRepository;
 import com.project.domain.family.entity.FamilyMember;
 import com.project.domain.family.repository.FamilyMemberRepository;

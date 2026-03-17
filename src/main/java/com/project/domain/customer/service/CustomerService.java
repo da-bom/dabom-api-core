@@ -6,6 +6,7 @@ import com.project.common.auth.model.AuthContext;
 import com.project.domain.customer.dto.request.CustomerSignInRequest;
 import com.project.domain.customer.dto.request.CustomerSignUpRequest;
 import com.project.domain.customer.dto.response.SignUpResponse;
+import com.project.domain.customer.model.CustomerMe;
 import com.project.domain.customer.model.MyPageInfo;
 
 public interface CustomerService {
@@ -16,4 +17,6 @@ public interface CustomerService {
     TokenRefreshResult refreshToken(String refreshToken);
 
     MyPageInfo getMyPageInfo(AuthContext authContext, int year, int month);
+
+    CustomerMe getMe(Long customerId);
 }

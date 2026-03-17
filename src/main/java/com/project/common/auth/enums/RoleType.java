@@ -1,4 +1,4 @@
-package com.project.domain.customer.enums;
+package com.project.common.auth.enums;
 
 public enum RoleType {
     // 관리자, 가족 대표, 가족 구성원

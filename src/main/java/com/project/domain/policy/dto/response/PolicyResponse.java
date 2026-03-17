@@ -6,7 +6,7 @@ import java.util.Map;
 
 import org.springframework.data.domain.Page;
 
-import com.project.domain.customer.enums.RoleType;
+import com.project.common.auth.enums.RoleType;
 import com.project.domain.policy.entity.Policy;
 import com.project.domain.policy.enums.PolicyType;
 

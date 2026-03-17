@@ -6,12 +6,12 @@ import java.util.Map;
 import org.springframework.stereotype.Component;
 
 import com.project.common.TestFixtureBuilder;
+import com.project.common.auth.enums.RoleType;
 import com.project.common.fixtures.CustomerFixtures;
 import com.project.common.fixtures.FamilyMemberFixtures;
 import com.project.common.fixtures.PolicyAssignmentFixtures;
 import com.project.common.fixtures.PolicyFixtures;
 import com.project.domain.customer.entity.Customer;
-import com.project.domain.customer.enums.RoleType;
 import com.project.domain.family.entity.FamilyMember;
 import com.project.domain.policy.entity.Policy;
 import com.project.domain.policy.entity.PolicyAssignment;

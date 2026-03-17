@@ -21,12 +21,12 @@ import com.project.common.auth.JwtTokenUtil;
 import com.project.common.auth.PasswordHash;
 import com.project.common.auth.SignInResult;
 import com.project.common.auth.TokenRefreshResult;
+import com.project.common.auth.enums.RoleType;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.AdminErrorCode;
 import com.project.domain.admin.entity.Admin;
 import com.project.domain.admin.repository.AdminRepository;
 import com.project.domain.customer.dto.response.SignUpResponse;
-import com.project.domain.customer.enums.RoleType;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -263,5 +263,43 @@ class AdminServiceImplTest {
                         e ->
                                 assertThat(((ApplicationException) e).getCode())
                                         .isEqualTo(AdminErrorCode.ADMIN_REFRESH_TOKEN_INVALID));
+    }
+
+    @Test
+    @DisplayName("getMe - 정상 요청이면 관리자 정보를 반환한다")
+    void getMe_validAdminId_returnsAdmin() {
+        // given
+        Admin admin =
+                Admin.builder()
+                        .id(1L)
+                        .email("admin@test.com")
+                        .name("ADMIN")
+                        .passwordHash("hashed-pw")
+                        .build();
+
+        given(adminRepository.findById(1L)).willReturn(Optional.of(admin));
+
+        // when
+        Admin result = adminService.getMe(1L);
+
+        // then
+        assertThat(result.getId()).isEqualTo(1L);
+        assertThat(result.getEmail()).isEqualTo("admin@test.com");
+        assertThat(result.getName()).isEqualTo("ADMIN");
+    }
+
+    @Test
+    @DisplayName("getMe - 존재하지 않는 관리자이면 예외를 던진다")
+    void getMe_adminNotFound_throwsException() {
+        // given
+        given(adminRepository.findById(999L)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> adminService.getMe(999L))
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(
+                        e ->
+                                assertThat(((ApplicationException) e).getCode())
+                                        .isEqualTo(AdminErrorCode.ADMIN_NOT_FOUND));
     }
 }
