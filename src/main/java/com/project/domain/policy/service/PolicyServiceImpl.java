@@ -8,7 +8,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.PolicyErrorCode;
 import com.project.domain.policy.dto.request.PolicyRequest;
@@ -26,8 +25,7 @@ public class PolicyServiceImpl implements PolicyService {
 
     private final PolicyRepository policyRepository;
     private final PolicyAssignmentRepository policyAssignmentRepository;
-    private final ObjectMapper objectMapper;
-
+    private final PolicyConstraintValueNormalizer policyConstraintValueNormalizer;
     private final PolicyRedisService policyRedisService;
 
     // 정책 상세 정보 조회
@@ -115,7 +113,7 @@ public class PolicyServiceImpl implements PolicyService {
                 policy.getDefaultRules() == null
                         ? Collections.emptyMap()
                         : policy.getDefaultRules();
-        String newRules = PolicyConstraintValueNormalizer.rulesToJson(objectMapper, safeRules);
+        String newRules = policyConstraintValueNormalizer.rulesToJson(safeRules);
 
         policyAssignmentRepository.bulkUpdateAssignments(
                 policy.getId(), newRules, policy.isActive());

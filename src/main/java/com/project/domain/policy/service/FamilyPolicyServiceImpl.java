@@ -8,7 +8,6 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.common.auth.enums.RoleType;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.FamilyErrorCode;
@@ -31,7 +30,7 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
     private final PolicyAssignmentRepository policyAssignmentRepository;
     private final PolicyQueryRepository policyQueryRepository;
     private final FamilyMemberRepository familyMemberRepository;
-    private final ObjectMapper objectMapper;
+    private final PolicyConstraintValueNormalizer policyConstraintValueNormalizer;
     private final PolicyRedisService policyRedisService;
     private final Clock clock;
 
@@ -74,7 +73,7 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
         String rulesJson =
                 rules == null
                         ? null
-                        : PolicyConstraintValueNormalizer.rulesToJson(objectMapper, rules);
+                        : policyConstraintValueNormalizer.rulesToJson(rules);
         assignment.update(rulesJson, isActive, actorId);
 
         policyRedisService.syncToRedis(familyId, targetCustomerId, type, rules, isActive);
