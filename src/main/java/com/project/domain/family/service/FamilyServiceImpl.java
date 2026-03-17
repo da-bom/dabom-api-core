@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.FamilyErrorCode;
+import com.project.common.exception.code.PolicyErrorCode;
 import com.project.domain.customer.repository.CustomerQuotaRepository;
 import com.project.domain.family.dto.request.AdminFamilyUpdateRequest;
 import com.project.domain.family.dto.request.FamilySearchRequest;
@@ -142,16 +143,21 @@ public class FamilyServiceImpl implements FamilyService {
             customerQuotaRepository
                     .findByFamilyIdAndCustomerIdAndCurrentMonthAndDeletedAtIsNull(
                             familyId, customerId, targetMonth)
-                    .ifPresent(quota -> quota.changeMonthlyLimitBytes(update.monthlyLimitBytes()));
+                    .orElseThrow(
+                            () ->
+                                    new ApplicationException(
+                                            FamilyErrorCode.FAMILY_MEMBER_QUOTA_NOT_FOUND))
+                    .changeMonthlyLimitBytes(update.monthlyLimitBytes());
 
-            policyAssignmentRepository
-                    .findByTargetAndType(familyId, customerId, PolicyType.MONTHLY_LIMIT)
-                    .ifPresent(
-                            assignment -> {
-                                String newRules =
-                                        "{\"limitBytes\": " + update.monthlyLimitBytes() + "}";
-                                assignment.update(newRules, null, null);
-                            });
+            PolicyAssignment assignment =
+                    policyAssignmentRepository
+                            .findByTargetAndType(familyId, customerId, PolicyType.MONTHLY_LIMIT)
+                            .orElseThrow(
+                                    () ->
+                                            new ApplicationException(
+                                                    PolicyErrorCode.POLICY_ASSIGNMENT_NOT_FOUND));
+            String newRules = String.format("{\"limitBytes\": %d}", update.monthlyLimitBytes());
+            assignment.update(newRules, null, null);
         }
 
         return members.size();
