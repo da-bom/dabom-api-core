@@ -274,7 +274,7 @@ class FamilyServiceImplTest {
                         .build();
 
         given(familyRepository.findById(familyId)).willReturn(Optional.of(family));
-        given(familyMemberRepository.findAllByFamilyId(familyId))
+        given(familyMemberRepository.findAllByFamilyIdAndDeletedAtIsNull(familyId))
                 .willReturn(List.of(member));
         given(customerQuotaRepository.findAllByFamilyIdAndCurrentMonthAndDeletedAtIsNull(
                         familyId, TARGET_MONTH))
@@ -319,7 +319,7 @@ class FamilyServiceImplTest {
         Family family = Family.builder().name("다봄 가족").createdById(1L).build();
 
         given(familyRepository.findById(familyId)).willReturn(Optional.of(family));
-        given(familyMemberRepository.findAllByFamilyId(familyId))
+        given(familyMemberRepository.findAllByFamilyIdAndDeletedAtIsNull(familyId))
                 .willReturn(List.of());
         given(customerQuotaRepository.findAllByFamilyIdAndCurrentMonthAndDeletedAtIsNull(
                         familyId, TARGET_MONTH))

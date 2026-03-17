@@ -12,6 +12,8 @@ import com.project.domain.family.entity.FamilyMember;
 public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long> {
     List<FamilyMember> findAllByFamilyId(Long familyId);
 
+    List<FamilyMember> findAllByFamilyIdAndDeletedAtIsNull(Long familyId);
+
     Optional<FamilyMember> findByCustomerId(Long customerId);
 
     @Query("select f.role from FamilyMember f where f.customerId = :customerId")

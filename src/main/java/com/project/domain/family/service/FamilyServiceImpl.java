@@ -41,6 +41,8 @@ import lombok.RequiredArgsConstructor;
 @Transactional(readOnly = true)
 public class FamilyServiceImpl implements FamilyService {
 
+    private static final String MONTHLY_LIMIT_RULE_FORMAT = "{\"limitBytes\": %d}";
+
     private final FamilyQueryRepository familyQueryRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final FamilyRepository familyRepository;
@@ -134,7 +136,7 @@ public class FamilyServiceImpl implements FamilyService {
         LocalDate targetMonth = currentMonth();
 
         Map<Long, FamilyMember> memberMap =
-                familyMemberRepository.findAllByFamilyId(familyId).stream()
+                familyMemberRepository.findAllByFamilyIdAndDeletedAtIsNull(familyId).stream()
                         .collect(
                                 Collectors.toMap(
                                         FamilyMember::getCustomerId, Function.identity()));
@@ -180,7 +182,7 @@ public class FamilyServiceImpl implements FamilyService {
                                     () ->
                                             new ApplicationException(
                                                     PolicyErrorCode.POLICY_ASSIGNMENT_NOT_FOUND));
-            String newRules = String.format("{\"limitBytes\": %d}", update.monthlyLimitBytes());
+            String newRules = String.format(MONTHLY_LIMIT_RULE_FORMAT, update.monthlyLimitBytes());
             assignment.update(newRules, null, null);
         }
 
