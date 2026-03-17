@@ -4,18 +4,16 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 
 import org.springframework.boot.actuate.health.HealthComponent;
 import org.springframework.boot.actuate.health.HealthEndpoint;
 import org.springframework.boot.actuate.health.Status;
-import org.springframework.boot.actuate.health.SystemHealth;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.project.domain.admin.dto.response.AdminDashboardResponse;
-import com.project.domain.admin.dto.response.AdminDashboardResponse.RecentBlockResponse;
-import com.project.domain.admin.dto.response.AdminDashboardResponse.SystemHealthResponse;
+import com.project.domain.admin.model.AdminDashboard;
 import com.project.domain.customer.entity.CustomerQuota;
 import com.project.domain.customer.repository.CustomerQuotaRepository;
 import com.project.domain.customer.repository.CustomerRepository;
@@ -39,7 +37,7 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
     private final Clock clock;
 
     @Override
-    public AdminDashboardResponse getDashboard() {
+    public AdminDashboard getDashboard() {
         LocalDate today = LocalDate.now(clock);
         LocalDate currentMonth = today.withDayOfMonth(1);
         LocalDateTime now = LocalDateTime.now(clock);
@@ -62,11 +60,11 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
                         oneMinuteAgo);
         long currentTps = eventsLastMinute / 60;
 
-        SystemHealthResponse systemHealth = buildSystemHealth();
+        AdminDashboard.SystemHealth systemHealth = buildSystemHealth();
 
-        List<RecentBlockResponse> recentBlocks = buildRecentBlocks(currentMonth);
+        List<AdminDashboard.RecentBlock> recentBlocks = buildRecentBlocks(currentMonth);
 
-        return new AdminDashboardResponse(
+        return new AdminDashboard(
                 totalFamilies,
                 activeFamilies,
                 totalUsers,
@@ -77,15 +75,17 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
                 recentBlocks);
     }
 
-    private SystemHealthResponse buildSystemHealth() {
-        SystemHealth health = (SystemHealth) healthEndpoint.health();
-        return new SystemHealthResponse(
+    private AdminDashboard.SystemHealth buildSystemHealth() {
+        org.springframework.boot.actuate.health.SystemHealth health =
+                (org.springframework.boot.actuate.health.SystemHealth) healthEndpoint.health();
+        return new AdminDashboard.SystemHealth(
                 getComponentStatus(health, "redis"),
                 getComponentStatus(health, "kafka"),
                 getComponentStatus(health, "db"));
     }
 
-    private String getComponentStatus(SystemHealth health, String componentName) {
+    private String getComponentStatus(
+            org.springframework.boot.actuate.health.SystemHealth health, String componentName) {
         HealthComponent component = health.getComponents().get(componentName);
         if (component == null) {
             return "UNKNOWN";
@@ -94,7 +94,7 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
         return status.getCode();
     }
 
-    private List<RecentBlockResponse> buildRecentBlocks(LocalDate currentMonth) {
+    private List<AdminDashboard.RecentBlock> buildRecentBlocks(LocalDate currentMonth) {
         List<CustomerQuota> blocked =
                 customerQuotaRepository
                         .findTop10ByIsBlockedTrueAndCurrentMonthAndDeletedAtIsNullOrderByUpdatedAtDesc(
@@ -103,13 +103,13 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
         return blocked.stream()
                 .map(
                         q ->
-                                new RecentBlockResponse(
+                                new AdminDashboard.RecentBlock(
                                         q.getFamilyId(),
                                         q.getCustomerId(),
                                         q.getBlockReason(),
                                         q.getUpdatedAt() != null
                                                 ? q.getUpdatedAt()
-                                                        .atZone(java.time.ZoneId.systemDefault())
+                                                        .atZone(ZoneId.systemDefault())
                                                         .toInstant()
                                                 : null))
                 .toList();

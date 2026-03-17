@@ -81,6 +81,7 @@ public class AdminController {
     @Operation(summary = "관리자 대시보드", description = "시스템 전체 통계를 조회합니다.")
     public ApiResponse<AdminDashboardResponse> getDashboard(
             @Parameter(hidden = true) @AdminId Long adminId) {
-        return ApiResponse.success(adminDashboardService.getDashboard());
+        return ApiResponse.success(
+                AdminDashboardResponse.from(adminDashboardService.getDashboard()));
     }
 }

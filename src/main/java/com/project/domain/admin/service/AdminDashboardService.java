@@ -1,7 +1,7 @@
 package com.project.domain.admin.service;
 
-import com.project.domain.admin.dto.response.AdminDashboardResponse;
+import com.project.domain.admin.model.AdminDashboard;
 
 public interface AdminDashboardService {
-    AdminDashboardResponse getDashboard();
+    AdminDashboard getDashboard();
 }
