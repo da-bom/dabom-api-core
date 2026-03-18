@@ -188,20 +188,13 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
             boolean effectiveIsActive,
             Long actorId) {
         CustomerQuota customerQuota = getCurrentMonthCustomerQuota(familyId, targetCustomerId);
-        long newLimitBytes;
-        try {
-            newLimitBytes =
-                    Long.parseLong(
-                            policyConstraintValueNormalizer.normalizeValue(
-                                    PolicyType.MONTHLY_LIMIT, effectiveRules));
-        } catch (NumberFormatException e) {
-            throw new ApplicationException(PolicyErrorCode.INVALID_POLICY_CONSTRAINT_VALUE);
-        }
+        String normalizedLimitValue =
+                policyConstraintValueNormalizer.normalizeValue(
+                        PolicyType.MONTHLY_LIMIT, effectiveRules);
+        Long newLimitBytes = parseMonthlyLimitBytes(normalizedLimitValue);
 
         customerQuota.changeMonthlyLimitBytes(newLimitBytes);
-        if (effectiveIsActive) {
-            customerQuota.blockIfLimitExceeded(QUOTA_EXCEEDED_REASON);
-        }
+        customerQuota.refreshQuotaExceededBlock(effectiveIsActive, QUOTA_EXCEEDED_REASON);
 
         notificationOutboxPublisher.enqueueAndPublishAfterCommit(
                 new NotificationPayload(
@@ -288,7 +281,21 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
                         () -> new ApplicationException(CustomerErrorCode.CUSTOMER_QUOTA_NOT_FOUND));
     }
 
-    private String buildQuotaUpdatedMessage(long newLimitBytes) {
+    private Long parseMonthlyLimitBytes(String normalizedLimitValue) {
+        if (normalizedLimitValue == null) {
+            return null;
+        }
+        try {
+            return Long.parseLong(normalizedLimitValue);
+        } catch (NumberFormatException e) {
+            throw new ApplicationException(PolicyErrorCode.INVALID_POLICY_CONSTRAINT_VALUE);
+        }
+    }
+
+    private String buildQuotaUpdatedMessage(Long newLimitBytes) {
+        if (newLimitBytes == null) {
+            return "개인 데이터 사용 한도가 무제한으로 변경되었어요.";
+        }
         double limitInGb = newLimitBytes / 1024d / 1024d / 1024d;
         return "개인 데이터 사용 한도가 %.2fGB로 변경되었어요.".formatted(limitInGb);
     }
@@ -298,7 +305,7 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
             Long targetCustomerId,
             boolean effectiveIsActive,
             Long actorId,
-            long newLimitBytes) {
+            Long newLimitBytes) {
         Map<String, Object> data =
                 new LinkedHashMap<>(
                         buildPolicyNotificationData(

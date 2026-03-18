@@ -87,6 +87,18 @@ public class CustomerQuota extends BaseEntity {
         }
     }
 
+    public void refreshQuotaExceededBlock(boolean enforceLimit, String exceededReason) {
+        if (enforceLimit && isLimitExceeded()) {
+            block(exceededReason);
+            return;
+        }
+
+        if (exceededReason.equals(blockReason)) {
+            this.isBlocked = false;
+            this.blockReason = null;
+        }
+    }
+
     public boolean unblockIfWithinLimit() {
         if (isLimitExceeded()) {
             return false;
