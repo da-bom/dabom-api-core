@@ -194,7 +194,7 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
             throw new ApplicationException(PolicyErrorCode.INVALID_POLICY_CONSTRAINT_VALUE);
         }
 
-        customerQuota.updateMonthlyLimitBytes(newLimitBytes);
+        customerQuota.changeMonthlyLimitBytes(newLimitBytes);
         if (effectiveIsActive) {
             customerQuota.blockIfLimitExceeded(QUOTA_EXCEEDED_REASON);
         }
