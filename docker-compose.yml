@@ -11,7 +11,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: jdbc:mysql://mysql:3306/${DATABASE_NAME:-app_db}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+      DATABASE_URL: jdbc:mysql://mysql:3310/${DATABASE_NAME:-app_db}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
       REDIS_HOST: redis
       REDIS_PORT: 6379
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092

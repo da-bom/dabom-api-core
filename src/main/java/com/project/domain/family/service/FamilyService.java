@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 
+import com.project.domain.family.dto.request.AdminFamilyUpdateRequest;
 import com.project.domain.family.dto.request.FamilySearchRequest;
 import com.project.domain.family.entity.Family;
 import com.project.domain.family.model.FamilyDetail;
@@ -26,4 +27,6 @@ public interface FamilyService {
     List<FamilyMemberInfo> getFamilyMembers(Long customerId);
 
     Family updateFamilyName(Long customerId, String name);
+
+    int updateFamilyByAdmin(Long familyId, List<AdminFamilyUpdateRequest.MemberUpdate> members);
 }

@@ -40,6 +40,14 @@ public class PolicyConstraintValueNormalizer {
         };
     }
 
+    public String serializeMonthlyLimitRule(Long limitBytes) {
+        try {
+            return objectMapper.writeValueAsString(Map.of(LIMIT_BYTES, limitBytes));
+        } catch (JsonProcessingException e) {
+            throw new ApplicationException(PolicyErrorCode.POLICY_RULES_SERIALIZATION_FAILED);
+        }
+    }
+
     public String rulesToJson(Map<String, Object> rules) {
         try {
             return objectMapper.writeValueAsString(rules);

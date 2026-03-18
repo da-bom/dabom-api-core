@@ -184,10 +184,15 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
             boolean effectiveIsActive,
             Long actorId) {
         CustomerQuota customerQuota = getCurrentMonthCustomerQuota(familyId, targetCustomerId);
-        long newLimitBytes =
-                Long.parseLong(
-                        policyConstraintValueNormalizer.normalizeValue(
-                                PolicyType.MONTHLY_LIMIT, effectiveRules));
+        long newLimitBytes;
+        try {
+            newLimitBytes =
+                    Long.parseLong(
+                            policyConstraintValueNormalizer.normalizeValue(
+                                    PolicyType.MONTHLY_LIMIT, effectiveRules));
+        } catch (NumberFormatException e) {
+            throw new ApplicationException(PolicyErrorCode.INVALID_POLICY_CONSTRAINT_VALUE);
+        }
 
         customerQuota.updateMonthlyLimitBytes(newLimitBytes);
         if (effectiveIsActive) {

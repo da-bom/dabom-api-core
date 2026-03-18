@@ -14,6 +14,11 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
     @Query("select fm from FamilyMember fm where fm.familyId = :familyId and fm.deletedAt is null")
     List<FamilyMember> findAllByFamilyId(@Param("familyId") Long familyId);
 
+    List<FamilyMember> findAllByFamilyIdAndDeletedAtIsNull(Long familyId);
+
+    List<FamilyMember> findAllByFamilyIdAndCustomerIdInAndDeletedAtIsNull(
+            Long familyId, List<Long> customerIds);
+
     @Query(
             "select fm from FamilyMember fm where fm.customerId = :customerId and fm.deletedAt is"
                     + " null")
@@ -42,6 +47,11 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
               and owner.role = com.project.common.auth.enums.RoleType.OWNER
             """)
     List<Long> findActiveOwnerCustomerIdsByCustomerId(@Param("customerId") Long customerId);
+
+    Optional<FamilyMember> findByFamilyIdAndCustomerIdAndDeletedAtIsNull(
+            Long familyId, Long customerId);
+
+    boolean existsByCustomerId(Long customerId);
 
     interface FamilyMemberTargetProjection {
         Long getFamilyId();

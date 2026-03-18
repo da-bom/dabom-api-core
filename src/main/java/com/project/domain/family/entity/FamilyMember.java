@@ -45,6 +45,10 @@ public class FamilyMember extends BaseEntity {
         this.role = role;
     }
 
+    public void changeRole(RoleType role) {
+        this.role = role;
+    }
+
     public boolean isOwner() {
         return RoleType.OWNER.equals(this.role);
     }

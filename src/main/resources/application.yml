@@ -10,7 +10,7 @@ spring:
     name: backend
 
   datasource:
-    url: ${DATABASE_URL:jdbc:mysql://localhost:13306/app_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+    url: ${DATABASE_URL:jdbc:mysql://localhost:3310/app_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
     username: ${DATABASE_USER:app_user}
     password: ${DATABASE_PASSWORD:app_password}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -31,7 +31,7 @@ spring:
     baseline-version: 12
 
   jwt:
-    secret-key: ${JWT_SECRET_KEY:changeme}
+    secret-key: ${JWT_SECRET_KEY:6c8b6817-828b-418c-adfa-edcc993cd0c9}
     token:
       access-expiration-time: ${JWT_ACCESS_TOKEN_EXPIRES_IN:720000000}
       refresh-expiration-time: ${JWT_REFRESH_TOKEN_EXPIRES_IN:1209600000}
