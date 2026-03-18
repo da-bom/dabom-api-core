@@ -1,7 +1,10 @@
 package com.project.domain.family.controller;
 
+import jakarta.validation.Valid;
+
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -10,7 +13,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.project.common.api.response.ApiResponse;
 import com.project.common.auth.aop.AdminOnly;
+import com.project.domain.family.dto.request.AdminFamilyUpdateRequest;
 import com.project.domain.family.dto.request.FamilySearchRequest;
+import com.project.domain.family.dto.response.AdminFamilyUpdateResponse;
 import com.project.domain.family.dto.response.FamilyDetailResponse;
 import com.project.domain.family.dto.response.FamilySearchResponse;
 import com.project.domain.family.model.FamilyDetail;
@@ -48,5 +53,15 @@ public class AdminFamilyController {
             @Parameter(description = "가족 ID", required = true) @PathVariable Long familyId) {
         FamilyDetail familyDetail = familyService.getFamilyDetail(familyId);
         return ApiResponse.success(FamilyDetailResponse.from(familyDetail));
+    }
+
+    @PatchMapping("/{familyId}")
+    @AdminOnly
+    @Operation(summary = "가족 구성원 권한/한도 수정", description = "구성원의 역할과 데이터 한도를 일괄 수정합니다.")
+    public ApiResponse<AdminFamilyUpdateResponse> updateFamily(
+            @Parameter(description = "가족 ID", required = true) @PathVariable Long familyId,
+            @Valid @RequestBody AdminFamilyUpdateRequest request) {
+        int updatedCount = familyService.updateFamilyByAdmin(familyId, request.members());
+        return ApiResponse.success(new AdminFamilyUpdateResponse(familyId, updatedCount));
     }
 }

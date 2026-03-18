@@ -23,11 +23,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.common.auth.enums.RoleType;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.FamilyErrorCode;
+import com.project.domain.customer.entity.CustomerQuota;
+import com.project.domain.customer.repository.CustomerQuotaRepository;
+import com.project.domain.family.dto.request.AdminFamilyUpdateRequest;
 import com.project.domain.family.dto.request.FamilySearchRequest;
 import com.project.domain.family.entity.Family;
+import com.project.domain.family.entity.FamilyMember;
 import com.project.domain.family.model.FamilyDetail;
 import com.project.domain.family.model.FamilyMemberDetail;
 import com.project.domain.family.model.FamilyMemberInfo;
@@ -36,6 +41,10 @@ import com.project.domain.family.model.FamilySearchResult;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.family.repository.FamilyQueryRepository;
 import com.project.domain.family.repository.FamilyRepository;
+import com.project.domain.policy.entity.PolicyAssignment;
+import com.project.domain.policy.enums.PolicyType;
+import com.project.domain.policy.repository.PolicyAssignmentRepository;
+import com.project.domain.policy.service.helper.PolicyConstraintValueNormalizer;
 
 @ExtendWith(MockitoExtension.class)
 class FamilyServiceImplTest {
@@ -47,6 +56,11 @@ class FamilyServiceImplTest {
     @Mock private FamilyQueryRepository familyQueryRepository;
     @Mock private FamilyMemberRepository familyMemberRepository;
     @Mock private FamilyRepository familyRepository;
+    @Mock private CustomerQuotaRepository customerQuotaRepository;
+    @Mock private PolicyAssignmentRepository policyAssignmentRepository;
+
+    private final PolicyConstraintValueNormalizer policyConstraintValueNormalizer =
+            new PolicyConstraintValueNormalizer(new ObjectMapper());
 
     private FamilyServiceImpl familyService;
 
@@ -57,6 +71,9 @@ class FamilyServiceImplTest {
                         familyQueryRepository,
                         familyMemberRepository,
                         familyRepository,
+                        customerQuotaRepository,
+                        policyAssignmentRepository,
+                        policyConstraintValueNormalizer,
                         FIXED_CLOCK);
     }
 
@@ -228,5 +245,117 @@ class FamilyServiceImplTest {
                         exception ->
                                 assertThat(((ApplicationException) exception).getCode())
                                         .isEqualTo(FamilyErrorCode.FAMILY_NOT_FOUND));
+    }
+
+    @Test
+    @DisplayName("updateFamilyByAdmin - 구성원 역할과 데이터 한도를 일괄 수정한다")
+    void updateFamilyByAdmin_validRequest_updatesRoleAndQuota() {
+        Long familyId = 100L;
+        Long customerId = 1L;
+        Family family = Family.builder().name("다봄 가족").createdById(customerId).build();
+        FamilyMember member =
+                FamilyMember.builder()
+                        .familyId(familyId)
+                        .customerId(customerId)
+                        .role(RoleType.MEMBER)
+                        .build();
+        CustomerQuota quota =
+                CustomerQuota.builder()
+                        .familyId(familyId)
+                        .customerId(customerId)
+                        .monthlyLimitBytes(10_000L)
+                        .monthlyUsedBytes(0L)
+                        .currentMonth(TARGET_MONTH)
+                        .build();
+        PolicyAssignment assignment =
+                PolicyAssignment.builder()
+                        .familyId(familyId)
+                        .targetCustomerId(customerId)
+                        .policyId(1L)
+                        .rules("{\"limitBytes\": 10000}")
+                        .isActive(true)
+                        .build();
+
+        List<Long> customerIds = List.of(customerId);
+
+        given(familyRepository.findById(familyId)).willReturn(Optional.of(family));
+        given(
+                        familyMemberRepository.findAllByFamilyIdAndCustomerIdInAndDeletedAtIsNull(
+                                familyId, customerIds))
+                .willReturn(List.of(member));
+        given(
+                        customerQuotaRepository
+                                .findAllByFamilyIdAndCustomerIdInAndCurrentMonthAndDeletedAtIsNull(
+                                        familyId, customerIds, TARGET_MONTH))
+                .willReturn(List.of(quota));
+        given(
+                        policyAssignmentRepository.findAllByFamilyIdAndCustomerIdsAndType(
+                                familyId, customerIds, PolicyType.MONTHLY_LIMIT))
+                .willReturn(List.of(assignment));
+
+        List<AdminFamilyUpdateRequest.MemberUpdate> members =
+                List.of(
+                        new AdminFamilyUpdateRequest.MemberUpdate(
+                                customerId, RoleType.OWNER, 50_000L));
+
+        int result = familyService.updateFamilyByAdmin(familyId, members);
+
+        assertThat(result).isEqualTo(1);
+        assertThat(member.getRole()).isEqualTo(RoleType.OWNER);
+        assertThat(quota.getMonthlyLimitBytes()).isEqualTo(50_000L);
+        assertThat(assignment.getRules()).isEqualTo("{\"limitBytes\":50000}");
+    }
+
+    @Test
+    @DisplayName("updateFamilyByAdmin - 가족이 없으면 예외를 던진다")
+    void updateFamilyByAdmin_familyNotFound_throwsException() {
+        Long familyId = 9_999L;
+        given(familyRepository.findById(familyId)).willReturn(Optional.empty());
+
+        List<AdminFamilyUpdateRequest.MemberUpdate> members =
+                List.of(new AdminFamilyUpdateRequest.MemberUpdate(1L, RoleType.OWNER, 50_000L));
+
+        assertThatThrownBy(() -> familyService.updateFamilyByAdmin(familyId, members))
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(
+                        e ->
+                                assertThat(((ApplicationException) e).getCode())
+                                        .isEqualTo(FamilyErrorCode.FAMILY_NOT_FOUND));
+    }
+
+    @Test
+    @DisplayName("updateFamilyByAdmin - 구성원이 없으면 예외를 던진다")
+    void updateFamilyByAdmin_memberNotFound_throwsException() {
+        Long familyId = 100L;
+        Long customerId = 9_999L;
+        Family family = Family.builder().name("다봄 가족").createdById(1L).build();
+        List<Long> customerIds = List.of(customerId);
+
+        given(familyRepository.findById(familyId)).willReturn(Optional.of(family));
+        given(
+                        familyMemberRepository.findAllByFamilyIdAndCustomerIdInAndDeletedAtIsNull(
+                                familyId, customerIds))
+                .willReturn(List.of());
+        given(
+                        customerQuotaRepository
+                                .findAllByFamilyIdAndCustomerIdInAndCurrentMonthAndDeletedAtIsNull(
+                                        familyId, customerIds, TARGET_MONTH))
+                .willReturn(List.of());
+        given(
+                        policyAssignmentRepository.findAllByFamilyIdAndCustomerIdsAndType(
+                                familyId, customerIds, PolicyType.MONTHLY_LIMIT))
+                .willReturn(List.of());
+
+        List<AdminFamilyUpdateRequest.MemberUpdate> members =
+                List.of(
+                        new AdminFamilyUpdateRequest.MemberUpdate(
+                                customerId, RoleType.OWNER, 50_000L));
+
+        assertThatThrownBy(() -> familyService.updateFamilyByAdmin(familyId, members))
+                .isInstanceOf(ApplicationException.class)
+                .satisfies(
+                        e ->
+                                assertThat(((ApplicationException) e).getCode())
+                                        .isEqualTo(FamilyErrorCode.FAMILY_MEMBER_NOT_FOUND));
     }
 }
