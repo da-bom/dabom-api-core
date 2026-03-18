@@ -53,7 +53,7 @@ public class AdminController {
     @Operation(summary = "관리자 회원가입", description = "관리자 이메일/비밀번호로 회원가입합니다.")
     public ApiResponse<SignUpResponse> signUp(
             @Valid @RequestBody AdminSignInRequest signInRequest) {
-        return ApiResponse.success(
+        return ApiResponse.created(
                 adminService.signUp(signInRequest.email(), signInRequest.password()));
     }
 

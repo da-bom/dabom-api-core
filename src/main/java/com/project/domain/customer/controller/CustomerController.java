@@ -54,7 +54,7 @@ public class CustomerController {
     @Operation(summary = "사용자 회원가입", description = "사용자 이메일/비밀번호로 회원가입합니다.")
     public ApiResponse<SignUpResponse> signUp(
             @Valid @RequestBody CustomerSignUpRequest requestDto) {
-        return ApiResponse.success(customerService.signUp(requestDto));
+        return ApiResponse.created(customerService.signUp(requestDto));
     }
 
     @PostMapping("/refresh")
