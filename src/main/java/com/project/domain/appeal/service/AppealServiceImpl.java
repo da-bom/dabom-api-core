@@ -226,14 +226,7 @@ public class AppealServiceImpl implements AppealService {
 
         List<Long> ownerCustomerIds =
                 familyMemberRepository.findActiveOwnerCustomerIdsByCustomerId(auth.customerId());
-        String requesterName =
-                customerRepository
-                        .findById(auth.customerId())
-                        .orElseThrow(
-                                () ->
-                                        new ApplicationException(
-                                                CustomerErrorCode.CUSTOMER_NOT_FOUND))
-                        .getName();
+        String requesterName = getCustomerNameOrThrow(auth.customerId());
 
         PolicyType appealPolicyType = resolvePolicyType(appeal);
         if (appealPolicyType == null) {
@@ -449,14 +442,7 @@ public class AppealServiceImpl implements AppealService {
         List<Long> ownerCustomerIds =
                 familyMemberRepository.findActiveOwnerCustomerIdsByCustomerId(auth.customerId());
 
-        String requesterName =
-                customerRepository
-                        .findById(auth.customerId())
-                        .orElseThrow(
-                                () ->
-                                        new ApplicationException(
-                                                CustomerErrorCode.CUSTOMER_NOT_FOUND))
-                        .getName();
+        String requesterName = getCustomerNameOrThrow(auth.customerId());
 
         for (Long ownerId : ownerCustomerIds) {
             NotificationPayload payload =
@@ -689,6 +675,13 @@ public class AppealServiceImpl implements AppealService {
         if (!member.getFamilyId().equals(familyId)) {
             throw new ApplicationException(AppealErrorCode.APPEAL_FORBIDDEN);
         }
+    }
+
+    private String getCustomerNameOrThrow(Long customerId) {
+        return customerRepository
+                .findById(customerId)
+                .orElseThrow(() -> new ApplicationException(CustomerErrorCode.CUSTOMER_NOT_FOUND))
+                .getName();
     }
 
     private AppealStatus parseRespondAction(String action) {
