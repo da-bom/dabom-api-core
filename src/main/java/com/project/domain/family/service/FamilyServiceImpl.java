@@ -202,10 +202,7 @@ public class FamilyServiceImpl implements FamilyService {
     }
 
     private <T> Map<Long, T> toEntityMap(List<T> entities, Function<T, Long> keyExtractor) {
-        return entities.stream()
-                .collect(
-                        Collectors.toMap(
-                                keyExtractor, Function.identity(), (first, second) -> first));
+        return entities.stream().collect(Collectors.toMap(keyExtractor, Function.identity()));
     }
 
     private LocalDate currentMonth() {
