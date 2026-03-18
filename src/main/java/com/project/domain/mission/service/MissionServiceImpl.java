@@ -473,10 +473,7 @@ public class MissionServiceImpl implements MissionService {
     }
 
     private String getCustomerNameOrUnknown(Long customerId) {
-        return customerRepository
-                .findById(customerId)
-                .map(Customer::getName)
-                .orElse(UNKNOWN_NAME);
+        return customerRepository.findById(customerId).map(Customer::getName).orElse(UNKNOWN_NAME);
     }
 
     /** 미션 이력 추적을 위해 로그를 추가한다. */
