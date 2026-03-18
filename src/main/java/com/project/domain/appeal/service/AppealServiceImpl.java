@@ -299,7 +299,7 @@ public class AppealServiceImpl implements AppealService {
                             appeal.getRequesterId(),
                             NotificationType.APPEAL_APPROVED,
                             "이의제기 승인",
-                            notificationMessage + "승인되었어요.",
+                            notificationMessage + " 승인되었어요.",
                             data);
         } else {
             // 6. REJECTED면 거절 사유를 검증한 뒤 거절 처리한다.
@@ -314,7 +314,7 @@ public class AppealServiceImpl implements AppealService {
                             appeal.getRequesterId(),
                             NotificationType.APPEAL_REJECTED,
                             "이의제기 거절",
-                            notificationMessage + "거절되었어요.",
+                            notificationMessage + " 거절되었어요.",
                             data);
         }
 
@@ -759,10 +759,10 @@ public class AppealServiceImpl implements AppealService {
 
     private String buildAppealRespondNotificationMessage(PolicyType policyType) {
         return switch (policyType) {
-            case MONTHLY_LIMIT -> "월 사용량 제한 정책에 대한 이의제기가 ";
-            case TIME_BLOCK -> "시간 제한 정책에 대한 이의제기가 ";
-            case MANUAL_BLOCK -> "데이터 사용 차단 정책에 대한 이의제기가 ";
-            case APP_BLOCK -> "앱 사용 차단 정책에 대한 이의제기가 ";
+            case MONTHLY_LIMIT -> "월 사용량 제한 정책에 대한 이의제기가";
+            case TIME_BLOCK -> "시간 제한 정책에 대한 이의제기가";
+            case MANUAL_BLOCK -> "데이터 사용 차단 정책에 대한 이의제기가";
+            case APP_BLOCK -> "앱 사용 차단 정책에 대한 이의제기가";
         };
     }
 }
