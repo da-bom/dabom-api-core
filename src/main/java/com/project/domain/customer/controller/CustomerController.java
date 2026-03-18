@@ -2,11 +2,13 @@ package com.project.domain.customer.controller;
 
 import jakarta.validation.Valid;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.project.common.api.response.ApiResponse;
@@ -48,6 +50,7 @@ public class CustomerController {
     }
 
     @PostMapping("/signup")
+    @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "사용자 회원가입", description = "사용자 이메일/비밀번호로 회원가입합니다.")
     public ApiResponse<SignUpResponse> signUp(
             @Valid @RequestBody CustomerSignUpRequest requestDto) {

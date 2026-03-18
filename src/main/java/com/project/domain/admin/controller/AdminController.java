@@ -2,10 +2,12 @@ package com.project.domain.admin.controller;
 
 import jakarta.validation.Valid;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.project.common.api.response.ApiResponse;
@@ -47,6 +49,7 @@ public class AdminController {
     }
 
     @PostMapping("/signup")
+    @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "관리자 회원가입", description = "관리자 이메일/비밀번호로 회원가입합니다.")
     public ApiResponse<SignUpResponse> signUp(
             @Valid @RequestBody AdminSignInRequest signInRequest) {
