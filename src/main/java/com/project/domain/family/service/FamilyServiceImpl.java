@@ -33,7 +33,7 @@ import com.project.domain.family.util.FamilyUsageCalculator;
 import com.project.domain.policy.entity.PolicyAssignment;
 import com.project.domain.policy.enums.PolicyType;
 import com.project.domain.policy.repository.PolicyAssignmentRepository;
-import com.project.domain.policy.service.helper.RulesUtil;
+import com.project.domain.policy.service.helper.PolicyConstraintValueNormalizer;
 
 import lombok.RequiredArgsConstructor;
 
@@ -47,7 +47,7 @@ public class FamilyServiceImpl implements FamilyService {
     private final FamilyRepository familyRepository;
     private final CustomerQuotaRepository customerQuotaRepository;
     private final PolicyAssignmentRepository policyAssignmentRepository;
-    private final RulesUtil rulesUtil;
+    private final PolicyConstraintValueNormalizer policyConstraintValueNormalizer;
     private final Clock clock;
 
     @Override
@@ -182,7 +182,9 @@ public class FamilyServiceImpl implements FamilyService {
                                     () ->
                                             new ApplicationException(
                                                     PolicyErrorCode.POLICY_ASSIGNMENT_NOT_FOUND));
-            String newRules = rulesUtil.serializeMonthlyLimitRule(update.monthlyLimitBytes());
+            String newRules =
+                    policyConstraintValueNormalizer.serializeMonthlyLimitRule(
+                            update.monthlyLimitBytes());
             assignment.update(newRules, null, null);
         }
 

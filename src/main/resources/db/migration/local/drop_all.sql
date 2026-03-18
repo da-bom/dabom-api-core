@@ -15,6 +15,7 @@ DROP TABLE IF EXISTS `policy_assignment`;
 DROP TABLE IF EXISTS `mission_item`;
 DROP TABLE IF EXISTS `reward`;
 DROP TABLE IF EXISTS `reward_template`;
+DROP TABLE IF EXISTS `usage_event_outbox`;
 DROP TABLE IF EXISTS `usage_record`;
 DROP TABLE IF EXISTS `customer_quota`;
 DROP TABLE IF EXISTS `family_quota`;

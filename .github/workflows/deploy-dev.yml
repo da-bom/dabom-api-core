@@ -38,10 +38,7 @@ jobs:
   build-and-deploy:
     name: Build & Deploy
     runs-on: ubuntu-latest
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push')
+    if: false  # Azure 계정 종료로 비활성화
 
     steps:
       # ── 1. 빌드 ──
