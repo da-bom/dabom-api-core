@@ -13,12 +13,16 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.dabom.messaging.kafka.event.dto.notification.NotificationEventSupport;
+import com.dabom.messaging.kafka.event.dto.notification.NotificationPayload;
+import com.dabom.messaging.kafka.event.dto.notification.NotificationType;
 import com.project.common.auth.enums.RoleType;
 import com.project.common.auth.model.AuthContext;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.MissionErrorCode;
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.repository.CustomerRepository;
+import com.project.domain.eventoutbox.service.NotificationOutboxPublisher;
 import com.project.domain.family.entity.FamilyMember;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.mission.dto.request.CreateMissionRequest;
@@ -58,6 +62,7 @@ public class MissionServiceImpl implements MissionService {
     private final RewardSnapshotService rewardSnapshotService;
     private final CustomerRepository customerRepository;
     private final FamilyMemberRepository familyMemberRepository;
+    private final NotificationOutboxPublisher notificationOutboxPublisher;
 
     /** ACTIVE 미션을 조회하고, 최신 MissionRequest.status는 표시 정보로만 사용한다. */
     @Override
@@ -198,6 +203,9 @@ public class MissionServiceImpl implements MissionService {
                 auth.customerId(),
                 MissionLogActionType.MISSION_CREATED,
                 "Mission created");
+
+        notificationOutboxPublisher.enqueueAndPublishAfterCommit(
+                buildMissionCreatedNotificationPayload(auth, mission));
         return new CreateMissionResult(mission.getId(), mission.getCreatedAt());
     }
 
@@ -253,6 +261,8 @@ public class MissionServiceImpl implements MissionService {
                 auth.customerId(),
                 MissionLogActionType.MISSION_REQUESTED,
                 "Mission requested");
+
+        publishRewardRequestedNotifications(auth, mission, request);
 
         String requesterName =
                 customerRepository
@@ -407,6 +417,67 @@ public class MissionServiceImpl implements MissionService {
         return missionItemRepository
                 .findByIdAndFamilyIdForUpdate(missionId, auth.familyId())
                 .orElseThrow(() -> new ApplicationException(MissionErrorCode.MISSION_NOT_FOUND));
+    }
+
+    private NotificationPayload buildMissionCreatedNotificationPayload(
+            AuthContext auth, MissionItem mission) {
+        return new NotificationPayload(
+                auth.familyId(),
+                mission.getTargetCustomerId(),
+                NotificationType.MISSION_CREATED,
+                NotificationEventSupport.resolveTitle(NotificationType.MISSION_CREATED),
+                buildMissionCreatedNotificationMessage(mission),
+                buildMissionCreatedNotificationData(mission));
+    }
+
+    private String buildMissionCreatedNotificationMessage(MissionItem mission) {
+        return "새 미션이 도착했어요: " + mission.getMissionText();
+    }
+
+    private Map<String, Object> buildMissionCreatedNotificationData(MissionItem mission) {
+        return Map.of(
+                "missionId", mission.getId(),
+                "targetCustomerId", mission.getTargetCustomerId(),
+                "createdById", mission.getCreatedById());
+    }
+
+    private void publishRewardRequestedNotifications(
+            AuthContext auth, MissionItem mission, MissionRequest request) {
+        String requesterName =
+                customerRepository
+                        .findById(request.getRequesterId())
+                        .map(Customer::getName)
+                        .orElse(UNKNOWN_NAME);
+        String message = buildRewardRequestedNotificationMessage(requesterName, mission);
+        Map<String, Object> data = buildRewardRequestedNotificationData(mission, request);
+        List<Long> ownerCustomerIds =
+                familyMemberRepository.findActiveOwnerCustomerIdsByCustomerId(
+                        request.getRequesterId());
+
+        for (Long ownerCustomerId : ownerCustomerIds) {
+            notificationOutboxPublisher.enqueueAndPublishAfterCommit(
+                    new NotificationPayload(
+                            auth.familyId(),
+                            ownerCustomerId,
+                            NotificationType.REWARD_REQUESTED,
+                            NotificationEventSupport.resolveTitle(
+                                    NotificationType.REWARD_REQUESTED),
+                            message,
+                            data));
+        }
+    }
+
+    private String buildRewardRequestedNotificationMessage(
+            String requesterName, MissionItem mission) {
+        return requesterName + "(이)가 미션 보상을 요청했어요: " + mission.getMissionText();
+    }
+
+    private Map<String, Object> buildRewardRequestedNotificationData(
+            MissionItem mission, MissionRequest request) {
+        return Map.of(
+                "requestId", request.getId(),
+                "missionId", mission.getId(),
+                "requesterId", request.getRequesterId());
     }
 
     /** 미션 이력 추적을 위해 로그를 추가한다. */
