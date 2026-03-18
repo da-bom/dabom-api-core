@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -16,6 +17,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.dabom.messaging.kafka.event.dto.notification.NotificationPayload;
+import com.dabom.messaging.kafka.event.dto.notification.NotificationType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,6 +50,7 @@ import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.entity.CustomerQuota;
 import com.project.domain.customer.repository.CustomerQuotaRepository;
 import com.project.domain.customer.repository.CustomerRepository;
+import com.project.domain.eventoutbox.service.NotificationOutboxPublisher;
 import com.project.domain.family.entity.FamilyMember;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.policy.entity.Policy;
@@ -76,6 +80,7 @@ public class AppealServiceImpl implements AppealService {
     private final PolicyAssignmentRepository policyAssignmentRepository;
     private final PolicyRepository policyRepository;
     private final CustomerQuotaRepository customerQuotaRepository;
+    private final NotificationOutboxPublisher notificationOutboxPublisher;
     private final ObjectMapper objectMapper;
 
     /** 이의제기 가능 정책 목록 조회 */
@@ -219,6 +224,30 @@ public class AppealServiceImpl implements AppealService {
                                 .status(AppealStatus.PENDING)
                                 .build());
 
+        List<Long> ownerCustomerIds =
+                familyMemberRepository.findActiveOwnerCustomerIdsByCustomerId(auth.customerId());
+        String requesterName = getCustomerNameOrThrow(auth.customerId());
+
+        PolicyType appealPolicyType = resolvePolicyType(appeal);
+        if (appealPolicyType == null) {
+            throw new ApplicationException(PolicyErrorCode.POLICY_ASSIGNMENT_NOT_FOUND);
+        }
+        String notificationMessage =
+                buildAppealCreatedNotificationMessage(appealPolicyType, requesterName);
+        Map<String, Object> data = buildAppealNotificationData(appeal, appealPolicyType);
+
+        for (Long ownerId : ownerCustomerIds) {
+            NotificationPayload payload =
+                    new NotificationPayload(
+                            auth.familyId(),
+                            ownerId,
+                            NotificationType.APPEAL_CREATED,
+                            "이의제기 생성",
+                            notificationMessage,
+                            data);
+            notificationOutboxPublisher.enqueueAndPublishAfterCommit(payload);
+        }
+
         // 5. 생성 결과를 응답 모델로 반환한다.
         return new AppealCreateResult(
                 appeal.getId(),
@@ -250,17 +279,46 @@ public class AppealServiceImpl implements AppealService {
         AppealStatus action = parseRespondAction(request.action());
         LocalDateTime now = LocalDateTime.now(clock);
 
+        PolicyType appealPolicyType = resolvePolicyType(appeal);
+        if (appealPolicyType == null) {
+            throw new ApplicationException(PolicyErrorCode.POLICY_ASSIGNMENT_NOT_FOUND);
+        }
+        Map<String, Object> data = buildAppealNotificationData(appeal, appealPolicyType);
+        String notificationMessage = buildAppealRespondNotificationMessage(appealPolicyType);
+
+        NotificationPayload payload;
+
         // 5. APPROVED면 승인 처리하고 변경사항이 있으면 정책 규칙에도 반영한다.
         if (AppealStatus.APPROVED.equals(action)) {
             appeal.approve(auth.customerId(), now);
             applyAppealChangeIfPresent(appeal, auth.customerId());
+
+            payload =
+                    new NotificationPayload(
+                            auth.familyId(),
+                            appeal.getRequesterId(),
+                            NotificationType.APPEAL_APPROVED,
+                            "이의제기 승인",
+                            notificationMessage + " 승인되었어요.",
+                            data);
         } else {
             // 6. REJECTED면 거절 사유를 검증한 뒤 거절 처리한다.
             if (request.rejectReason() == null || request.rejectReason().isBlank()) {
                 throw new ApplicationException(AppealErrorCode.APPEAL_REJECT_REASON_REQUIRED);
             }
             appeal.reject(auth.customerId(), request.rejectReason(), now);
+
+            payload =
+                    new NotificationPayload(
+                            auth.familyId(),
+                            appeal.getRequesterId(),
+                            NotificationType.APPEAL_REJECTED,
+                            "이의제기 거절",
+                            notificationMessage + " 거절되었어요.",
+                            data);
         }
+
+        notificationOutboxPublisher.enqueueAndPublishAfterCommit(payload);
 
         return new AppealRespondResult(
                 appeal.getId(),
@@ -381,6 +439,23 @@ public class AppealServiceImpl implements AppealService {
         syncMonthlyLimitPolicyAssignment(
                 auth.familyId(), auth.customerId(), customerQuota.getMonthlyLimitBytes());
 
+        List<Long> ownerCustomerIds =
+                familyMemberRepository.findActiveOwnerCustomerIdsByCustomerId(auth.customerId());
+
+        String requesterName = getCustomerNameOrThrow(auth.customerId());
+
+        for (Long ownerId : ownerCustomerIds) {
+            NotificationPayload payload =
+                    new NotificationPayload(
+                            auth.familyId(),
+                            ownerId,
+                            NotificationType.EMERGENCY_APPROVED,
+                            "긴급 요청",
+                            requesterName + "(이)가 긴급 요청을 사용했어요.",
+                            null);
+            notificationOutboxPublisher.enqueueAndPublishAfterCommit(payload);
+        }
+
         // 6. 긴급 쿼터 결과를 응답 모델로 반환한다.
         return new EmergencyQuotaResult(
                 appeal.getId(),
@@ -416,7 +491,7 @@ public class AppealServiceImpl implements AppealService {
         Set<Long> assignmentIds =
                 appeals.stream()
                         .map(PolicyAppeal::getPolicyAssignmentId)
-                        .filter(java.util.Objects::nonNull)
+                        .filter(Objects::nonNull)
                         .collect(Collectors.toSet());
         if (assignmentIds.isEmpty()) {
             return Map.of();
@@ -427,7 +502,7 @@ public class AppealServiceImpl implements AppealService {
         Set<Long> policyIds =
                 assignments.stream()
                         .map(PolicyAssignment::getPolicyId)
-                        .filter(java.util.Objects::nonNull)
+                        .filter(Objects::nonNull)
                         .collect(Collectors.toSet());
         if (policyIds.isEmpty()) {
             return Map.of();
@@ -469,7 +544,7 @@ public class AppealServiceImpl implements AppealService {
     private void validateFamilyAccess(Long familyId, PolicyAppeal appeal) {
         FamilyMember requester =
                 familyMemberRepository
-                        .findByCustomerId(appeal.getRequesterId())
+                        .findByCustomerIdAndDeletedAtIsNull(appeal.getRequesterId())
                         .orElseThrow(
                                 () -> new ApplicationException(AppealErrorCode.APPEAL_FORBIDDEN));
         if (!requester.getFamilyId().equals(familyId)) {
@@ -518,6 +593,15 @@ public class AppealServiceImpl implements AppealService {
                         .orElseThrow(
                                 () -> new ApplicationException(PolicyErrorCode.POLICY_NOT_FOUND));
         return policy.getPolicyType();
+    }
+
+    private Map<String, Object> buildAppealNotificationData(
+            PolicyAppeal appeal, PolicyType policyType) {
+        return Map.of(
+                "appealId", appeal.getId(),
+                "policyAssignmentId", appeal.getPolicyAssignmentId(),
+                "policyType", policyType.name(),
+                "requesterId", appeal.getRequesterId());
     }
 
     private void applyAppealChangeIfPresent(PolicyAppeal appeal, Long actorId) {
@@ -585,12 +669,19 @@ public class AppealServiceImpl implements AppealService {
     private void validateFamilyMemberExists(Long customerId, Long familyId) {
         FamilyMember member =
                 familyMemberRepository
-                        .findByCustomerId(customerId)
+                        .findByCustomerIdAndDeletedAtIsNull(customerId)
                         .orElseThrow(
                                 () -> new ApplicationException(AppealErrorCode.APPEAL_FORBIDDEN));
         if (!member.getFamilyId().equals(familyId)) {
             throw new ApplicationException(AppealErrorCode.APPEAL_FORBIDDEN);
         }
+    }
+
+    private String getCustomerNameOrThrow(Long customerId) {
+        return customerRepository
+                .findById(customerId)
+                .orElseThrow(() -> new ApplicationException(CustomerErrorCode.CUSTOMER_NOT_FOUND))
+                .getName();
     }
 
     private AppealStatus parseRespondAction(String action) {
@@ -653,5 +744,25 @@ public class AppealServiceImpl implements AppealService {
         } catch (JsonProcessingException e) {
             throw new ApplicationException(PolicyErrorCode.POLICY_RULES_CORRUPTED);
         }
+    }
+
+    /** PolicyType 따라 알림 메세지 변환 */
+    private String buildAppealCreatedNotificationMessage(
+            PolicyType policyType, String customerName) {
+        return switch (policyType) {
+            case MONTHLY_LIMIT -> customerName + "(으)로부터 월 사용량 제한 정책에 대한 이의제기가 접수되었어요.";
+            case TIME_BLOCK -> customerName + "(으)로부터 시간 제한 정책에 대한 이의제기가 접수되었어요.";
+            case MANUAL_BLOCK -> customerName + "(으)로부터 데이터 사용 차단 정책에 대한 이의제기가 접수되었어요.";
+            case APP_BLOCK -> customerName + "(으)로부터 앱 사용 차단 정책에 대한 이의제기가 접수되었어요.";
+        };
+    }
+
+    private String buildAppealRespondNotificationMessage(PolicyType policyType) {
+        return switch (policyType) {
+            case MONTHLY_LIMIT -> "월 사용량 제한 정책에 대한 이의제기가";
+            case TIME_BLOCK -> "시간 제한 정책에 대한 이의제기가";
+            case MANUAL_BLOCK -> "데이터 사용 차단 정책에 대한 이의제기가";
+            case APP_BLOCK -> "앱 사용 차단 정책에 대한 이의제기가";
+        };
     }
 }

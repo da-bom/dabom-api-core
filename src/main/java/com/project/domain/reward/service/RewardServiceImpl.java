@@ -12,11 +12,15 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.dabom.messaging.kafka.event.dto.notification.NotificationEventSupport;
+import com.dabom.messaging.kafka.event.dto.notification.NotificationPayload;
+import com.dabom.messaging.kafka.event.dto.notification.NotificationType;
 import com.project.common.auth.model.AuthContext;
 import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.MissionErrorCode;
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.repository.CustomerRepository;
+import com.project.domain.eventoutbox.service.NotificationOutboxPublisher;
 import com.project.domain.mission.entity.MissionItem;
 import com.project.domain.mission.entity.MissionLog;
 import com.project.domain.mission.entity.MissionRequest;
@@ -53,6 +57,7 @@ public class RewardServiceImpl implements RewardService {
     private final MissionLogRepository missionLogRepository;
     private final CustomerRepository customerRepository;
     private final RewardGrantRepository rewardGrantRepository;
+    private final NotificationOutboxPublisher notificationOutboxPublisher;
 
     /** OWNER가 보상 요청을 승인하거나 거절한다. */
     @Override
@@ -109,11 +114,17 @@ public class RewardServiceImpl implements RewardService {
                             .missionItem(mission)
                             .status(RewardGrantStatus.ISSUED)
                             .build());
+
+            notificationOutboxPublisher.enqueueAndPublishAfterCommit(
+                    buildRewardApprovedNotificationPayload(auth, missionRequest, mission));
         } else {
             if (req.rejectReason() == null || req.rejectReason().isBlank()) {
                 throw new ApplicationException(MissionErrorCode.MISSION_REJECT_REASON_REQUIRED);
             }
             missionRequest.reject(auth.customerId(), req.rejectReason(), LocalDateTime.now(clock));
+
+            notificationOutboxPublisher.enqueueAndPublishAfterCommit(
+                    buildRewardRejectedNotificationPayload(auth, missionRequest, mission));
         }
 
         // 3. 응답에는 MissionItem에 연결된 Reward 스냅샷을 포함한다.
@@ -196,6 +207,44 @@ public class RewardServiceImpl implements RewardService {
                         : new MissionListResult.CustomerSummary(
                                 approverId, approverNameMap.getOrDefault(approverId, UNKNOWN_NAME)),
                 request.getResolvedAt());
+    }
+
+    private NotificationPayload buildRewardApprovedNotificationPayload(
+            AuthContext auth, MissionRequest missionRequest, MissionItem mission) {
+        return new NotificationPayload(
+                auth.familyId(),
+                missionRequest.getRequesterId(),
+                NotificationType.REWARD_APPROVED,
+                NotificationEventSupport.resolveTitle(NotificationType.REWARD_APPROVED),
+                buildRewardApprovedNotificationMessage(mission),
+                buildRewardRespondNotificationData(missionRequest, mission));
+    }
+
+    private NotificationPayload buildRewardRejectedNotificationPayload(
+            AuthContext auth, MissionRequest missionRequest, MissionItem mission) {
+        return new NotificationPayload(
+                auth.familyId(),
+                missionRequest.getRequesterId(),
+                NotificationType.REWARD_REJECTED,
+                NotificationEventSupport.resolveTitle(NotificationType.REWARD_REJECTED),
+                buildRewardRejectedNotificationMessage(mission),
+                buildRewardRespondNotificationData(missionRequest, mission));
+    }
+
+    private String buildRewardApprovedNotificationMessage(MissionItem mission) {
+        return "보상 요청이 승인되었어요: " + mission.getMissionText();
+    }
+
+    private String buildRewardRejectedNotificationMessage(MissionItem mission) {
+        return "보상 요청이 거절되었어요: " + mission.getMissionText();
+    }
+
+    private Map<String, Object> buildRewardRespondNotificationData(
+            MissionRequest missionRequest, MissionItem mission) {
+        return Map.of(
+                "requestId", missionRequest.getId(),
+                "missionId", mission.getId(),
+                "requesterId", missionRequest.getRequesterId());
     }
 
     /** 보상 요청 처리 이력을 로그로 남긴다. */

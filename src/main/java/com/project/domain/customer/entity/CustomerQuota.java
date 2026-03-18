@@ -76,6 +76,41 @@ public class CustomerQuota extends BaseEntity {
         this.monthlyLimitBytes += additionalBytes;
     }
 
+    public void block(String reason) {
+        this.isBlocked = true;
+        this.blockReason = reason;
+    }
+
+    public void blockIfLimitExceeded(String exceededReason) {
+        if (isLimitExceeded()) {
+            block(exceededReason);
+        }
+    }
+
+    public boolean unblockIfWithinLimit() {
+        if (isLimitExceeded()) {
+            return false;
+        }
+
+        this.isBlocked = false;
+        this.blockReason = null;
+        return true;
+    }
+
+    public void tryUnblockManually(String exceededReason) {
+        if (isLimitExceeded()) {
+            block(exceededReason);
+            return;
+        }
+
+        this.isBlocked = false;
+        this.blockReason = null;
+    }
+
+    public boolean isLimitExceeded() {
+        return monthlyLimitBytes != null && monthlyUsedBytes > monthlyLimitBytes;
+    }
+
     public void changeMonthlyLimitBytes(Long monthlyLimitBytes) {
         this.monthlyLimitBytes = monthlyLimitBytes;
     }

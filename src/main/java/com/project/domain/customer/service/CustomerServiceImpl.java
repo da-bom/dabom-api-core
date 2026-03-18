@@ -65,7 +65,14 @@ public class CustomerServiceImpl implements CustomerService {
             throw new ApplicationException(CustomerErrorCode.CUSTOMER_SIGN_IN_FAILED);
         }
 
-        RoleType role = familyMemberRepository.findRoleById(customer.getId());
+        RoleType role =
+                familyMemberRepository
+                        .findByCustomerIdAndDeletedAtIsNull(customer.getId())
+                        .map(FamilyMember::getRole)
+                        .orElseThrow(
+                                () ->
+                                        new ApplicationException(
+                                                CustomerErrorCode.CUSTOMER_SIGN_IN_FAILED));
 
         String accessToken = jwtTokenUtil.createToken(customer.getId(), role);
         String refreshToken = jwtTokenUtil.createRefreshToken(customer.getId(), role);
@@ -111,10 +118,15 @@ public class CustomerServiceImpl implements CustomerService {
                 throw new ApplicationException(CustomerErrorCode.CUSTOMER_REFRESH_TOKEN_INVALID);
             }
 
-            RoleType currentRole = familyMemberRepository.findRoleById(customerId);
-            if (currentRole == null) {
-                throw new ApplicationException(CustomerErrorCode.CUSTOMER_REFRESH_TOKEN_INVALID);
-            }
+            RoleType currentRole =
+                    familyMemberRepository
+                            .findByCustomerIdAndDeletedAtIsNull(customerId)
+                            .map(FamilyMember::getRole)
+                            .orElseThrow(
+                                    () ->
+                                            new ApplicationException(
+                                                    CustomerErrorCode
+                                                            .CUSTOMER_REFRESH_TOKEN_INVALID));
 
             return jwtTokenUtil.reissueTokens(customerId, currentRole);
         } catch (JwtException | IllegalArgumentException e) {
@@ -198,7 +210,7 @@ public class CustomerServiceImpl implements CustomerService {
 
         FamilyMember familyMember =
                 familyMemberRepository
-                        .findByCustomerId(customerId)
+                        .findByCustomerIdAndDeletedAtIsNull(customerId)
                         .orElseThrow(
                                 () -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
 

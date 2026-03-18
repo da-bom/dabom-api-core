@@ -95,7 +95,8 @@ public class FamilyServiceImpl implements FamilyService {
     @Override
     public Long getFamilyIdByCustomerId(Long customerId) {
         return familyMemberRepository
-                .findFamilyIdByCustomerId(customerId)
+                .findByCustomerIdAndDeletedAtIsNull(customerId)
+                .map(FamilyMember::getFamilyId)
                 .orElseThrow(() -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
     }
 

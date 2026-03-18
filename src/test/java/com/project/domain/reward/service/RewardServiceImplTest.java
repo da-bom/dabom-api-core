@@ -29,6 +29,7 @@ import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.MissionErrorCode;
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.repository.CustomerRepository;
+import com.project.domain.eventoutbox.service.NotificationOutboxPublisher;
 import com.project.domain.mission.entity.MissionItem;
 import com.project.domain.mission.entity.MissionLog;
 import com.project.domain.mission.entity.MissionRequest;
@@ -55,6 +56,7 @@ class RewardServiceImplTest {
     @Mock private MissionLogRepository missionLogRepository;
     @Mock private CustomerRepository customerRepository;
     @Mock private RewardGrantRepository rewardGrantRepository;
+    @Mock private NotificationOutboxPublisher notificationOutboxPublisher;
 
     private RewardServiceImpl rewardService;
 
@@ -67,7 +69,8 @@ class RewardServiceImplTest {
                         missionItemRepository,
                         missionLogRepository,
                         customerRepository,
-                        rewardGrantRepository);
+                        rewardGrantRepository,
+                        notificationOutboxPublisher);
     }
 
     @Test

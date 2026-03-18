@@ -51,6 +51,7 @@ import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.entity.CustomerQuota;
 import com.project.domain.customer.repository.CustomerQuotaRepository;
 import com.project.domain.customer.repository.CustomerRepository;
+import com.project.domain.eventoutbox.service.NotificationOutboxPublisher;
 import com.project.domain.family.entity.FamilyMember;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.policy.entity.Policy;
@@ -74,6 +75,7 @@ class AppealServiceImplTest {
     @Mock private PolicyAssignmentRepository policyAssignmentRepository;
     @Mock private PolicyRepository policyRepository;
     @Mock private CustomerQuotaRepository customerQuotaRepository;
+    @Mock private NotificationOutboxPublisher notificationOutboxPublisher;
     @Mock private ObjectMapper objectMapper;
 
     private AppealServiceImpl appealService;
@@ -90,6 +92,7 @@ class AppealServiceImplTest {
                         policyAssignmentRepository,
                         policyRepository,
                         customerQuotaRepository,
+                        notificationOutboxPublisher,
                         objectMapper);
     }
 
@@ -261,7 +264,7 @@ class AppealServiceImplTest {
 
         given(policyAppealRepository.findByIdAndDeletedAtIsNull(30L))
                 .willReturn(java.util.Optional.of(appeal));
-        given(familyMemberRepository.findByCustomerId(2L))
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(2L))
                 .willReturn(
                         java.util.Optional.of(
                                 FamilyMember.builder()
@@ -316,6 +319,12 @@ class AppealServiceImplTest {
                                 .existsByPolicyAssignmentIdAndRequesterIdAndTypeAndStatusAndDeletedAtIsNull(
                                         100L, 2L, AppealType.NORMAL, AppealStatus.PENDING))
                 .willReturn(false);
+        given(familyMemberRepository.findActiveOwnerCustomerIdsByCustomerId(2L))
+                .willReturn(List.of(1L));
+        given(customerRepository.findById(2L))
+                .willReturn(java.util.Optional.of(customer(2L, "member-a")));
+        given(policyRepository.findByIdAndDeletedAtIsNull(50L))
+                .willReturn(java.util.Optional.of(policy(50L, PolicyType.MONTHLY_LIMIT)));
         given(policyAppealRepository.save(any(PolicyAppeal.class))).willReturn(saved);
 
         AppealCreateResult result = appealService.createAppeal(auth, request);
@@ -371,7 +380,7 @@ class AppealServiceImplTest {
 
         given(policyAppealRepository.findByIdAndDeletedAtIsNull(30L))
                 .willReturn(java.util.Optional.of(appeal));
-        given(familyMemberRepository.findByCustomerId(2L))
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(2L))
                 .willReturn(
                         java.util.Optional.of(
                                 FamilyMember.builder()
@@ -381,6 +390,8 @@ class AppealServiceImplTest {
                                         .build()));
         given(policyAssignmentRepository.findByIdAndDeletedAtIsNull(100L))
                 .willReturn(java.util.Optional.of(assignment));
+        given(policyRepository.findByIdAndDeletedAtIsNull(50L))
+                .willReturn(java.util.Optional.of(policy(50L, PolicyType.MONTHLY_LIMIT)));
         given(objectMapper.writeValueAsString(appeal.getDesiredRules()))
                 .willReturn("{\"limitBytes\":1024}");
 
@@ -402,7 +413,7 @@ class AppealServiceImplTest {
 
         given(policyAppealRepository.findByIdAndDeletedAtIsNull(31L))
                 .willReturn(java.util.Optional.of(appeal));
-        given(familyMemberRepository.findByCustomerId(2L))
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(2L))
                 .willReturn(
                         java.util.Optional.of(
                                 FamilyMember.builder()
@@ -412,6 +423,8 @@ class AppealServiceImplTest {
                                         .build()));
         given(policyAssignmentRepository.findByIdAndDeletedAtIsNull(100L))
                 .willReturn(java.util.Optional.of(assignment));
+        given(policyRepository.findByIdAndDeletedAtIsNull(50L))
+                .willReturn(java.util.Optional.of(policy(50L, PolicyType.MONTHLY_LIMIT)));
 
         AppealRespondResult result =
                 appealService.respondAppeal(auth, 31L, new AppealRespondRequest("APPROVED", null));
@@ -428,7 +441,7 @@ class AppealServiceImplTest {
 
         given(policyAppealRepository.findByIdAndDeletedAtIsNull(30L))
                 .willReturn(java.util.Optional.of(appeal));
-        given(familyMemberRepository.findByCustomerId(2L))
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(2L))
                 .willReturn(
                         java.util.Optional.of(
                                 FamilyMember.builder()
@@ -436,6 +449,10 @@ class AppealServiceImplTest {
                                         .customerId(2L)
                                         .role(RoleType.MEMBER)
                                         .build()));
+        given(policyAssignmentRepository.findByIdAndDeletedAtIsNull(100L))
+                .willReturn(java.util.Optional.of(policyAssignment(100L, 50L, 10L, 2L)));
+        given(policyRepository.findByIdAndDeletedAtIsNull(50L))
+                .willReturn(java.util.Optional.of(policy(50L, PolicyType.MONTHLY_LIMIT)));
 
         AppealRespondResult result =
                 appealService.respondAppeal(
@@ -481,7 +498,7 @@ class AppealServiceImplTest {
 
         given(policyAppealRepository.findByIdAndDeletedAtIsNull(30L))
                 .willReturn(java.util.Optional.of(appeal));
-        given(familyMemberRepository.findByCustomerId(2L))
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(2L))
                 .willReturn(
                         java.util.Optional.of(
                                 FamilyMember.builder()
@@ -489,7 +506,7 @@ class AppealServiceImplTest {
                                         .customerId(2L)
                                         .role(RoleType.MEMBER)
                                         .build()));
-        given(familyMemberRepository.findByCustomerId(1L))
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(1L))
                 .willReturn(
                         java.util.Optional.of(
                                 FamilyMember.builder()
@@ -540,6 +557,10 @@ class AppealServiceImplTest {
                                 .findByFamilyIdAndCustomerIdAndCurrentMonthAndDeletedAtIsNull(
                                         10L, 2L, LocalDate.now(FIXED_CLOCK).withDayOfMonth(1)))
                 .willReturn(java.util.Optional.of(customerQuota));
+        given(customerRepository.findById(2L))
+                .willReturn(java.util.Optional.of(customer(2L, "member-a")));
+        given(familyMemberRepository.findActiveOwnerCustomerIdsByCustomerId(2L))
+                .willReturn(List.of(1L));
         given(policyAppealRepository.saveAndFlush(any(PolicyAppeal.class))).willReturn(saved);
         given(policyAssignmentRepository.findByTargetAndType(10L, 2L, PolicyType.MONTHLY_LIMIT))
                 .willReturn(java.util.Optional.of(assignment));
@@ -592,6 +613,10 @@ class AppealServiceImplTest {
                                 .findByFamilyIdAndCustomerIdAndCurrentMonthAndDeletedAtIsNull(
                                         10L, 2L, LocalDate.now(FIXED_CLOCK).withDayOfMonth(1)))
                 .willReturn(java.util.Optional.of(customerQuota));
+        given(customerRepository.findById(2L))
+                .willReturn(java.util.Optional.of(customer(2L, "member-a")));
+        given(familyMemberRepository.findActiveOwnerCustomerIdsByCustomerId(2L))
+                .willReturn(List.of(1L));
         given(policyAppealRepository.saveAndFlush(any(PolicyAppeal.class))).willReturn(saved);
         given(policyAssignmentRepository.findByTargetAndType(10L, 2L, PolicyType.MONTHLY_LIMIT))
                 .willReturn(java.util.Optional.empty());

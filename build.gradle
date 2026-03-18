@@ -61,7 +61,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     runtimeOnly 'com.mysql:mysql-connector-j'
     implementation 'org.springframework.kafka:spring-kafka'
-    implementation 'com.github.da-bom:lib-kafka:v0.5.1'
+    implementation 'com.github.da-bom:lib-kafka:v1.0.1'
 
     // Flyway
     implementation 'org.flywaydb:flyway-core'

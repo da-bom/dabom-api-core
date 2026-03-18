@@ -25,6 +25,7 @@ import com.project.common.exception.ApplicationException;
 import com.project.common.exception.code.MissionErrorCode;
 import com.project.domain.customer.entity.Customer;
 import com.project.domain.customer.repository.CustomerRepository;
+import com.project.domain.eventoutbox.service.NotificationOutboxPublisher;
 import com.project.domain.family.entity.FamilyMember;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.mission.dto.request.CreateMissionRequest;
@@ -52,6 +53,7 @@ class MissionServiceImplTest {
     @Mock private RewardSnapshotService rewardSnapshotService;
     @Mock private CustomerRepository customerRepository;
     @Mock private FamilyMemberRepository familyMemberRepository;
+    @Mock private NotificationOutboxPublisher notificationOutboxPublisher;
 
     @InjectMocks private MissionServiceImpl missionService;
 
@@ -230,7 +232,8 @@ class MissionServiceImplTest {
                         .thumbnailUrl("/rewards/mega-coffee.jpg")
                         .build();
 
-        given(familyMemberRepository.findByCustomerId(2L)).willReturn(Optional.of(target));
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(2L))
+                .willReturn(Optional.of(target));
         given(rewardSnapshotService.createFromTemplate(500L)).willReturn(savedReward);
         given(missionItemRepository.save(any(MissionItem.class)))
                 .willAnswer(

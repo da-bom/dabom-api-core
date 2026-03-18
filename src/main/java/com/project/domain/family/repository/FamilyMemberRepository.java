@@ -6,29 +6,32 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
-import com.project.common.auth.enums.RoleType;
 import com.project.domain.family.entity.FamilyMember;
 
 public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long> {
-    List<FamilyMember> findAllByFamilyId(Long familyId);
-
     List<FamilyMember> findAllByFamilyIdAndDeletedAtIsNull(Long familyId);
 
     List<FamilyMember> findAllByFamilyIdAndCustomerIdInAndDeletedAtIsNull(
             Long familyId, List<Long> customerIds);
 
-    Optional<FamilyMember> findByCustomerId(Long customerId);
+    Optional<FamilyMember> findByCustomerIdAndDeletedAtIsNull(Long customerId);
 
-    @Query("select f.role from FamilyMember f where f.customerId = :customerId")
-    RoleType findRoleById(Long customerId);
+    boolean existsByCustomerIdAndDeletedAtIsNull(Long customerId);
 
-    @Query("select fm.familyId from FamilyMember fm where fm.customerId = :customerId")
-    Optional<Long> findFamilyIdByCustomerId(Long customerId);
+    @Query(
+            """
+            select owner.customerId
+            from FamilyMember member
+            join FamilyMember owner on owner.familyId = member.familyId
+            where member.customerId = :customerId
+              and member.deletedAt is null
+              and owner.deletedAt is null
+              and owner.role = com.project.common.auth.enums.RoleType.OWNER
+            """)
+    List<Long> findActiveOwnerCustomerIdsByCustomerId(Long customerId);
 
     Optional<FamilyMember> findByFamilyIdAndCustomerIdAndDeletedAtIsNull(
             Long familyId, Long customerId);
-
-    boolean existsByCustomerId(Long customerId);
 
     interface FamilyMemberTargetProjection {
         Long getFamilyId();
