@@ -1,12 +1,13 @@
 package com.project.domain.eventoutbox.repository;
 
-import com.project.domain.eventoutbox.entity.EventOutbox;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.Optional;
+import com.project.domain.eventoutbox.entity.EventOutbox;
 
 public interface EventOutboxRepository extends JpaRepository<EventOutbox, Long> {
     /** 동일 eventId가 없을 때만 PUBLISH_PENDING row를 적재한다. */

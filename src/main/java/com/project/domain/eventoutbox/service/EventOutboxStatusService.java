@@ -1,10 +1,12 @@
 package com.project.domain.eventoutbox.service;
 
-import com.project.domain.eventoutbox.repository.EventOutboxRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.project.domain.eventoutbox.repository.EventOutboxRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor

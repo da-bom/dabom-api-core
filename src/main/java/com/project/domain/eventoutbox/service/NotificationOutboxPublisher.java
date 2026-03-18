@@ -1,5 +1,10 @@
 package com.project.domain.eventoutbox.service;
 
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
 import com.dabom.messaging.kafka.contract.KafkaEventTypes;
 import com.dabom.messaging.kafka.contract.KafkaTopics;
 import com.dabom.messaging.kafka.event.KafkaEventMessageSupport;
@@ -13,12 +18,9 @@ import com.project.common.exception.code.OutboxErrorCode;
 import com.project.domain.eventoutbox.entity.EventOutbox;
 import com.project.domain.eventoutbox.enums.EventOutboxStatus;
 import com.project.domain.eventoutbox.repository.EventOutboxRepository;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Component
 @Slf4j
@@ -40,10 +42,7 @@ public class NotificationOutboxPublisher {
         // 동일 eventId가 이미 있으면 중복 적재하지 않는다.
         int inserted =
                 eventOutboxRepository.insertPublishPendingIgnore(
-                        envelope.eventId(),
-                        payload.familyId(),
-                        payload.customerId(),
-                        payloadJson);
+                        envelope.eventId(), payload.familyId(), payload.customerId(), payloadJson);
 
         if (inserted == 0) {
             return;
@@ -81,9 +80,7 @@ public class NotificationOutboxPublisher {
             String envelopeJson = kafkaEventMessageSupport.serialize(envelope);
 
             // 직접 발행 경로는 성공 여부를 즉시 확인해야 하므로 get()으로 ack를 기다린다.
-            kafkaTemplate
-                    .send(KafkaTopics.NOTIFICATION, outbox.getEventId(), envelopeJson)
-                    .get();
+            kafkaTemplate.send(KafkaTopics.NOTIFICATION, outbox.getEventId(), envelopeJson).get();
 
             // 성공한 경우에만 SENT로 전이한다.
             eventOutboxStatusService.markSent(outbox.getId());
@@ -96,7 +93,8 @@ public class NotificationOutboxPublisher {
                     e);
         } catch (Exception ignored) {
             log.warn(
-                    "Notification publish failed. eventId={}, outboxId={}. It will remain PUBLISH_PENDING for retry.",
+                    "Notification publish failed. eventId={}, outboxId={}. It will remain"
+                            + " PUBLISH_PENDING for retry.",
                     outbox.getEventId(),
                     outbox.getId(),
                     ignored);
@@ -125,9 +123,6 @@ public class NotificationOutboxPublisher {
     private EventEnvelope<NotificationPayload> buildEnvelope(
             EventOutbox outbox, NotificationPayload payload) {
         return new EventEnvelope<>(
-                outbox.getEventId(),
-                KafkaEventTypes.NOTIFICATION,
-                outbox.getCreatedAt(),
-                payload);
+                outbox.getEventId(), KafkaEventTypes.NOTIFICATION, outbox.getCreatedAt(), payload);
     }
 }
