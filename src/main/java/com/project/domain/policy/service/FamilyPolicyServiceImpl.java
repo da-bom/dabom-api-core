@@ -242,7 +242,7 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
             return;
         }
 
-        customerQuota.removeManualBlock(QUOTA_EXCEEDED_REASON);
+        customerQuota.tryUnblockManually(QUOTA_EXCEEDED_REASON);
         notificationOutboxPublisher.enqueueAndPublishAfterCommit(
                 new NotificationPayload(
                         familyId,

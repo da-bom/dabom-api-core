@@ -97,7 +97,7 @@ public class CustomerQuota extends BaseEntity {
         return true;
     }
 
-    public void removeManualBlock(String exceededReason) {
+    public void tryUnblockManually(String exceededReason) {
         if (isLimitExceeded()) {
             block(exceededReason);
             return;
