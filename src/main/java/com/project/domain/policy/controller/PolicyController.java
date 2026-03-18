@@ -63,7 +63,7 @@ public class PolicyController {
     public ApiResponse<PolicyResponse.Create> createPolicy(
             @Valid @RequestBody PolicyRequest.Create policyRequest) {
         Policy policy = policyService.createPolicy(policyRequest);
-        return ApiResponse.success(PolicyResponse.Create.from(policy));
+        return ApiResponse.created(PolicyResponse.Create.from(policy));
     }
 
     @PutMapping("/{policyId}")
