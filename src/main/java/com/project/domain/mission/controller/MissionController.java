@@ -120,6 +120,6 @@ public class MissionController {
             @Parameter(hidden = true) @CustomerId Long customerId, @PathVariable Long missionId) {
         AuthContext auth = authContextService.resolve(customerId);
         MissionRequestResult result = missionService.requestMissionApproval(auth, missionId);
-        return ApiResponse.success(MissionRequestResponse.from(result));
+        return ApiResponse.created(MissionRequestResponse.from(result));
     }
 }
