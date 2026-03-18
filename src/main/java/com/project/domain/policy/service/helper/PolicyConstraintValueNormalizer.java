@@ -1,5 +1,6 @@
 package com.project.domain.policy.service.helper;
 
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -42,7 +43,9 @@ public class PolicyConstraintValueNormalizer {
 
     public String serializeMonthlyLimitRule(Long limitBytes) {
         try {
-            return objectMapper.writeValueAsString(Map.of(LIMIT_BYTES, limitBytes));
+            Map<String, Object> rules = new LinkedHashMap<>();
+            rules.put(LIMIT_BYTES, limitBytes);
+            return objectMapper.writeValueAsString(rules);
         } catch (JsonProcessingException e) {
             throw new ApplicationException(PolicyErrorCode.POLICY_RULES_SERIALIZATION_FAILED);
         }
@@ -57,8 +60,11 @@ public class PolicyConstraintValueNormalizer {
     }
 
     private String normalizeMonthlyLimit(Map<String, Object> rules) {
-        // {"limitBytes": 123} -> "123"
+        // {"limitBytes": 123} -> "123", {"limitBytes": null} -> null(무제한)
         Object limitBytesObj = rules.get(LIMIT_BYTES);
+        if (limitBytesObj == null) {
+            return null;
+        }
         return String.valueOf(toPositiveLong(limitBytesObj, LIMIT_BYTES));
     }
 
