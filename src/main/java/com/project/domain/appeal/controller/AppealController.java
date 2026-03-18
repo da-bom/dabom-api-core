@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.project.common.api.response.ApiResponse;
@@ -97,6 +99,7 @@ public class AppealController {
 
     /** 이의제기 생성 처리 */
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "이의제기 생성")
     public ApiResponse<AppealCreateResponse> createAppeal(
             @Parameter(hidden = true) @CustomerId Long customerId,
@@ -121,6 +124,7 @@ public class AppealController {
 
     /** 이의제기 댓글 작성 처리 */
     @PostMapping("/{appealId}/comments")
+    @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "이의제기 댓글 작성")
     public ApiResponse<AppealCommentResponse> createComment(
             @Parameter(hidden = true) @CustomerId Long customerId,
@@ -143,6 +147,7 @@ public class AppealController {
 
     /** 긴급 쿼터 요청 처리 */
     @PostMapping("/emergency")
+    @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "긴급 쿼터 요청")
     public ApiResponse<EmergencyQuotaResponse> requestEmergencyQuota(
             @Parameter(hidden = true) @CustomerId Long customerId,

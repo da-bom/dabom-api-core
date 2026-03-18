@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.project.common.api.response.ApiResponse;
@@ -89,6 +91,7 @@ public class MissionController {
     /** OWNER가 미션을 생성한다. */
     @OwnerOnly
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "미션 생성")
     public ApiResponse<CreateMissionResponse> createMission(
             @Parameter(hidden = true) @CustomerId Long customerId,
@@ -111,11 +114,12 @@ public class MissionController {
 
     /** MEMBER가 본인 미션 완료 요청을 생성한다. */
     @PostMapping("/{missionId}/request")
+    @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "미션 완료 요청")
     public ApiResponse<MissionRequestResponse> requestMissionApproval(
             @Parameter(hidden = true) @CustomerId Long customerId, @PathVariable Long missionId) {
         AuthContext auth = authContextService.resolve(customerId);
         MissionRequestResult result = missionService.requestMissionApproval(auth, missionId);
-        return ApiResponse.success(MissionRequestResponse.from(result));
+        return ApiResponse.created(MissionRequestResponse.from(result));
     }
 }

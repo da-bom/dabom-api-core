@@ -178,7 +178,7 @@ class MissionControllerIntegrationTest {
                                         .header("Authorization", "Bearer " + OWNER_TOKEN)
                                         .contentType(MediaType.APPLICATION_JSON)
                                         .content(createBody))
-                        .andExpect(status().isOk())
+                        .andExpect(status().isCreated())
                         .andReturn();
         Long createdMissionId =
                 objectMapper
@@ -192,7 +192,7 @@ class MissionControllerIntegrationTest {
                 mockMvc.perform(
                                 post("/missions/{missionId}/request", mission.getId())
                                         .header("Authorization", "Bearer " + MEMBER_TOKEN))
-                        .andExpect(status().isOk())
+                        .andExpect(status().isCreated())
                         .andReturn();
         JsonNode requestData =
                 objectMapper
