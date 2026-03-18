@@ -1,0 +1,43 @@
+package com.project.domain.eventoutbox.repository;
+
+import com.project.domain.eventoutbox.entity.EventOutbox;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.Optional;
+
+public interface EventOutboxRepository extends JpaRepository<EventOutbox, Long> {
+    /** 동일 eventId가 없을 때만 PUBLISH_PENDING row를 적재한다. */
+    @Modifying
+    @Query(
+            value =
+                    """
+                    insert ignore into usage_event_outbox
+                    (event_id, family_id, customer_id, status, payload_json, retry_count, created_at, updated_at)
+                    values (:eventId, :familyId, :customerId, 'PUBLISH_PENDING', :payloadJson, 0, now(), now())
+                    """,
+            nativeQuery = true)
+    int insertPublishPendingIgnore(
+            @Param("eventId") String eventId,
+            @Param("familyId") long familyId,
+            @Param("customerId") long customerId,
+            @Param("payloadJson") String payloadJson);
+
+    /** eventId로 활성 outbox row를 조회한다. */
+    Optional<EventOutbox> findByEventIdAndDeletedAtIsNull(String eventId);
+
+    /** 아직 PUBLISH_PENDING 상태인 row만 SENT로 전이한다. */
+    @Modifying
+    @Query(
+            """
+            update EventOutbox o
+            set o.status = com.project.domain.eventoutbox.enums.EventOutboxStatus.SENT,
+                o.nextRetryAt = null,
+                o.lastError = null
+            where o.id = :outboxId
+              and o.status = com.project.domain.eventoutbox.enums.EventOutboxStatus.PUBLISH_PENDING
+            """)
+    int markSentIfPending(@Param("outboxId") Long outboxId);
+}
