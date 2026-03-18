@@ -264,11 +264,7 @@ public class MissionServiceImpl implements MissionService {
 
         publishRewardRequestedNotifications(auth, mission, request);
 
-        String requesterName =
-                customerRepository
-                        .findById(auth.customerId())
-                        .map(Customer::getName)
-                        .orElse(UNKNOWN_NAME);
+        String requesterName = getCustomerNameOrUnknown(auth.customerId());
         return new MissionRequestResult(
                 request.getId(),
                 new MissionLogListResult.MissionItemSimple(
@@ -443,11 +439,7 @@ public class MissionServiceImpl implements MissionService {
 
     private void publishRewardRequestedNotifications(
             AuthContext auth, MissionItem mission, MissionRequest request) {
-        String requesterName =
-                customerRepository
-                        .findById(request.getRequesterId())
-                        .map(Customer::getName)
-                        .orElse(UNKNOWN_NAME);
+        String requesterName = getCustomerNameOrUnknown(request.getRequesterId());
         String message = buildRewardRequestedNotificationMessage(requesterName, mission);
         Map<String, Object> data = buildRewardRequestedNotificationData(mission, request);
         List<Long> ownerCustomerIds =
@@ -478,6 +470,13 @@ public class MissionServiceImpl implements MissionService {
                 "requestId", request.getId(),
                 "missionId", mission.getId(),
                 "requesterId", request.getRequesterId());
+    }
+
+    private String getCustomerNameOrUnknown(Long customerId) {
+        return customerRepository
+                .findById(customerId)
+                .map(Customer::getName)
+                .orElse(UNKNOWN_NAME);
     }
 
     /** 미션 이력 추적을 위해 로그를 추가한다. */
