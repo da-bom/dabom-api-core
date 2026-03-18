@@ -14,4 +14,9 @@ public enum OutboxErrorCode implements BaseErrorCode {
     private final HttpStatus httpStatus;
     private final String customCode;
     private final String message;
+
+    @Override
+    public String getMessage() {
+        return message;
+    }
 }
