@@ -162,7 +162,7 @@ class RewardControllerIntegrationTest {
                 mockMvc.perform(
                                 post("/missions/{missionId}/request", mission.getId())
                                         .header("Authorization", "Bearer " + MEMBER_TOKEN))
-                        .andExpect(status().isOk())
+                        .andExpect(status().isCreated())
                         .andReturn();
         Long requestId =
                 objectMapper
