@@ -41,6 +41,7 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
 
     private static final String MANUAL_BLOCK_REASON = "MANUAL_BLOCK";
     private static final String QUOTA_EXCEEDED_REASON = "QUOTA_EXCEEDED";
+    private static final double BYTES_PER_GIGABYTE = 1024.0 * 1024.0 * 1024.0;
 
     private final PolicyAssignmentRepository policyAssignmentRepository;
     private final PolicyQueryRepository policyQueryRepository;
@@ -296,7 +297,7 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
         if (newLimitBytes == null) {
             return "개인 데이터 사용 한도가 무제한으로 변경되었어요.";
         }
-        double limitInGb = newLimitBytes / 1024d / 1024d / 1024d;
+        double limitInGb = newLimitBytes / BYTES_PER_GIGABYTE;
         return "개인 데이터 사용 한도가 %.2fGB로 변경되었어요.".formatted(limitInGb);
     }
 
