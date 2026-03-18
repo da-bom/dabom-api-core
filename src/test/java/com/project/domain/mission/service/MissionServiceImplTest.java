@@ -232,7 +232,8 @@ class MissionServiceImplTest {
                         .thumbnailUrl("/rewards/mega-coffee.jpg")
                         .build();
 
-        given(familyMemberRepository.findByCustomerId(2L)).willReturn(Optional.of(target));
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(2L))
+                .willReturn(Optional.of(target));
         given(rewardSnapshotService.createFromTemplate(500L)).willReturn(savedReward);
         given(missionItemRepository.save(any(MissionItem.class)))
                 .willAnswer(

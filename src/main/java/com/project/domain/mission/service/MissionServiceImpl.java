@@ -175,7 +175,7 @@ public class MissionServiceImpl implements MissionService {
 
         FamilyMember targetMember =
                 familyMemberRepository
-                        .findByCustomerId(req.targetCustomerId())
+                        .findByCustomerIdAndDeletedAtIsNull(req.targetCustomerId())
                         .orElseThrow(
                                 () ->
                                         new ApplicationException(

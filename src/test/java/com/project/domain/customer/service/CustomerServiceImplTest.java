@@ -73,7 +73,10 @@ class CustomerServiceImplTest {
         CustomerSignInRequest request = new CustomerSignInRequest("01012345678", "raw-pw");
 
         given(customerRepository.findByPhoneNumber("01012345678")).willReturn(customer);
-        given(familyMemberRepository.findRoleById(customer.getId())).willReturn(RoleType.OWNER);
+        FamilyMember familyMember =
+                FamilyMember.builder().customerId(customer.getId()).role(RoleType.OWNER).build();
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(customer.getId()))
+                .willReturn(Optional.of(familyMember));
         given(jwtTokenUtil.createToken(customer.getId(), RoleType.OWNER))
                 .willReturn("access-token");
         given(jwtTokenUtil.createRefreshToken(customer.getId(), RoleType.OWNER))
@@ -184,7 +187,10 @@ class CustomerServiceImplTest {
 
         given(jwtTokenUtil.verifyRefreshToken("owner-refresh-token")).willReturn(claims);
         given(customerRepository.existsById(10L)).willReturn(true);
-        given(familyMemberRepository.findRoleById(10L)).willReturn(RoleType.OWNER);
+        FamilyMember ownerMember =
+                FamilyMember.builder().customerId(10L).role(RoleType.OWNER).build();
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(10L))
+                .willReturn(Optional.of(ownerMember));
         given(jwtTokenUtil.reissueTokens(10L, RoleType.OWNER))
                 .willReturn(new TokenRefreshResult("new-access", "new-refresh", 1800L));
 
@@ -207,7 +213,10 @@ class CustomerServiceImplTest {
 
         given(jwtTokenUtil.verifyRefreshToken("member-refresh-token")).willReturn(claims);
         given(customerRepository.existsById(20L)).willReturn(true);
-        given(familyMemberRepository.findRoleById(20L)).willReturn(RoleType.MEMBER);
+        FamilyMember memberFamilyMember =
+                FamilyMember.builder().customerId(20L).role(RoleType.MEMBER).build();
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(20L))
+                .willReturn(Optional.of(memberFamilyMember));
         given(jwtTokenUtil.reissueTokens(20L, RoleType.MEMBER))
                 .willReturn(new TokenRefreshResult("new-access", "new-refresh", 1800L));
 
@@ -525,7 +534,8 @@ class CustomerServiceImplTest {
                         .build();
 
         given(customerRepository.findById(10L)).willReturn(Optional.of(customer));
-        given(familyMemberRepository.findByCustomerId(10L)).willReturn(Optional.of(familyMember));
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(10L))
+                .willReturn(Optional.of(familyMember));
 
         // when
         CustomerMe result = customerService.getMe(10L);
@@ -558,7 +568,8 @@ class CustomerServiceImplTest {
         // given
         Customer customer = new Customer("01012345678", "hashed-pw", "철수");
         given(customerRepository.findById(10L)).willReturn(Optional.of(customer));
-        given(familyMemberRepository.findByCustomerId(10L)).willReturn(Optional.empty());
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(10L))
+                .willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> customerService.getMe(10L))

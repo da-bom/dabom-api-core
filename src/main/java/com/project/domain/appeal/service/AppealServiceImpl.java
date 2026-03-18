@@ -544,7 +544,7 @@ public class AppealServiceImpl implements AppealService {
     private void validateFamilyAccess(Long familyId, PolicyAppeal appeal) {
         FamilyMember requester =
                 familyMemberRepository
-                        .findByCustomerId(appeal.getRequesterId())
+                        .findByCustomerIdAndDeletedAtIsNull(appeal.getRequesterId())
                         .orElseThrow(
                                 () -> new ApplicationException(AppealErrorCode.APPEAL_FORBIDDEN));
         if (!requester.getFamilyId().equals(familyId)) {
@@ -669,7 +669,7 @@ public class AppealServiceImpl implements AppealService {
     private void validateFamilyMemberExists(Long customerId, Long familyId) {
         FamilyMember member =
                 familyMemberRepository
-                        .findByCustomerId(customerId)
+                        .findByCustomerIdAndDeletedAtIsNull(customerId)
                         .orElseThrow(
                                 () -> new ApplicationException(AppealErrorCode.APPEAL_FORBIDDEN));
         if (!member.getFamilyId().equals(familyId)) {

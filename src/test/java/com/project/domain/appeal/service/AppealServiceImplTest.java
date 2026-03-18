@@ -264,7 +264,7 @@ class AppealServiceImplTest {
 
         given(policyAppealRepository.findByIdAndDeletedAtIsNull(30L))
                 .willReturn(java.util.Optional.of(appeal));
-        given(familyMemberRepository.findByCustomerId(2L))
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(2L))
                 .willReturn(
                         java.util.Optional.of(
                                 FamilyMember.builder()
@@ -380,7 +380,7 @@ class AppealServiceImplTest {
 
         given(policyAppealRepository.findByIdAndDeletedAtIsNull(30L))
                 .willReturn(java.util.Optional.of(appeal));
-        given(familyMemberRepository.findByCustomerId(2L))
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(2L))
                 .willReturn(
                         java.util.Optional.of(
                                 FamilyMember.builder()
@@ -413,7 +413,7 @@ class AppealServiceImplTest {
 
         given(policyAppealRepository.findByIdAndDeletedAtIsNull(31L))
                 .willReturn(java.util.Optional.of(appeal));
-        given(familyMemberRepository.findByCustomerId(2L))
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(2L))
                 .willReturn(
                         java.util.Optional.of(
                                 FamilyMember.builder()
@@ -441,7 +441,7 @@ class AppealServiceImplTest {
 
         given(policyAppealRepository.findByIdAndDeletedAtIsNull(30L))
                 .willReturn(java.util.Optional.of(appeal));
-        given(familyMemberRepository.findByCustomerId(2L))
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(2L))
                 .willReturn(
                         java.util.Optional.of(
                                 FamilyMember.builder()
@@ -498,7 +498,7 @@ class AppealServiceImplTest {
 
         given(policyAppealRepository.findByIdAndDeletedAtIsNull(30L))
                 .willReturn(java.util.Optional.of(appeal));
-        given(familyMemberRepository.findByCustomerId(2L))
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(2L))
                 .willReturn(
                         java.util.Optional.of(
                                 FamilyMember.builder()
@@ -506,7 +506,7 @@ class AppealServiceImplTest {
                                         .customerId(2L)
                                         .role(RoleType.MEMBER)
                                         .build()));
-        given(familyMemberRepository.findByCustomerId(1L))
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(1L))
                 .willReturn(
                         java.util.Optional.of(
                                 FamilyMember.builder()

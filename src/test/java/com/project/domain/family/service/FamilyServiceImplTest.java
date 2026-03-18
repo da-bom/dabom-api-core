@@ -151,14 +151,16 @@ class FamilyServiceImplTest {
 
         Family family = Family.builder().name("다봄 가족").createdById(customerId).build();
 
-        given(familyMemberRepository.findFamilyIdByCustomerId(customerId))
-                .willReturn(Optional.of(familyId));
+        FamilyMember member =
+                FamilyMember.builder().customerId(customerId).familyId(familyId).build();
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(customerId))
+                .willReturn(Optional.of(member));
         given(familyRepository.findById(familyId)).willReturn(Optional.of(family));
 
         Family result = familyService.updateFamilyName(customerId, newName);
 
         assertThat(result.getName()).isEqualTo(newName);
-        verify(familyMemberRepository).findFamilyIdByCustomerId(customerId);
+        verify(familyMemberRepository).findByCustomerIdAndDeletedAtIsNull(customerId);
         verify(familyRepository).findById(familyId);
     }
 
@@ -166,7 +168,7 @@ class FamilyServiceImplTest {
     @DisplayName("updateFamilyName - 고객이 가족에 속하지 않으면 예외를 던진다")
     void updateFamilyName_customerNotInFamily_throwsException() {
         Long customerId = 9_999L;
-        given(familyMemberRepository.findFamilyIdByCustomerId(customerId))
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(customerId))
                 .willReturn(Optional.empty());
 
         assertThatThrownBy(() -> familyService.updateFamilyName(customerId, "새 이름"))
@@ -182,8 +184,10 @@ class FamilyServiceImplTest {
     void updateFamilyName_familyNotFound_throwsException() {
         Long customerId = 1L;
         Long familyId = 9_999L;
-        given(familyMemberRepository.findFamilyIdByCustomerId(customerId))
-                .willReturn(Optional.of(familyId));
+        FamilyMember member =
+                FamilyMember.builder().customerId(customerId).familyId(familyId).build();
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(customerId))
+                .willReturn(Optional.of(member));
         given(familyRepository.findById(familyId)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> familyService.updateFamilyName(customerId, "새 이름"))
@@ -204,8 +208,10 @@ class FamilyServiceImplTest {
                         new FamilyMemberInfo(2L, "아이1", RoleType.MEMBER),
                         new FamilyMemberInfo(3L, "아이2", RoleType.MEMBER));
 
-        given(familyMemberRepository.findFamilyIdByCustomerId(customerId))
-                .willReturn(Optional.of(familyId));
+        FamilyMember member =
+                FamilyMember.builder().customerId(customerId).familyId(familyId).build();
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(customerId))
+                .willReturn(Optional.of(member));
         given(familyQueryRepository.findMembersByFamilyId(familyId)).willReturn(members);
 
         List<FamilyMemberInfo> result = familyService.getFamilyMembers(customerId);
@@ -213,7 +219,7 @@ class FamilyServiceImplTest {
         assertThat(result).hasSize(2);
         assertThat(result).extracting(FamilyMemberInfo::role).containsOnly(RoleType.MEMBER);
         assertThat(result).extracting(FamilyMemberInfo::name).containsExactly("아이1", "아이2");
-        verify(familyMemberRepository).findFamilyIdByCustomerId(customerId);
+        verify(familyMemberRepository).findByCustomerIdAndDeletedAtIsNull(customerId);
         verify(familyQueryRepository).findMembersByFamilyId(familyId);
     }
 
@@ -221,7 +227,7 @@ class FamilyServiceImplTest {
     @DisplayName("getFamilyMembers - 고객이 가족에 속하지 않으면 예외를 던진다")
     void getFamilyMembers_customerNotInFamily_throwsException() {
         Long customerId = 9_999L;
-        given(familyMemberRepository.findFamilyIdByCustomerId(customerId))
+        given(familyMemberRepository.findByCustomerIdAndDeletedAtIsNull(customerId))
                 .willReturn(Optional.empty());
 
         assertThatThrownBy(() -> familyService.getFamilyMembers(customerId))

@@ -24,7 +24,7 @@ public class AuthContextService {
     public AuthContext resolve(Long customerId) {
         FamilyMember member =
                 familyMemberRepository
-                        .findByCustomerId(customerId)
+                        .findByCustomerIdAndDeletedAtIsNull(customerId)
                         .orElseThrow(
                                 () -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
         Customer customer =

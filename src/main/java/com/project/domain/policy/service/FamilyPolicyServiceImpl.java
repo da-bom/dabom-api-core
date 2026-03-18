@@ -96,7 +96,11 @@ public class FamilyPolicyServiceImpl implements FamilyPolicyService {
     }
 
     private void validateOwner(Long actorId) {
-        RoleType actorRole = familyMemberRepository.findRoleById(actorId);
+        RoleType actorRole =
+                familyMemberRepository
+                        .findByCustomerIdAndDeletedAtIsNull(actorId)
+                        .map(com.project.domain.family.entity.FamilyMember::getRole)
+                        .orElse(null);
         if (actorRole != RoleType.OWNER) {
             throw new ApplicationException(PolicyErrorCode.POLICY_OWNER_ONLY);
         }
