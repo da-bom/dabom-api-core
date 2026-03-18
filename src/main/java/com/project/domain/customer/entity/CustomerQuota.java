@@ -93,7 +93,7 @@ public class CustomerQuota extends BaseEntity {
             return;
         }
 
-        if (exceededReason.equals(blockReason)) {
+        if (java.util.Objects.equals(exceededReason, blockReason)) {
             this.isBlocked = false;
             this.blockReason = null;
         }
