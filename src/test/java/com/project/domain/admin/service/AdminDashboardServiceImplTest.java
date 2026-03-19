@@ -23,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthComponent;
 import org.springframework.boot.actuate.health.HealthEndpoint;
+import org.springframework.kafka.core.KafkaAdmin;
 
 import com.project.domain.admin.model.AdminDashboard;
 import com.project.domain.customer.entity.CustomerQuota;
@@ -50,6 +51,7 @@ class AdminDashboardServiceImplTest {
     @Mock private CustomerQuotaRepository customerQuotaRepository;
     @Mock private UsageRecordRepository usageRecordRepository;
     @Mock private HealthEndpoint healthEndpoint;
+    @Mock private KafkaAdmin kafkaAdmin;
 
     private AdminDashboardServiceImpl adminDashboardService;
 
@@ -63,6 +65,7 @@ class AdminDashboardServiceImplTest {
                         customerQuotaRepository,
                         usageRecordRepository,
                         healthEndpoint,
+                        kafkaAdmin,
                         FIXED_CLOCK);
     }
 
@@ -84,7 +87,7 @@ class AdminDashboardServiceImplTest {
                         usageRecordRepository.countByEventTimeGreaterThanEqualAndDeletedAtIsNull(
                                 ONE_MINUTE_AGO))
                 .willReturn(300L);
-        mockHealthEndpoint("UP", "UP", "UP");
+        mockHealthEndpoint("UP", "UP");
         given(
                         customerQuotaRepository
                                 .findTop10ByIsBlockedTrueAndCurrentMonthAndDeletedAtIsNullOrderByUpdatedAtDesc(
@@ -101,9 +104,9 @@ class AdminDashboardServiceImplTest {
         assertThat(result.blockedUsers()).isEqualTo(1523L);
         assertThat(result.todayEvents()).isEqualTo(432000L);
         assertThat(result.currentTps()).isEqualTo(5L);
-        assertThat(result.systemHealth().redis()).isEqualTo("UP");
-        assertThat(result.systemHealth().kafka()).isEqualTo("UP");
-        assertThat(result.systemHealth().mysql()).isEqualTo("UP");
+        assertThat(result.systemHealth().redis()).isEqualTo("ON");
+        assertThat(result.systemHealth().kafka()).isEqualTo("OFF");
+        assertThat(result.systemHealth().mysql()).isEqualTo("ON");
         assertThat(result.recentBlocks()).isEmpty();
     }
 
@@ -112,7 +115,7 @@ class AdminDashboardServiceImplTest {
     void getDashboard_mapsRecentBlocksCorrectly() {
         // given
         stubCountQueries();
-        mockHealthEndpoint("UP", "UP", "UP");
+        mockHealthEndpoint("UP", "UP");
 
         CustomerQuota blocked =
                 CustomerQuota.builder()
@@ -144,8 +147,8 @@ class AdminDashboardServiceImplTest {
     }
 
     @Test
-    @DisplayName("getDashboard - 헬스 컴포넌트가 없으면 UNKNOWN을 반환한다")
-    void getDashboard_missingHealthComponent_returnsUnknown() {
+    @DisplayName("getDashboard - 헬스 컴포넌트가 없으면 OFF를 반환한다")
+    void getDashboard_missingHealthComponent_returnsOff() {
         // given
         stubCountQueries();
         given(
@@ -154,7 +157,7 @@ class AdminDashboardServiceImplTest {
                                         CURRENT_MONTH))
                 .willReturn(List.of());
 
-        // redis만 존재, kafka/db 없음
+        // redis만 존재, db 없음
         org.springframework.boot.actuate.health.SystemHealth systemHealth =
                 mock(org.springframework.boot.actuate.health.SystemHealth.class);
         Map<String, HealthComponent> components = new HashMap<>();
@@ -166,14 +169,14 @@ class AdminDashboardServiceImplTest {
         AdminDashboard result = adminDashboardService.getDashboard();
 
         // then
-        assertThat(result.systemHealth().redis()).isEqualTo("UP");
-        assertThat(result.systemHealth().kafka()).isEqualTo("UNKNOWN");
-        assertThat(result.systemHealth().mysql()).isEqualTo("UNKNOWN");
+        assertThat(result.systemHealth().redis()).isEqualTo("ON");
+        assertThat(result.systemHealth().kafka()).isEqualTo("OFF");
+        assertThat(result.systemHealth().mysql()).isEqualTo("OFF");
     }
 
     @Test
-    @DisplayName("getDashboard - 헬스 컴포넌트가 DOWN이면 DOWN을 반환한다")
-    void getDashboard_downHealthComponent_returnsDown() {
+    @DisplayName("getDashboard - 헬스 컴포넌트가 DOWN이면 OFF를 반환한다")
+    void getDashboard_downHealthComponent_returnsOff() {
         // given
         stubCountQueries();
         given(
@@ -182,15 +185,15 @@ class AdminDashboardServiceImplTest {
                                         CURRENT_MONTH))
                 .willReturn(List.of());
 
-        mockHealthEndpoint("DOWN", "UP", "UP");
+        mockHealthEndpoint("DOWN", "UP");
 
         // when
         AdminDashboard result = adminDashboardService.getDashboard();
 
         // then
-        assertThat(result.systemHealth().redis()).isEqualTo("DOWN");
-        assertThat(result.systemHealth().kafka()).isEqualTo("UP");
-        assertThat(result.systemHealth().mysql()).isEqualTo("UP");
+        assertThat(result.systemHealth().redis()).isEqualTo("OFF");
+        assertThat(result.systemHealth().kafka()).isEqualTo("OFF");
+        assertThat(result.systemHealth().mysql()).isEqualTo("ON");
     }
 
     @Test
@@ -211,7 +214,7 @@ class AdminDashboardServiceImplTest {
                         usageRecordRepository.countByEventTimeGreaterThanEqualAndDeletedAtIsNull(
                                 ONE_MINUTE_AGO))
                 .willReturn(30L);
-        mockHealthEndpoint("UP", "UP", "UP");
+        mockHealthEndpoint("UP", "UP");
         given(
                         customerQuotaRepository
                                 .findTop10ByIsBlockedTrueAndCurrentMonthAndDeletedAtIsNullOrderByUpdatedAtDesc(
@@ -243,12 +246,11 @@ class AdminDashboardServiceImplTest {
                 .willReturn(60L);
     }
 
-    private void mockHealthEndpoint(String redisStatus, String kafkaStatus, String dbStatus) {
+    private void mockHealthEndpoint(String redisStatus, String dbStatus) {
         org.springframework.boot.actuate.health.SystemHealth systemHealth =
                 mock(org.springframework.boot.actuate.health.SystemHealth.class);
         Map<String, HealthComponent> components = new HashMap<>();
         components.put("redis", Health.status(redisStatus).build());
-        components.put("kafka", Health.status(kafkaStatus).build());
         components.put("db", Health.status(dbStatus).build());
         given(systemHealth.getComponents()).willReturn(components);
         given(healthEndpoint.health()).willReturn(systemHealth);

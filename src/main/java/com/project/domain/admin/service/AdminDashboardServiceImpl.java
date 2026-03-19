@@ -5,10 +5,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.kafka.clients.admin.AdminClient;
 import org.springframework.boot.actuate.health.HealthComponent;
 import org.springframework.boot.actuate.health.HealthEndpoint;
 import org.springframework.boot.actuate.health.Status;
+import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +41,7 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
     private final CustomerQuotaRepository customerQuotaRepository;
     private final UsageRecordRepository usageRecordRepository;
     private final HealthEndpoint healthEndpoint;
+    private final KafkaAdmin kafkaAdmin;
     private final Clock clock;
 
     @Override
@@ -83,9 +87,19 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
         org.springframework.boot.actuate.health.SystemHealth health =
                 (org.springframework.boot.actuate.health.SystemHealth) healthEndpoint.health();
         return new AdminDashboard.SystemHealth(
-                getComponentStatus(health, HEALTH_REDIS),
-                getComponentStatus(health, HEALTH_KAFKA),
-                getComponentStatus(health, HEALTH_DB));
+                toOnOff(getComponentStatus(health, HEALTH_REDIS)),
+                checkKafkaStatus(),
+                toOnOff(getComponentStatus(health, HEALTH_DB)));
+    }
+
+    private String checkKafkaStatus() {
+        try (AdminClient client =
+                AdminClient.create(kafkaAdmin.getConfigurationProperties())) {
+            client.describeCluster().clusterId().get(5, TimeUnit.SECONDS);
+            return "ON";
+        } catch (Exception e) {
+            return "OFF";
+        }
     }
 
     private String getComponentStatus(
@@ -96,6 +110,10 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
         }
         Status status = component.getStatus();
         return status.getCode();
+    }
+
+    private String toOnOff(String status) {
+        return "UP".equals(status) ? "ON" : "OFF";
     }
 
     private List<AdminDashboard.RecentBlock> buildRecentBlocks(LocalDate currentMonth) {
