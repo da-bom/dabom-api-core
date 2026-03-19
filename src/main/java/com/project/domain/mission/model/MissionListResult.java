@@ -11,6 +11,7 @@ public record MissionListResult(List<MissionCard> missions, String nextCursor, b
     /** 목록 카드 단위 모델 */
     public record MissionCard(
             Long missionItemId,
+            Long requestId,
             String missionText,
             String requestStatus,
             CustomerSummary target,

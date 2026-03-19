@@ -388,6 +388,45 @@ class MissionControllerIntegrationTest {
         assertThat(foundMission).isNotNull();
         assertThat(Objects.requireNonNull(foundMission).path("requestStatus").asText())
                 .isEqualTo("REJECTED");
+        assertThat(foundMission.path("requestId").isNull()).isTrue();
+    }
+
+    @Test
+    @DisplayName("미션 목록은 PENDING 요청이 있으면 requestId를 함께 반환한다")
+    void missionListIncludesPendingRequestId() throws Exception {
+        MissionRequest request =
+                missionRequestRepository.save(
+                        MissionRequest.builder()
+                                .missionItemId(mission.getId())
+                                .requesterId(member.getId())
+                                .status(MissionRequestStatus.PENDING)
+                                .build());
+
+        MvcResult result =
+                mockMvc.perform(
+                                get("/missions")
+                                        .header("Authorization", "Bearer " + MEMBER_TOKEN)
+                                        .param("size", "20"))
+                        .andExpect(status().isOk())
+                        .andReturn();
+
+        JsonNode missions =
+                objectMapper
+                        .readTree(result.getResponse().getContentAsString())
+                        .path("data")
+                        .path("missions");
+        JsonNode foundMission = null;
+        for (JsonNode node : missions) {
+            if (node.path("missionItemId").asLong() == mission.getId()) {
+                foundMission = node;
+                break;
+            }
+        }
+
+        assertThat(foundMission).isNotNull();
+        assertThat(Objects.requireNonNull(foundMission).path("requestId").asLong())
+                .isEqualTo(request.getId());
+        assertThat(foundMission.path("requestStatus").asText()).isEqualTo("PENDING");
     }
 
     @Test
