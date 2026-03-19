@@ -60,17 +60,6 @@ public interface MissionRequestRepository extends JpaRepository<MissionRequest, 
             """
             select mr
             from MissionRequest mr
-            where mr.missionItemId in :missionItemIds
-              and mr.status = :status
-            order by mr.createdAt desc, mr.id desc
-            """)
-    List<MissionRequest> findByMissionItemIdInAndStatusOrderByCreatedAtDescIdDesc(
-            Set<Long> missionItemIds, MissionRequestStatus status);
-
-    @Query(
-            """
-            select mr
-            from MissionRequest mr
             where mr.requesterId = :requesterId
               and mr.status = :status
               and mr.resolvedAt is not null

@@ -1,5 +1,6 @@
 package com.project.domain.mission.service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -76,8 +77,17 @@ public class MissionServiceImpl implements MissionService {
         String nextCursor = hasNext ? String.valueOf(page.getLast().getId()) : null;
 
         Map<Long, String> customerNameMap = loadCustomerNameMap(page);
-        Map<Long, String> requestStatusMap = loadMissionRequestStatusMap(page);
-        Map<Long, Long> pendingRequestIdMap = loadPendingMissionRequestIdMap(page);
+        Map<Long, MissionRequest> latestRequestMap = loadLatestMissionRequestMap(page);
+        Map<Long, String> requestStatusMap = new HashMap<>();
+        Map<Long, Long> pendingRequestIdMap = new HashMap<>();
+
+        latestRequestMap.forEach(
+                (missionId, request) -> {
+                    requestStatusMap.put(missionId, request.getStatus().name());
+                    if (request.isPending()) {
+                        pendingRequestIdMap.put(missionId, request.getId());
+                    }
+                });
 
         return new MissionListResult(
                 page.stream()
@@ -314,7 +324,7 @@ public class MissionServiceImpl implements MissionService {
     }
 
     /** 미션별 최신 요청 상태를 맵 형태로 조회한다. */
-    private Map<Long, String> loadMissionRequestStatusMap(List<MissionItem> missions) {
+    private Map<Long, MissionRequest> loadLatestMissionRequestMap(List<MissionItem> missions) {
         Set<Long> missionIds =
                 missions.stream().map(MissionItem::getId).collect(Collectors.toSet());
         return missionRequestRepository
@@ -323,21 +333,7 @@ public class MissionServiceImpl implements MissionService {
                 .collect(
                         Collectors.toMap(
                                 MissionRequest::getMissionItemId,
-                                request -> request.getStatus().name(),
-                                (latest, ignored) -> latest));
-    }
-
-    private Map<Long, Long> loadPendingMissionRequestIdMap(List<MissionItem> missions) {
-        Set<Long> missionIds =
-                missions.stream().map(MissionItem::getId).collect(Collectors.toSet());
-        return missionRequestRepository
-                .findByMissionItemIdInAndStatusOrderByCreatedAtDescIdDesc(
-                        missionIds, MissionRequestStatus.PENDING)
-                .stream()
-                .collect(
-                        Collectors.toMap(
-                                MissionRequest::getMissionItemId,
-                                MissionRequest::getId,
+                                Function.identity(),
                                 (latest, ignored) -> latest));
     }
 

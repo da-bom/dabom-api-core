@@ -78,18 +78,6 @@ class MissionServiceImplTest {
                                         .requesterId(2L)
                                         .status(MissionRequestStatus.PENDING)
                                         .build()));
-        given(
-                        missionRequestRepository
-                                .findByMissionItemIdInAndStatusOrderByCreatedAtDescIdDesc(
-                                        java.util.Set.of(100L), MissionRequestStatus.PENDING))
-                .willReturn(
-                        List.of(
-                                MissionRequest.builder()
-                                        .id(200L)
-                                        .missionItemId(100L)
-                                        .requesterId(2L)
-                                        .status(MissionRequestStatus.PENDING)
-                                        .build()));
         Customer owner = customer(1L, "owner");
         Customer member = customer(2L, "member");
         given(customerRepository.findAllById(anyIterable())).willReturn(List.of(owner, member));
@@ -136,19 +124,6 @@ class MissionServiceImplTest {
                                         .missionItemId(99L)
                                         .requesterId(2L)
                                         .status(MissionRequestStatus.REJECTED)
-                                        .build()));
-        given(
-                        missionRequestRepository
-                                .findByMissionItemIdInAndStatusOrderByCreatedAtDescIdDesc(
-                                        java.util.Set.of(100L, 99L, 98L),
-                                        MissionRequestStatus.PENDING))
-                .willReturn(
-                        List.of(
-                                MissionRequest.builder()
-                                        .id(201L)
-                                        .missionItemId(100L)
-                                        .requesterId(2L)
-                                        .status(MissionRequestStatus.PENDING)
                                         .build()));
         Customer owner = customer(1L, "owner");
         Customer member = customer(2L, "member");
