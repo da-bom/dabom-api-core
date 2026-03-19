@@ -55,7 +55,7 @@ public class AdminFamilyController {
         return ApiResponse.success(FamilyDetailResponse.from(familyDetail));
     }
 
-    @PatchMapping("/{familyId}")
+    @PostMapping("/{familyId}")
     @AdminOnly
     @Operation(summary = "가족 구성원 권한/한도 수정", description = "구성원의 역할과 데이터 한도를 일괄 수정합니다.")
     public ApiResponse<AdminFamilyUpdateResponse> updateFamily(
