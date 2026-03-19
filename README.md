@@ -306,10 +306,10 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    A[Request] --> B{경로/권한}
-    B -- /admin/** --> C[@AdminOnly]
-    B -- 보호자 전용 기능 --> D[@OwnerOnly]
-    B -- 일반 고객 기능 --> E[JWT + CustomerId Resolver]
+    A[Request] --> B{"경로/권한"}
+    B -- "/admin/**" --> C["@AdminOnly"]
+    B -- "보호자 전용 기능" --> D["@OwnerOnly"]
+    B -- "일반 고객 기능" --> E["JWT + CustomerId Resolver"]
 ```
 
 ## API 응답 규약 📘
