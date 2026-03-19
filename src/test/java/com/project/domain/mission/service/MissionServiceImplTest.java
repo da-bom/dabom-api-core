@@ -85,6 +85,7 @@ class MissionServiceImplTest {
         var result = missionService.listMissions(auth, null, 20);
 
         assertThat(result.missions()).hasSize(1);
+        assertThat(result.missions().getFirst().requestId()).isEqualTo(200L);
         assertThat(result.missions().getFirst().requestStatus()).isEqualTo("PENDING");
         assertThat(result.missions().getFirst().reward().rewardId()).isEqualTo(900L);
         assertThat(result.missions().getFirst().reward().templateId()).isEqualTo(500L);
@@ -136,8 +137,11 @@ class MissionServiceImplTest {
                                 .map(MissionListResult.MissionCard::missionItemId)
                                 .toList())
                 .containsExactly(100L, 99L, 98L);
+        assertThat(result.missions().get(0).requestId()).isEqualTo(201L);
         assertThat(result.missions().get(0).requestStatus()).isEqualTo("PENDING");
+        assertThat(result.missions().get(1).requestId()).isNull();
         assertThat(result.missions().get(1).requestStatus()).isEqualTo("REJECTED");
+        assertThat(result.missions().get(2).requestId()).isNull();
         assertThat(result.missions().get(2).requestStatus()).isNull();
     }
 
